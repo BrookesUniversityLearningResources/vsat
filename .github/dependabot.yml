@@ -1,0 +1,31 @@
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    ignore:
+      # stick with latest even-numbered version of Node for now
+      - dependency-name: "@types/node"
+        versions: [ ">22" ]
+      # stick with React 18 until third-party dependencies update
+      - dependency-name: "@types/react"
+        versions: [ ">18" ]
+      - dependency-name: "@types/react-dom"
+        versions: [ ">18" ]
+      - dependency-name: "react"
+        versions: [ ">18" ]
+      - dependency-name: "react-dom"
+        versions: [ ">18" ]
+      - dependency-name: "react-error-boundary"
+        versions: [ ">18" ]
+
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
