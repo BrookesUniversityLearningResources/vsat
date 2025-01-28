@@ -1,4 +1,4 @@
-# Virtual Storyelling Application Toolkit • VSAT
+# Virtual Storytelling Application Toolkit • VSAT
 
 > You'll need some [environment variables](./docs/environment-variables.md).
 
