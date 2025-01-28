@@ -18,7 +18,7 @@ updates:
       - dependency-name: "react-dom"
         versions: [ ">18" ]
       - dependency-name: "react-error-boundary"
-        versions: [ ">18" ]
+        versions: [ ">4" ]
 
   - package-ecosystem: "docker"
     directory: "/"
