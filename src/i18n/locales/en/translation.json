@@ -19,24 +19,14 @@
         "heading": "Check your email",
         "description": "Complete your log in using the magic link we just sent."
       },
-      "error": "There's been an error",
-      "common": {
-        "loading": {
-          "text": "Loading…"
-        }
-      }
+      "error": "There's been an error"
     },
     "login-callback": {
       "meta": {
         "title": "Login • VSAT",
         "description": "VSAT login"
       },
-      "message": "Setting up your writing space…",
-      "common": {
-        "loading": {
-          "text": "Loading…"
-        }
-      }
+      "message": "Setting up your writing space…"
     },
     "author": {
       "meta": {
@@ -63,13 +53,6 @@
             "1": "Darn, something went wrong.",
             "2": "Oops, something went wrong."
           }
-        }
-      },
-      "common": {
-        "yes": "Yes",
-        "no": "No",
-        "loading": {
-          "text": "Loading…"
         }
       }
     },
@@ -145,10 +128,6 @@
         "story": {
           "published": "Story published ✌️"
         }
-      },
-      "common": {
-        "yes": "Yes",
-        "no": "No"
       }
     },
     "error": {
@@ -169,6 +148,13 @@
         },
         "heading": "{{title}}"
       }
+    }
+  },
+  "__common__": {
+    "yes": "Yes",
+    "no": "No",
+    "loading": {
+      "text": "Loading…"
     }
   }
 }

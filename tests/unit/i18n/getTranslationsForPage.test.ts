@@ -54,8 +54,8 @@ describe("getTranslationsForPage", () => {
     });
 
     assert.deepStrictEqual(translations, {
-      af: { title: "Fiela se kind" },
-      en: { title: "Fiela's child" },
+      af: { title: "Fiela se kind", common: {} },
+      en: { title: "Fiela's child", common: {} },
     });
   });
 
@@ -107,8 +107,8 @@ describe("getTranslationsForPage", () => {
     });
 
     assert.deepStrictEqual(translations, {
-      af: { title: "Fiela se kind" },
-      en: { title: "Fiela's child" },
+      af: { title: "Fiela se kind", common: {} },
+      en: { title: "Fiela's child", common: {} },
     });
   });
 
@@ -159,7 +159,7 @@ describe("getTranslationsForPage", () => {
     });
 
     assert.deepStrictEqual(translations, {
-      en: { title: "Fiela's child" },
+      en: { title: "Fiela's child", common: {} },
     });
   });
 
@@ -192,6 +192,127 @@ describe("getTranslationsForPage", () => {
 
     assert.deepStrictEqual(translations, {
       /* empty */
+    });
+  });
+
+  test("given existing translations for 'en/translation/home'" +
+    " and existing 'common' translations" +
+    " when we get the 'en' translations for the page 'home' in the default namespace 'translation'" +
+    " then the translations includes only those for 'en' ('en' being the default fallback)" +
+    " and the global 'common' translations", () => {
+    const currentLocale = "en"; // ⬅️ this is the default namespace
+    const fallbackLocale = "en";
+    const namespaceName = "translation"; // ⬅️ this is the default namespace
+    const pageName = "home";
+
+    const i18n = i18next.createInstance(
+      {
+        lng: currentLocale,
+        fallbackLng: fallbackLocale,
+        supportedLngs: [currentLocale, fallbackLocale],
+        resources: {
+          af: {
+            [namespaceName]: {
+              page: {
+                [pageName]: {
+                  title: "Fiela se kind",
+                },
+              },
+            },
+          },
+          en: {
+            [namespaceName]: {
+              page: {
+                [pageName]: {
+                  title: "Fiela's child",
+                },
+              },
+              __common__: {
+                loading: "General loading blurb",
+              },
+            },
+          },
+        },
+      },
+      (err) => {
+        if (err) {
+          assert.fail(err);
+        }
+      },
+    );
+
+    const translations = getTranslationsForPage(i18n)({
+      page: pageName,
+      /* using the default locale and namespace */
+    });
+
+    assert.deepStrictEqual(translations, {
+      en: {
+        title: "Fiela's child",
+        common: { loading: "General loading blurb" },
+      },
+    });
+  });
+
+  test("given existing translations for 'en/translation/home'" +
+    " and existing 'common' translations" +
+    " when we get the 'en' translations for the page 'home' in the default namespace 'translation'" +
+    " then the translations includes only those for 'en' ('en' being the default fallback)" +
+    " and the page's 'common' translations override the global 'common' translations", () => {
+    const currentLocale = "en"; // ⬅️ this is the default namespace
+    const fallbackLocale = "en";
+    const namespaceName = "translation"; // ⬅️ this is the default namespace
+    const pageName = "home";
+
+    const i18n = i18next.createInstance(
+      {
+        lng: currentLocale,
+        fallbackLng: fallbackLocale,
+        supportedLngs: [currentLocale, fallbackLocale],
+        resources: {
+          af: {
+            [namespaceName]: {
+              page: {
+                [pageName]: {
+                  title: "Fiela se kind",
+                },
+              },
+            },
+          },
+          en: {
+            [namespaceName]: {
+              page: {
+                [pageName]: {
+                  title: "Fiela's child",
+                  common: {
+                    loading: "Page-specific loading blurb",
+                  },
+                },
+              },
+              __common__: {
+                loading: "General loading blurb",
+              },
+            },
+          },
+        },
+      },
+      (err) => {
+        if (err) {
+          assert.fail(err);
+        }
+      },
+    );
+
+    const translations = getTranslationsForPage(i18n)({
+      page: pageName,
+      /* using the default locale and namespace */
+    });
+
+    assert.deepStrictEqual(translations, {
+      en: {
+        title: "Fiela's child",
+        common: { loading: "Page-specific loading blurb" },
+      },
     });
   });
 });

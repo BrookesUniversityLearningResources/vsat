@@ -60,6 +60,8 @@ export default function getTranslationsForPage(
   };
 }
 
+const KEY_COMMON_TRANSLATIONS = "__common__";
+
 function getTranslations(
   i18n: i18n,
   {
@@ -88,5 +90,10 @@ function getTranslations(
     );
   }
 
-  return translations;
+  const common = resourceBundle[KEY_COMMON_TRANSLATIONS] ?? {};
+
+  return {
+    /* global commons first so that in the event of page-specific commons they'll override these */ common,
+    ...translations,
+  };
 }

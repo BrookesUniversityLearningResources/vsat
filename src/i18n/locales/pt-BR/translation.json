@@ -15,22 +15,12 @@
       "submit": {
         "label": "Iniciar sessão"
       },
-      "error": "Ocorreu um erro",
-      "common": {
-        "loading": {
-          "text": "Carregamento…"
-        }
-      }
+      "error": "Ocorreu um erro"
     },
     "login-callback": {
       "meta": {
         "title": "Iniciar sessão • VSAT",
         "description": "VSAT Iniciar sessão"
-      },
-      "common": {
-        "loading": {
-          "text": "Carregamento…"
-        }
       }
     },
     "author": {
@@ -51,11 +41,6 @@
         "create-story": {
           "label": "Nova história"
         }
-      },
-      "common": {
-        "loading": {
-          "text": "Loading…"
-        }
       }
     },
     "story": {
@@ -63,7 +48,100 @@
         "title": "História • VSAT",
         "description": "Sua história"
       },
-      "heading": "{{title}}"
+      "heading": "{{title}}",
+      "scene": {
+        "heading": "{{title}}",
+        "image": {
+          "alt-text": "Thumbnail",
+          "preview": "Preview",
+          "placeholder": "Placeholder"
+        },
+        "action": {
+          "delete-image": {
+            "label": "Delete"
+          },
+          "cancel-image": {
+            "label": "Cancel"
+          },
+          "upload-image": {
+            "label": "Upload"
+          },
+          "undo": {
+            "label": "Undo"
+          },
+          "redo": {
+            "label": "Redo"
+          },
+          "save": {
+            "label": "Save"
+          },
+          "delete-scene": {
+            "label": "Delete scene",
+            "confirm": {
+              "prompt": "Delete this scene?"
+            }
+          },
+          "publish-story": {
+            "label": "Publish story"
+          },
+          "create-scene": {
+            "label": "New scene"
+          }
+        }
+      },
+      "notify": {
+        "error": {
+          "code": {
+            "1": "Darn, something went wrong.",
+            "2": "Oops, something went wrong.",
+            "4": "We can't find that story.",
+            "5": "We can't find that scene.",
+            "7": "A heading must be added before adding a paragraph.",
+            "8": "A heading must be added before adding a link.",
+            "9": "We had some trouble with the fiction.",
+            "10": "Oops, we had an issue uploading that image.",
+            "11": "Oops, we had an issue uploading that audio.",
+            "12": "Oops, we had an issue saving the fiction.",
+            "13": "The story must have at least one scene.",
+            "14": "Every scene must have some fiction.",
+            "15": "Every scene must have an image."
+          }
+        },
+        "scene": {
+          "content": {
+            "saved": "Story saved ✌️"
+          }
+        },
+        "story": {
+          "published": "Story published ✌️"
+        }
+      }
+    },
+    "error": {
+      "heading": "Oops",
+      "image": {
+        "alt-text": "An unhappy face"
+      },
+      "content": {
+        "admission": "Something's gone wrong on our side, sorry about that.",
+        "remediation": "Try refreshing the page: the error might be a blip."
+      }
+    },
+    "site": {
+      "story": {
+        "meta": {
+          "title": "Story • VSAT",
+          "description": "Your story"
+        },
+        "heading": "{{title}}"
+      }
+    }
+  },
+  "__common__": {
+    "yes": "Sim",
+    "no": "Não",
+    "loading": {
+      "text": "Carregamento…"
     }
   }
 }
