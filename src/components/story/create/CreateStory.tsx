@@ -12,8 +12,10 @@ import type { StoryCreated } from "../../../domain/story/client/createStory.js";
 import unsupported from "../../../domain/story/client/unsupportedResult.js";
 import useI18N from "../../../i18n/client/useI18N.js";
 import {
+  ClientContext,
   type WithCreateStory,
   type WithFeedback,
+  createClientEnvironment,
   useEnvironment,
 } from "../edit/context/ClientContext.js";
 
@@ -54,19 +56,13 @@ const StoryCreator: FC = () => {
     createTheStory.mutate();
   };
 
-  const label = createTheStory.isPending ? (
-    <img src="/loading.svg" alt={t("common.loading.text")} />
-  ) : (
-    <span>{t("action.create-story.label")}</span>
-  );
-
   return (
     <button
       type="button"
       onClick={onCreateStory}
       disabled={createTheStory.isPending}
     >
-      {label}
+      {t("action.create-story.label")}
     </button>
   );
 };
@@ -83,7 +79,9 @@ const CreateStory: FC<CreateStoryProps> = ({ translations }) => {
   return (
     <I18nextProvider i18n={i18n}>
       <QueryClientProvider client={queryClient}>
-        <StoryCreator />
+        <ClientContext.Provider value={createClientEnvironment(i18n)}>
+          <StoryCreator />
+        </ClientContext.Provider>
       </QueryClientProvider>
     </I18nextProvider>
   );

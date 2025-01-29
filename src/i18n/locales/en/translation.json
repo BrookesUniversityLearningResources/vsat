@@ -66,6 +66,8 @@
         }
       },
       "common": {
+        "yes": "Yes",
+        "no": "No",
         "loading": {
           "text": "Loading…"
         }
