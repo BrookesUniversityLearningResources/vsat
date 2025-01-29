@@ -57,6 +57,14 @@
           "label": "New story"
         }
       },
+      "notify": {
+        "error": {
+          "code": {
+            "1": "Darn, something went wrong.",
+            "2": "Oops, something went wrong."
+          }
+        }
+      },
       "common": {
         "loading": {
           "text": "Loading…"
@@ -148,7 +156,7 @@
       },
       "content": {
         "admission": "Something's gone wrong on our side, sorry about that.",
-        "remediation": "You could try refreshing the page: the error might just be a blip."
+        "remediation": "Try refreshing the page: the error might be a blip."
       }
     },
     "site": {

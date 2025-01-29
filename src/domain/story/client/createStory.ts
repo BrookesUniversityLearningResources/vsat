@@ -25,6 +25,8 @@ export type StoryCreationError = {
 
 export type CreateStoryResult = StoryCreated | StoryCreationError;
 
+export type CreateStory = () => Promise<CreateStoryResult>;
+
 async function createStory(): Promise<CreateStoryResult> {
   try {
     const response = await fetch("/api/story", {

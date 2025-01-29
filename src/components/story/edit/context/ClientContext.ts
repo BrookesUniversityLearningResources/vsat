@@ -4,6 +4,9 @@ import { createContext, useContext } from "react";
 import createScene, {
   type CreateScene,
 } from "@domain/story/client/createScene";
+import createStory, {
+  type CreateStory,
+} from "@domain/story/client/createStory";
 import deleteScene, {
   type DeleteScene,
 } from "@domain/story/client/deleteScene";
@@ -47,6 +50,10 @@ export type WithGetScene = {
   getScene: GetScene;
 };
 
+export type WithCreateStory = {
+  createStory: CreateStory;
+};
+
 export type WithCreateScene = {
   createScene: CreateScene;
 };
@@ -78,6 +85,7 @@ export type ClientEnvironment = WithDeleteSceneImage &
   WithSaveSceneContent &
   WithDeleteScene &
   WithCreateScene &
+  WithCreateStory &
   WithPublishStory &
   WithFeedback;
 
@@ -97,6 +105,7 @@ export const createClientEnvironment = (
     },
     deleteScene,
     createScene,
+    createStory,
     publishStory,
   };
 };
