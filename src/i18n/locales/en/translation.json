@@ -69,7 +69,19 @@
           "preview": "Preview",
           "placeholder": "Placeholder"
         },
+        "audio": {
+          "prompt": "Add sound to the scene…"
+        },
         "action": {
+          "delete-audio": {
+            "label": "Delete"
+          },
+          "cancel-audio": {
+            "label": "Cancel"
+          },
+          "upload-audio": {
+            "label": "Upload"
+          },
           "delete-image": {
             "label": "Delete"
           },
@@ -133,6 +145,9 @@
     "error": {
       "heading": "Oops",
       "image": {
+        "alt-text": "An unhappy face"
+      },
+      "audio": {
         "alt-text": "An unhappy face"
       },
       "content": {

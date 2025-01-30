@@ -1,0 +1,33 @@
+.existingAudio {
+  display: flex;
+  gap: 0.5rem;
+  flex-direction: column;
+  height: 200px;
+  color: var(--color-tertiary);
+}
+
+.existingAudio button {
+  align-self: flex-end;
+  border: none;
+  background: var(--color-action-primary);
+  padding: 0.5rem 1rem;
+  border-radius: 0.8rem;
+  color: var(--color-bg-offset);
+  cursor: pointer;
+}
+
+.actionBar {
+  display: flex;
+  flex-direction: row;
+  gap: 1rem;
+  padding: 0.4rem;
+  align-items: center;
+  background: var(--color-bg-offset);
+  border-radius: 0.8rem;
+  border: 0.1rem solid var(--color-bg);
+}
+
+.loadingContainer {
+  width: 100%;
+  margin: 0.2rem auto;
+}

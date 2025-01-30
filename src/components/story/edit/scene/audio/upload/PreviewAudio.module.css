@@ -1,0 +1,49 @@
+.previewAudioContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  align-items: center;
+  height: 200px;
+}
+
+audio {
+  max-width: 100%;
+}
+
+.actionBar {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  gap: 1rem;
+  padding: 0.4rem;
+  background: var(--color-bg-offset);
+  border-radius: 0.8rem;
+  border: 0.1rem solid var(--color-bg);
+}
+
+.preview {
+  border: 1px solid black;
+  max-height: 130px;
+  border-radius: 1rem;
+}
+
+.cancelUpload {
+  background: none;
+  border: none;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.uploadAudio {
+  border: none;
+  background: var(--color-action-primary);
+  padding: 0.5rem 1rem;
+  border-radius: 0.8rem;
+  color: var(--color-bg-offset);
+  cursor: pointer;
+}
+
+.uploadingIndicator {
+  width: 100%;
+  margin: 0 auto 0.5rem auto;
+}

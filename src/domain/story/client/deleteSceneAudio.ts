@@ -14,7 +14,7 @@ export type DeleteSceneAudioResponseError = z.infer<
 >;
 
 export type SceneAudioDeleted = {
-  kind: "SceneAudioDeleted";
+  kind: "sceneAudioDeleted";
 };
 
 export type DeleteSceneAudioError = {
@@ -56,7 +56,7 @@ async function DeleteSceneAudio({
     }
 
     return {
-      kind: "SceneAudioDeleted",
+      kind: "sceneAudioDeleted",
     };
   } catch (err) {
     return {

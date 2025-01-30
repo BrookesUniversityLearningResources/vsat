@@ -4,20 +4,16 @@ import { useTranslation } from "react-i18next";
 import type { NonEmptyArray } from "../../../../../../util/nonEmptyArray";
 import toAcceptExtensions from "../../toAcceptExtensions";
 
-import styles from "./ChooseImage.module.css";
+import styles from "./ChooseAudio.module.css";
 
-const ACCEPT_EXTENSIONS_DEFAULT: NonEmptyArray<string> = [
-  ".jpg",
-  ".jpeg",
-  ".png",
-];
+const ACCEPT_EXTENSIONS_DEFAULT: NonEmptyArray<string> = [".mp3", ".mp4"];
 
-type ChooseImageProps = {
+type ChooseAudioProps = {
   accept?: NonEmptyArray<string>;
   onFileChange: ChangeEventHandler<HTMLInputElement>;
 };
 
-const ChooseImage: FC<ChooseImageProps> = ({ accept, onFileChange }) => {
+const ChooseAudio: FC<ChooseAudioProps> = ({ accept, onFileChange }) => {
   const { t } = useTranslation();
 
   const acceptExtensions = toAcceptExtensions(
@@ -25,16 +21,11 @@ const ChooseImage: FC<ChooseImageProps> = ({ accept, onFileChange }) => {
   );
 
   return (
-    <div className={styles.chooseImageContainer}>
-      <img
-        src="/images/scene-image-placeholder.svg"
-        alt={t("scene.image.placeholder")}
-        className={styles.placeholder}
-        width="250px"
-        height="130px"
-      />
+    <div className={styles.chooseAudioContainer}>
+      <label htmlFor="sceneAudioUpload">{t("scene.audio.prompt")}</label>
       <input
         type="file"
+        id="sceneAudioUpload"
         accept={acceptExtensions}
         multiple={false}
         onChange={onFileChange}
@@ -43,4 +34,4 @@ const ChooseImage: FC<ChooseImageProps> = ({ accept, onFileChange }) => {
   );
 };
 
-export default ChooseImage;
+export default ChooseAudio;

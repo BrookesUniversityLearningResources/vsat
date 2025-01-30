@@ -24,6 +24,9 @@ import publishStory, {
 import saveSceneContent, {
   type SaveSceneContent,
 } from "@domain/story/client/saveSceneContent";
+import uploadSceneAudio, {
+  type UploadSceneAudio,
+} from "@domain/story/client/uploadSceneAudio";
 import uploadSceneImage, {
   type UploadSceneImage,
 } from "@domain/story/client/uploadSceneImage";
@@ -40,6 +43,10 @@ export type WithDeleteSceneAudio = {
 
 export type WithUploadSceneImage = {
   uploadSceneImage: UploadSceneImage;
+};
+
+export type WithUploadSceneAudio = {
+  uploadSceneAudio: UploadSceneAudio;
 };
 
 export type WithGetStory = {
@@ -79,6 +86,7 @@ export type WithFeedback = {
 
 export type ClientEnvironment = WithDeleteSceneImage &
   WithDeleteSceneAudio &
+  WithUploadSceneAudio &
   WithUploadSceneImage &
   WithGetStory &
   WithGetScene &
@@ -96,6 +104,7 @@ export const createClientEnvironment = (
     deleteSceneImage,
     deleteSceneAudio,
     uploadSceneImage,
+    uploadSceneAudio,
     getStory,
     getScene,
     saveSceneContent,

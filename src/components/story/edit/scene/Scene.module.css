@@ -1,6 +1,12 @@
 .scene {
 }
 
+.sceneMedia {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
 .sceneContent {
   display: grid;
   grid-template-columns: 280px 1fr;

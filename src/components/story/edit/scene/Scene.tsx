@@ -13,6 +13,7 @@ import { type WithGetScene, useEnvironment } from "../context/ClientContext.js";
 import SceneFiction from "./fiction/SceneFiction.js";
 import SceneImage from "./image/SceneImage.js";
 import type { OnSceneChanged } from "./types.js";
+import SceneAudio from "./audio/SceneAudio.js";
 
 type SceneProps = {
   scene: PersistentScene;
@@ -52,11 +53,18 @@ const Scene: FC<SceneProps> = ({ scene: initialScene, storyId }) => {
     <div className={styles.scene}>
       <h1>{t("scene.heading", { title: scene.title })}</h1>
       <div className={styles.sceneContent}>
-        <SceneImage
-          scene={scene}
-          storyId={storyId}
-          onSceneChanged={onSceneChanged}
-        />
+        <div className={styles.sceneMedia}>
+          <SceneImage
+            scene={scene}
+            storyId={storyId}
+            onSceneChanged={onSceneChanged}
+          />
+          <SceneAudio
+            scene={scene}
+            storyId={storyId}
+            onSceneChanged={onSceneChanged}
+          />
+        </div>
         <SceneFiction
           storyId={storyId}
           scene={scene}

@@ -2,17 +2,17 @@ import type { FC } from "react";
 import { useTranslation } from "react-i18next";
 import BarLoader from "react-spinners/BarLoader";
 
-import styles from "./PreviewImage.module.css";
+import styles from "./PreviewAudio.module.css";
 
-type PreviewImageProps = Readonly<{
-  image: File;
-  upload: (image: File) => void;
-  cancel: (image: File) => void;
+type PreviewAudioProps = Readonly<{
+  audio: File;
+  upload: (audio: File) => void;
+  cancel: (audio: File) => void;
   isUploading: boolean;
 }>;
 
-const PreviewImage: FC<PreviewImageProps> = ({
-  image,
+const PreviewAudio: FC<PreviewAudioProps> = ({
+  audio,
   upload,
   cancel,
   isUploading = false,
@@ -20,28 +20,30 @@ const PreviewImage: FC<PreviewImageProps> = ({
   const { t } = useTranslation();
 
   return (
-    <div className={styles.previewImageContainer}>
-      <img
-        src={URL.createObjectURL(image)}
-        alt={t("scene.image.preview")}
-        className={styles.preview}
-      />
+    <div className={styles.previewAudioContainer}>
+      <audio
+        src={URL.createObjectURL(audio)}
+        controls
+        controlsList="nodownload"
+      >
+        <div>{audio.name}</div>
+      </audio>
 
       <div className={styles.actionBar}>
         <button
           type="button"
-          onClick={() => cancel(image)}
+          onClick={() => cancel(audio)}
           className={styles.cancelUpload}
         >
-          {t("scene.action.cancel-image.label")}
+          {t("scene.action.cancel-audio.label")}
         </button>
         <button
           type="button"
-          onClick={() => upload(image)}
-          className={styles.uploadImage}
+          onClick={() => upload(audio)}
+          className={styles.uploadaudio}
           disabled={isUploading}
         >
-          {t("scene.action.upload-image.label")}
+          {t("scene.action.upload-audio.label")}
         </button>
       </div>
 
@@ -54,4 +56,4 @@ const PreviewImage: FC<PreviewImageProps> = ({
   );
 };
 
-export default PreviewImage;
+export default PreviewAudio;
