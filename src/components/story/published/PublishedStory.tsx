@@ -16,6 +16,7 @@ import type {
 import useI18N from "@i18n/client/useI18N.js";
 
 import Skybox from "./Skybox/Skybox.js";
+import BackgroundSound from "./audio/BackgroundSound.js";
 import Fiction from "./fiction/Fiction.js";
 import changePage from "./support/changePage.js";
 
@@ -58,6 +59,8 @@ const PublishedStoryView: FC<PublishedStoryViewProps> = ({ story }) => {
       <OrbitControls />
 
       <Skybox url={currentScene.image.url} />
+
+      {currentScene.audio && <BackgroundSound audio={currentScene.audio} />}
 
       <Hud>
         <PerspectiveCamera />
