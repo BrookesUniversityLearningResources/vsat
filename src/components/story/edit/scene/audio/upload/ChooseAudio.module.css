@@ -1,16 +1,16 @@
 .chooseAudioContainer {
   display: flex;
-  gap: 0.5rem;
   flex-direction: column;
-  align-items: center;
-  height: 200px;
+  align-items: start;
+  min-height: 100px;
 }
 
-label {
+.chooseAudioContainer label {
   color: var(--color-text);
+  margin-bottom: 0.5rem;
 }
 
-input[type="file"] {
+.chooseAudioContainer input[type="file"] {
   max-width: 100%;
   padding: 0.4rem;
   background: var(--color-bg-offset);
@@ -18,7 +18,7 @@ input[type="file"] {
   border: 0.1rem solid var(--color-bg);
 }
 
-input[type="file"]::file-selector-button {
+.chooseAudioContainer input[type="file"]::file-selector-button {
   margin-right: 1rem;
   border: none;
   background: var(--color-action-primary);
@@ -28,16 +28,6 @@ input[type="file"]::file-selector-button {
   cursor: pointer;
 }
 
-input[type="file"]::file-selector-button:hover {
+.chooseAudioContainer input[type="file"]::file-selector-button:hover {
   background: var(--color-action-primary);
-}
-
-.placeholder {
-  display: block;
-  max-height: 130px;
-  width: auto;
-  border: 2px solid black;
-  border-radius: 1rem;
-  background-color: whitesmoke;
-  min-width: 248px;
 }

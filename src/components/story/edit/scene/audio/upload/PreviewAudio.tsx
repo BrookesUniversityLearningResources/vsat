@@ -37,21 +37,22 @@ const PreviewAudio: FC<PreviewAudioProps> = ({
         >
           {t("scene.action.cancel-audio.label")}
         </button>
+
+        {isUploading && (
+          <div className={styles.uploadingIndicator}>
+            <BarLoader width="100%" height="0.5rem" color="green" />
+          </div>
+        )}
+
         <button
           type="button"
           onClick={() => upload(audio)}
-          className={styles.uploadaudio}
+          className={styles.uploadAudio}
           disabled={isUploading}
         >
           {t("scene.action.upload-audio.label")}
         </button>
       </div>
-
-      {isUploading && (
-        <div className={styles.uploadingIndicator}>
-          <BarLoader width="100%" height="0.5rem" color="green" />
-        </div>
-      )}
     </div>
   );
 };

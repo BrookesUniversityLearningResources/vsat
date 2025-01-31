@@ -1,9 +1,15 @@
 .existingAudio {
   display: flex;
-  gap: 0.5rem;
   flex-direction: column;
   height: 200px;
   color: var(--color-tertiary);
+
+  /*
+   * We put a little margin here to mirror the space that the upload progress
+   * bar inhabits from the previous "preview" state; that way, this final state
+   * doesn't have an unsightly shift down once the upload has completed.
+   */
+  margin-top: 0.5rem;
 }
 
 .existingAudio button {
@@ -23,7 +29,7 @@
   padding: 0.4rem;
   align-items: center;
   background: var(--color-bg-offset);
-  border-radius: 0.8rem;
+  border-radius: 0 0 0.8rem 0.8rem;
   border: 0.1rem solid var(--color-bg);
 }
 

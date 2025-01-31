@@ -21,11 +21,7 @@ const PreviewImage: FC<PreviewImageProps> = ({
 
   return (
     <div className={styles.previewImageContainer}>
-      <img
-        src={URL.createObjectURL(image)}
-        alt={t("scene.image.preview")}
-        className={styles.preview}
-      />
+      <img src={URL.createObjectURL(image)} alt={t("scene.image.preview")} />
 
       <div className={styles.actionBar}>
         <button
@@ -35,6 +31,13 @@ const PreviewImage: FC<PreviewImageProps> = ({
         >
           {t("scene.action.cancel-image.label")}
         </button>
+
+        {isUploading && (
+          <div className={styles.uploadingIndicator}>
+            <BarLoader width="100%" height="0.5rem" color="green" />
+          </div>
+        )}
+
         <button
           type="button"
           onClick={() => upload(image)}
@@ -44,12 +47,6 @@ const PreviewImage: FC<PreviewImageProps> = ({
           {t("scene.action.upload-image.label")}
         </button>
       </div>
-
-      {isUploading && (
-        <div className={styles.uploadingIndicator}>
-          <BarLoader width="100%" height="0.5rem" color="green" />
-        </div>
-      )}
     </div>
   );
 };

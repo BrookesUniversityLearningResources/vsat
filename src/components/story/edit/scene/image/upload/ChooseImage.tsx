@@ -29,9 +29,6 @@ const ChooseImage: FC<ChooseImageProps> = ({ accept, onFileChange }) => {
       <img
         src="/images/scene-image-placeholder.svg"
         alt={t("scene.image.placeholder")}
-        className={styles.placeholder}
-        width="250px"
-        height="130px"
       />
       <input
         type="file"

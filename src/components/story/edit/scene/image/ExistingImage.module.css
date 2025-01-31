@@ -1,15 +1,13 @@
 .existingImage {
   display: flex;
-  gap: 0.5rem;
   flex-direction: column;
   height: 200px;
-  color: var(--color-tertiary);
 }
 
 .existingImage img {
   border: 1px solid black;
   max-height: 130px;
-  border-radius: 1rem;
+  border-radius: 1rem 1rem 0 0;
 }
 
 .existingImage button {
@@ -29,7 +27,7 @@
   padding: 0.4rem;
   align-items: center;
   background: var(--color-bg-offset);
-  border-radius: 0.8rem;
+  border-radius: 0 0 1rem 1rem;
   border: 0.1rem solid var(--color-bg);
 }
 

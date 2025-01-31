@@ -1,7 +1,6 @@
 .previewAudioContainer {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
   align-items: center;
   height: 200px;
 }
@@ -17,8 +16,9 @@ audio {
   gap: 1rem;
   padding: 0.4rem;
   background: var(--color-bg-offset);
-  border-radius: 0.8rem;
+  border-radius: 0 0 0.8rem 0.8rem;
   border: 0.1rem solid var(--color-bg);
+  align-items: center;
 }
 
 .preview {
@@ -45,5 +45,6 @@ audio {
 
 .uploadingIndicator {
   width: 100%;
-  margin: 0 auto 0.5rem auto;
+  margin: 0 auto;
+  border-radius: 0.25rem;
 }
