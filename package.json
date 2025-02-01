@@ -59,7 +59,7 @@
     "slate-history": "^0.110.3",
     "slate-react": "^0.112.1",
     "sweetalert2": "^11.15.10",
-    "three": "^0.172.0",
+    "three": "^0.173.0",
     "zod": "^3.24.1"
   },
   "devDependencies": {
