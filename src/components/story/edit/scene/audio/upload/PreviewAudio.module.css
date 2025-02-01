@@ -5,8 +5,9 @@
   height: 200px;
 }
 
-audio {
+.previewAudioContainer audio {
   max-width: 100%;
+  border-radius: 0.8rem 0.8rem 0 0;
 }
 
 .actionBar {
