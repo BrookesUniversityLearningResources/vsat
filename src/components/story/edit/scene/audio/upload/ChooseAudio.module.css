@@ -13,8 +13,8 @@
 .chooseAudioContainer input[type="file"] {
   max-width: 100%;
   padding: 0.4rem;
-  background: var(--color-bg-offset);
-  border-radius: 0.8rem;
+  background: var(--color-text);
+  border-radius: var(--border-radius-medium);
   border: 0.1rem solid var(--color-bg);
 }
 
@@ -23,8 +23,8 @@
   border: none;
   background: var(--color-action-primary);
   padding: 0.5rem 1rem;
-  border-radius: 0.8rem;
-  color: var(--color-bg-offset);
+  border-radius: var(--border-radius-medium);
+  color: var(--color-text);
   cursor: pointer;
 }
 

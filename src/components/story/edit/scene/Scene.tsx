@@ -51,7 +51,7 @@ const Scene: FC<SceneProps> = ({ scene: initialScene, storyId }) => {
 
   return (
     <div className={styles.scene}>
-      <h1>{t("scene.heading", { title: scene.title })}</h1>
+      <h2>{t("scene.heading", { title: scene.title })}</h2>
       <div className={styles.sceneContent}>
         <div className={styles.sceneMedia}>
           <SceneImage

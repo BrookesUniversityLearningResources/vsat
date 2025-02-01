@@ -10,13 +10,13 @@
   max-height: 130px;
   width: auto;
   border-bottom: 1px solid black;
-  border-radius: 1rem 1rem 0 0;
+  border-radius: var(--border-radius-medium) var(--border-radius-medium) 0 0;
 }
 
 .chooseImageContainer input[type="file"] {
   max-width: 100%;
   padding: 0.4rem;
-  background: var(--color-bg-offset);
+  background: var(--color-text);
   border-radius: 0 0 .8rem .8rem;
 }
 
@@ -25,7 +25,7 @@ input[type="file"]::file-selector-button {
   border: none;
   background: var(--color-action-primary);
   padding: 0.5rem 1rem;
-  color: var(--color-bg-offset);
+  color: var(--color-text);
   cursor: pointer;
 }
 

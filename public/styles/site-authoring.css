@@ -8,15 +8,10 @@
   margin: 0;
 
   --color-bg: #2c3e50;
-  --color-bg-offset: #ecf0f1;
   --color-action-primary: #3498db;
-
-  --color-primary: #ff5e6c;
-  --color-secondary: #feb300;
-  --color-tertiary: #ffaaab;
-
   --color-text: #ecf0f1;
-  --color-text-offset: #2c3e50;
+
+  --border-radius-medium: 0.8rem;
 }
 
 * {

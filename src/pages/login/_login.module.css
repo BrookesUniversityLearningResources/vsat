@@ -15,5 +15,5 @@ main {
   box-shadow: 1rem 1rem 1rem;
   border-radius: 1rem 0 0 0;
 
-  background-color: var(--color-bg-offset);
+  background-color: var(--color-text);
 }

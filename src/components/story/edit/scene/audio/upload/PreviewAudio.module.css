@@ -7,7 +7,7 @@
 
 .previewAudioContainer audio {
   max-width: 100%;
-  border-radius: 0.8rem 0.8rem 0 0;
+  border-radius: var(--border-radius-medium) var(--border-radius-medium) 0 0;
 }
 
 .actionBar {
@@ -16,8 +16,8 @@
   width: 100%;
   gap: 1rem;
   padding: 0.4rem;
-  background: var(--color-bg-offset);
-  border-radius: 0 0 0.8rem 0.8rem;
+  background: var(--color-text);
+  border-radius: 0 0 var(--border-radius-medium) var(--border-radius-medium);
   border: 0.1rem solid var(--color-bg);
   align-items: center;
 }
@@ -39,8 +39,8 @@
   border: none;
   background: var(--color-action-primary);
   padding: 0.5rem 1rem;
-  border-radius: 0.8rem;
-  color: var(--color-bg-offset);
+  border-radius: var(--border-radius-medium);
+  color: var(--color-text);
   cursor: pointer;
 }
 

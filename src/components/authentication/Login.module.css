@@ -16,7 +16,7 @@ input {
 
   padding: 0.5rem;
 
-  background-color: var(--color-bg-offset);
+  background-color: var(--color-text);
 }
 
 input:focus {
@@ -31,7 +31,7 @@ button {
   font-weight: bolder;
 
   background: var(--color-action-primary);
-  color: var(--color-bg-offset);
+  color: var(--color-text);
 
   border: 0;
 }
