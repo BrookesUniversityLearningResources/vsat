@@ -6,8 +6,9 @@
 
 .existingImage img {
   border: 1px solid black;
-  max-height: 130px;
+  border-bottom: 0;
   border-radius: 1rem 1rem 0 0;
+  max-height: 130px;
 }
 
 .existingImage button {
