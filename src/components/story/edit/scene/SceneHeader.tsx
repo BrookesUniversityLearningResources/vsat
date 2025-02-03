@@ -1,20 +1,20 @@
 import type { FC } from "react";
 import { useTranslation } from "react-i18next";
 
-import styles from "./StoryHeader.module.css";
+import styles from "./SceneHeader.module.css";
 
 import InlineTextInput, {
   type OnChange,
 } from "@components/input/InlineTextInput/InlineTextInput.js";
 
-import type { PersistentStory } from "../../../../domain/index.js";
+import type { PersistentScene } from "../../../../domain/index.js";
 
-export type StoryHeaderProps = {
-  story: PersistentStory;
+export type SceneHeaderProps = {
+  title: PersistentScene["title"];
   onTitleChange: (title: string) => void;
 };
 
-const StoryHeader: FC<StoryHeaderProps> = ({ story, onTitleChange }) => {
+const SceneHeader: FC<SceneHeaderProps> = ({ title, onTitleChange }) => {
   const { t } = useTranslation();
 
   const onChange: OnChange = ({ value }) => {
@@ -25,13 +25,13 @@ const StoryHeader: FC<StoryHeaderProps> = ({ story, onTitleChange }) => {
     <div className={styles.header}>
       <InlineTextInput
         onChange={onChange}
-        initialValue={story.title}
+        initialValue={title}
         i18n={{
           editing: {
-            labelName: t("title.field.label"),
-            labelSave: t("title.action.save-title"),
+            labelName: t("scene.title.field.label"),
+            labelSave: t("scene.title.action.save-title"),
           },
-          notEditing: { labelEdit: t("title.action.edit-title") },
+          notEditing: { labelEdit: t("scene.title.action.edit-title") },
         }}
         inputAttributes={{
           required: true,
@@ -39,10 +39,10 @@ const StoryHeader: FC<StoryHeaderProps> = ({ story, onTitleChange }) => {
           maxLength: 50,
         }}
       >
-        <h1>{t("title.label", { title: story.title })}</h1>
+        <h2>{t("scene.title.label", { title })}</h2>
       </InlineTextInput>
     </div>
   );
 };
 
-export default StoryHeader;
+export default SceneHeader;

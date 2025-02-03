@@ -1,5 +1,7 @@
 import type { Generated, Insertable, Kysely, Selectable } from "kysely";
 
+import type { PersistentScene, PersistentStory } from "../domain/index.js";
+
 // https://kysely.dev/docs/getting-started#types
 export interface Database {
   story: TableStory;
@@ -72,6 +74,25 @@ type DeleteStoryInDatabaseRequest = {
 export type DeleteStoryInDatabase = (
   request: DeleteStoryInDatabaseRequest,
 ) => Promise<unknown>;
+
+type SaveStoryTitleInDatabaseRequest = {
+  storyId: StoryDto["id"];
+  title: StoryDto["title"];
+};
+
+export type SaveStoryTitleInDatabase = (
+  request: SaveStoryTitleInDatabaseRequest,
+) => Promise<PersistentStory>;
+
+type SaveSceneTitleInDatabaseRequest = {
+  storyId: StoryDto["id"];
+  sceneId: SceneDto["id"];
+  title: SceneDto["title"];
+};
+
+export type SaveSceneTitleInDatabase = (
+  request: SaveSceneTitleInDatabaseRequest,
+) => Promise<PersistentScene>;
 
 type PublishStoryInDatabaseRequest = {
   storyId: StoryDto["id"];

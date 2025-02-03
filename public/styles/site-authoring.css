@@ -10,8 +10,9 @@
   --color-bg: #2c3e50;
   --color-action-primary: #3498db;
   --color-text: #ecf0f1;
+  --color-warning: #ffbf00;
 
-  --border-radius-medium: 0.8rem;
+  --border-radius-medium: 0.65rem;
 }
 
 * {

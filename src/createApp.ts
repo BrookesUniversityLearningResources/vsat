@@ -14,6 +14,8 @@ import routeGetScene from "./domain/story/route/routeGetScene.js";
 import routeGetStory from "./domain/story/route/routeGetStory.js";
 import routePublishStory from "./domain/story/route/routePublishStory.js";
 import routeSaveSceneContent from "./domain/story/route/routeSaveSceneContent.js";
+import routeSaveSceneTitle from "./domain/story/route/routeSaveSceneTitle.js";
+import routeSaveStoryTitle from "./domain/story/route/routeSaveStoryTitle.js";
 import routeUploadSceneAudio from "./domain/story/route/routeUploadSceneAudio.js";
 import routeUploadSceneImage from "./domain/story/route/routeUploadSceneImage.js";
 import assertAuthorHandler from "./domain/story/support/assertAuthorHandler.js";
@@ -70,6 +72,8 @@ async function createApp(): Promise<[StartServer, Logger]> {
     routeUploadSceneAudio(log, repositoryScene.saveSceneAudio, assertAuthor),
     routeDeleteSceneAudio(repositoryScene.deleteSceneAudio, assertAuthor),
     routeSaveSceneContent(log, repositoryScene.saveSceneContent, assertAuthor),
+    routeSaveStoryTitle(log, repositoryStory.saveStoryTitle, assertAuthor),
+    routeSaveSceneTitle(log, repositoryScene.saveSceneTitle, assertAuthor),
     routeDeleteScene(repositoryScene.deleteScene, assertAuthor),
     routePublishStory(log, repositoryStory.publishStory, assertAuthor),
   ].reduce((router, route) => {

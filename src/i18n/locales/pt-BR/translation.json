@@ -48,7 +48,7 @@
         "title": "História • VSAT",
         "description": "Sua história"
       },
-      "heading": "{{title}}",
+      "title": "{{title}}",
       "scene": {
         "heading": "{{title}}",
         "image": {
@@ -104,16 +104,23 @@
             "12": "Oops, we had an issue saving the fiction.",
             "13": "The story must have at least one scene.",
             "14": "Every scene must have some fiction.",
-            "15": "Every scene must have an image."
+            "15": "Every scene must have an image.",
+            "16": "Oops, we had an issue saving that title."
           }
         },
         "scene": {
           "content": {
-            "saved": "Story saved ✌️"
+            "saved": "Fiction saved ✌️"
+          },
+          "title": {
+            "saved": "Scene title saved ✅"
           }
         },
         "story": {
-          "published": "Story published ✌️"
+          "published": "Story published ✌️",
+          "title": {
+            "saved": "Story title saved ✅"
+          }
         }
       }
     },

@@ -4,6 +4,8 @@ import type {
   AuthorInsert,
   ImageDto,
   SaveSceneContentInDatabase,
+  SaveSceneTitleInDatabase,
+  SaveStoryTitleInDatabase,
   StoryDto,
 } from "../database/schema.js";
 import type { ErrorCode } from "./error/errorCode.js";
@@ -164,6 +166,7 @@ export type RepositoryStory = Readonly<{
   deleteStory: DeleteStory;
   getPublishedStory: GetPublishedStory;
   getPublishedStories: GetPublishedStories;
+  saveStoryTitle: SaveStoryTitleInDatabase;
 }>;
 
 export type RepositoryImage = Readonly<{
@@ -217,4 +220,5 @@ export type RepositoryScene = Readonly<{
   deleteSceneImage: DeleteSceneImage;
   saveSceneAudio: SaveSceneAudio;
   deleteSceneAudio: DeleteSceneAudio;
+  saveSceneTitle: SaveSceneTitleInDatabase;
 }>;

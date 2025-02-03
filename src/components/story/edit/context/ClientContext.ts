@@ -24,6 +24,12 @@ import publishStory, {
 import saveSceneContent, {
   type SaveSceneContent,
 } from "@domain/story/client/saveSceneContent";
+import saveSceneTitle, {
+  type SaveSceneTitle,
+} from "@domain/story/client/saveSceneTitle";
+import saveStoryTitle, {
+  type SaveStoryTitle,
+} from "@domain/story/client/saveStoryTitle";
 import uploadSceneAudio, {
   type UploadSceneAudio,
 } from "@domain/story/client/uploadSceneAudio";
@@ -65,6 +71,14 @@ export type WithCreateScene = {
   createScene: CreateScene;
 };
 
+export type WithSaveStoryTitle = {
+  saveStoryTitle: SaveStoryTitle;
+};
+
+export type WithSaveSceneTitle = {
+  saveSceneTitle: SaveSceneTitle;
+};
+
 export type WithPublishStory = {
   publishStory: PublishStory;
 };
@@ -95,6 +109,8 @@ export type ClientEnvironment = WithDeleteSceneImage &
   WithCreateScene &
   WithCreateStory &
   WithPublishStory &
+  WithSaveStoryTitle &
+  WithSaveSceneTitle &
   WithFeedback;
 
 export const createClientEnvironment = (
@@ -116,6 +132,8 @@ export const createClientEnvironment = (
     createScene,
     createStory,
     publishStory,
+    saveStoryTitle,
+    saveSceneTitle,
   };
 };
 

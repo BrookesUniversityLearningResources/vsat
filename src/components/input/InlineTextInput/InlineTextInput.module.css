@@ -1,0 +1,57 @@
+.notEditing {
+  display: flex;
+  gap: 0.5rem;
+
+  button {
+    border: none;
+    background: var(--color-bg);
+    cursor: pointer;
+  }
+
+  img {
+    display: inline;
+    vertical-align: middle;
+  }
+}
+
+.editing {
+  display: flex;
+  gap: 1rem;
+
+  label {
+    font-size: 2rem;
+    font-weight: bold;
+  }
+
+  button {
+    border: none;
+    background-color: whitesmoke;
+    cursor: pointer;
+    position: absolute;
+    top: 0.45rem;
+    right: 0.25rem;
+  }
+
+  input[type="text"] {
+    border-radius: 0 var(--border-radius-medium) var(--border-radius-medium) 0;
+    border: 0;
+    padding: .25rem 0 .25rem 1rem;
+    vertical-align: middle;
+    width: 50ch;
+    margin-top: 0.25rem;
+  }
+
+  input[type="text"]:focus {
+    border-color: var(--color-action-primary);
+  }
+
+  input[type="text"]:invalid,
+  input[type="text"]:invalid + button {
+    background-color: var(--color-warning);
+  }
+
+  .inlineEditor {
+    position: relative;
+    display: inline-block;
+  }
+}

@@ -41,6 +41,7 @@ export const ErrorCodes = Object.freeze({
   MustHaveAtLeastOneScene: 13,
   AllScenesMustHaveContent: 14,
   AllScenesMustHaveAnImage: 15,
+  ErrorSavingStoryTitle: 16,
 } as const);
 
 export const ErrorCodeModel = z.nativeEnum(ErrorCodes);

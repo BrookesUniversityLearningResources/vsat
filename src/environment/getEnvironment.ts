@@ -44,7 +44,9 @@ import publishStory from "../domain/story/publish/publishStory.js";
 import publishStoryInDatabase from "../domain/story/publish/publishStoryInDatabase.js";
 import unpublishStoryInDatabase from "../domain/story/publish/unpublishStoryInDatabase.js";
 import saveSceneContentInDatabase from "../domain/story/saveSceneContentInDatabase.js";
+import saveSceneTitleInDatabase from "../domain/story/saveSceneTitleInDatabase.js";
 import saveStoryInDatabase from "../domain/story/saveStoryInDatabase.js";
+import saveStoryTitleInDatabase from "../domain/story/saveStoryTitleInDatabase.js";
 import createI18NContext from "../i18n/createI18NContext.js";
 import loadConfig from "./config.js";
 
@@ -90,8 +92,10 @@ const getEnvironment: App.GetEnvironment = (() => {
 
   const deleteSceneImage = tx(deleteSceneImageInDatabase(logDb, getDB));
 
+  const getScene = tx(getSceneForStoryInDatabase(logDb, getDB));
+
   const repositoryScene: RepositoryScene = {
-    getScene: tx(getSceneForStoryInDatabase(logDb, getDB)),
+    getScene,
     getScenesForStory,
     createScene: tx(createScene(log, createSceneInDatabase(logDb, getDB))),
     saveSceneImage: tx(
@@ -121,6 +125,7 @@ const getEnvironment: App.GetEnvironment = (() => {
         deleteSceneAudio,
       ),
     ),
+    saveSceneTitle: tx(saveSceneTitleInDatabase(log, getDB, getScene)),
   };
 
   const getStory = tx(
@@ -147,6 +152,7 @@ const getEnvironment: App.GetEnvironment = (() => {
     getPublishedStories: tx(
       getPublishedStories(log, getStoriesInDatabase(logDb, getDB)),
     ),
+    saveStoryTitle: tx(saveStoryTitleInDatabase(logDb, getDB, getStory)),
   };
 
   const repositoryImage: RepositoryImage = {

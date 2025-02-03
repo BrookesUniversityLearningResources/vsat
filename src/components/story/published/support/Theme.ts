@@ -1,7 +1,10 @@
 import { Color } from "three";
 
+/**
+ * @see https://hslpicker.com/
+ */
 export const Colors = Object.freeze({
-  foreground: hsl(330, 100, 71),
+  foreground: hsl(28, 100, 36), // #b85600
   background: hsl(0, 0, 0),
   card: hsl(0, 0, 96),
   cardForeground: hsl(0, 0, 100),

@@ -1,6 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
 import type { FC } from "react";
-import { useTranslation } from "react-i18next";
 
 import styles from "./Scene.module.css";
 
@@ -10,19 +9,28 @@ import type {
 } from "../../../../domain/index.js";
 import unsupported from "../../../../domain/story/client/unsupportedResult.js";
 import { type WithGetScene, useEnvironment } from "../context/ClientContext.js";
+import SceneHeader, { type SceneHeaderProps } from "./SceneHeader.js";
+import SceneAudio from "./audio/SceneAudio.js";
 import SceneFiction from "./fiction/SceneFiction.js";
 import SceneImage from "./image/SceneImage.js";
 import type { OnSceneChanged } from "./types.js";
-import SceneAudio from "./audio/SceneAudio.js";
 
-type SceneProps = {
-  scene: PersistentScene;
-  storyId: PersistentStory["id"];
+export type SceneTitleChangeEvent = {
+  sceneId: PersistentScene["id"];
+  title: string;
 };
 
-const Scene: FC<SceneProps> = ({ scene: initialScene, storyId }) => {
-  const { t } = useTranslation();
+export type SceneProps = {
+  scene: PersistentScene;
+  storyId: PersistentStory["id"];
+  onTitleChange: (event: SceneTitleChangeEvent) => Promise<PersistentScene>;
+};
 
+const Scene: FC<SceneProps> = ({
+  scene: initialScene,
+  storyId,
+  onTitleChange,
+}) => {
   const { getScene } = useEnvironment<WithGetScene>();
 
   const { data: scene, refetch } = useQuery<PersistentScene, Error>({
@@ -49,9 +57,16 @@ const Scene: FC<SceneProps> = ({ scene: initialScene, storyId }) => {
     refetch();
   };
 
+  const onSceneTitleChanged: SceneHeaderProps["onTitleChange"] = (title) => {
+    onTitleChange({
+      sceneId: scene.id,
+      title,
+    }).then(() => refetch());
+  };
+
   return (
     <div className={styles.scene}>
-      <h2>{t("scene.heading", { title: scene.title })}</h2>
+      <SceneHeader title={scene.title} onTitleChange={onSceneTitleChanged} />
       <div className={styles.sceneContent}>
         <div className={styles.sceneMedia}>
           <SceneImage
