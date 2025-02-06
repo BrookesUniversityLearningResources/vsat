@@ -1,5 +1,3 @@
-import { AsyncLocalStorage } from "node:async_hooks";
-
 import i18n from "i18next";
 import { CamelCasePlugin, Kysely, PostgresDialect } from "kysely";
 import pg from "pg";
@@ -80,11 +78,7 @@ const getEnvironment: App.GetEnvironment = (() => {
     plugins: [new CamelCasePlugin()],
   });
 
-  const [tx, getDB] = withTransaction(
-    logDb,
-    db,
-    new AsyncLocalStorage<Kysely<Database>>(),
-  );
+  const [tx, getDB] = withTransaction(logDb, db);
 
   const getScenesForStory = tx(getScenesForStoryInDatabase(logDb, getDB));
 
