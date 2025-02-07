@@ -4,16 +4,19 @@ import type { Kysely } from "kysely";
 import type { Logger } from "pino";
 
 /**
- * A simple combinator adding transactional behaviour to (wrapped, asynchronous)
- * data-access functions.
+ * Add transactional behaviour to asynchronous data-accessing functions.
  *
- * If the combinator function is applied when there's no existing transaction in
- * progress then a new transaction will be started and the wrapped function will
- * be applied in the context of that new transaction.
+ * If the function is applied when there's no existing transaction in * progress
+ * then a new transaction will be started and the wrapped function will be
+ * applied in the context of that new transaction.
  *
- * If the combinator function is applied when there *is* existing transaction in
+ * If the function is applied when there *is* an existing transaction in
  * progress then the wrapped function will be applied in the context of the
  * existing transaction.
+ *
+ * Note that _currently_ there's no way to change the
+ * [isolation level](https://kysely-org.github.io/kysely-apidoc/classes/TransactionBuilder.html#setIsolationLevel)
+ * of transactions started/joined in this manner.
  *
  * @param log used to log the transaction lifecycle.
  * @param db used to access the Kysely instance.
@@ -21,6 +24,7 @@ import type { Logger } from "pino";
  * @param thisArg an (optional) binding for the (wrapped) function.
  * @returns a tuple of the functional combinator and a function to access the
  * (storage-based) Kysely instance.
+ * @see https://kysely.dev/docs/category/transactions
  */
 export default function withTransaction<Database>(
   log: Logger,
@@ -45,11 +49,11 @@ export default function withTransaction<Database>(
       const db = getDatabase();
 
       if (db.isTransaction) {
-        log.trace("Running in existing transaction");
+        log.trace({ name: fn.name }, "Running in existing transaction");
         return action();
       }
 
-      log.trace("Running in new transaction");
+      log.trace({ name: fn.name }, "Running in new transaction");
       return db
         .transaction()
         .execute((tx) => storage.run(tx, action)) as ReturnType<F>;
