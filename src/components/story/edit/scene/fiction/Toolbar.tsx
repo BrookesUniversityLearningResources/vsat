@@ -1,8 +1,8 @@
 import type { FC, PropsWithChildren } from "react";
 import { useTranslation } from "react-i18next";
+import { HistoryEditor } from "slate-history";
 import { useSlate } from "slate-react";
 
-import { HistoryEditor } from "slate-history";
 import styles from "./Toolbar.module.css";
 
 type ToolbarProps = PropsWithChildren;

@@ -5,17 +5,15 @@ import { type Descendant, Node, createEditor } from "slate";
 import { withHistory } from "slate-history";
 import { Editable, Slate, withReact } from "slate-react";
 
-import styles from "./SceneFiction.module.css";
-
+import { ErrorCodedError } from "@domain/error/ErrorCodedError";
 import type { PersistentScene, PersistentStory } from "@domain/index";
 import unsupported from "@domain/story/client/unsupportedResult";
-import { ErrorCodedError } from "@domain/error/ErrorCodedError";
+
+import styles from "./SceneFiction.module.css";
 
 import {
-  type WithCreateScene,
   type WithDeleteScene,
   type WithFeedback,
-  type WithPublishStory,
   type WithSaveSceneContent,
   useEnvironment,
 } from "../../context/ClientContext";
@@ -35,14 +33,9 @@ const SceneFiction: FC<SceneFictionProps> = ({
 }) => {
   const { t } = useTranslation();
 
-  const { deleteScene, saveSceneContent, createScene, publishStory, feedback } =
-    useEnvironment<
-      WithSaveSceneContent &
-        WithDeleteScene &
-        WithCreateScene &
-        WithPublishStory &
-        WithFeedback
-    >();
+  const { deleteScene, saveSceneContent, feedback } = useEnvironment<
+    WithSaveSceneContent & WithDeleteScene & WithFeedback
+  >();
 
   const [editor] = useState(() => withReact(withHistory(createEditor())));
 
@@ -88,34 +81,6 @@ const SceneFiction: FC<SceneFictionProps> = ({
     saveTheSceneContent.mutate(getContent(editor.children));
   };
 
-  const publishTheStory = useMutation<
-    PersistentStory,
-    Error,
-    PersistentStory["id"]
-  >({
-    mutationFn: () =>
-      publishStory(storyId).then((result) => {
-        switch (result.kind) {
-          case "storyPublished":
-            return result.story;
-          case "error":
-            return Promise.reject(result.error);
-          default:
-            return unsupported(result);
-        }
-      }),
-    onError: feedback.notify.error,
-    onSuccess: (publishedStory) => {
-      feedback.notify.info("story.published");
-
-      // TODO: need to do something with the published story?
-    },
-  });
-
-  const onPublishStory = () => {
-    publishTheStory.mutate(storyId);
-  };
-
   const deleteTheScene = useMutation<unknown, Error, PersistentScene["id"]>({
     mutationFn: (sceneId) =>
       deleteScene({ storyId, sceneId }).then((result) => {
@@ -146,49 +111,10 @@ const SceneFiction: FC<SceneFictionProps> = ({
     }
   };
 
-  const createTheScene = useMutation<
-    PersistentScene,
-    Error,
-    PersistentStory["id"]
-  >({
-    mutationFn: (storyId) =>
-      createScene(storyId).then((result) => {
-        switch (result.kind) {
-          case "sceneCreated":
-            return result.scene;
-          case "error":
-            return Promise.reject(result.error);
-          default:
-            return unsupported(result);
-        }
-      }),
-    onError: feedback.notify.error,
-    onSuccess: (createdScene) =>
-      onSceneChanged({
-        kind: "sceneCreated",
-        scene: createdScene,
-      }),
-  });
-
-  const onCreateScene = () => {
-    createTheScene.mutate(storyId);
-  };
-
   return (
     <div className={styles.sceneFiction}>
       <Slate editor={editor} initialValue={editorState}>
         <Toolbar>
-          <button
-            type="button"
-            onClick={onPublishStory}
-            disabled={publishTheStory.isPending}
-          >
-            <img
-              src="/images/message-square-x-solid-24.png"
-              alt={t("scene.action.publish-story.label")}
-              title={t("scene.action.publish-story.label")}
-            />
-          </button>
           <button
             type="button"
             onClick={onDeleteScene}
@@ -209,17 +135,6 @@ const SceneFiction: FC<SceneFictionProps> = ({
               src="/images/save-solid-24.png"
               alt={t("scene.action.save.label")}
               title={t("scene.action.save.label")}
-            />
-          </button>
-          <button
-            type="button"
-            onClick={onCreateScene}
-            disabled={createTheScene.isPending}
-          >
-            <img
-              src="/images/message-square-add-solid-24.png"
-              alt={t("scene.action.create-scene.label")}
-              title={t("scene.action.create-scene.label")}
             />
           </button>
         </Toolbar>

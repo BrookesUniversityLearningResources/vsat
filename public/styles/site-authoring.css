@@ -7,7 +7,7 @@
 * {
   margin: 0;
 
-  --color-bg: #2c3e50;
+  --color-bg: #4e6378;
   --color-action-primary: #3498db;
   --color-text: #ecf0f1;
   --color-warning: #ffbf00;
@@ -22,6 +22,9 @@
 body {
   background-color: var(--color-bg);
   font-family: "Source Sans Pro", system-ui, sans-serif;
+  display: flex;
+  max-width: 75%;
+  margin: 0 auto;
 }
 
 img,

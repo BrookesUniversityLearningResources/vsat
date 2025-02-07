@@ -7,7 +7,7 @@ import isRecord from "@util/isRecord";
 
 const Toast = SweetAlert.mixin({
   toast: true,
-  position: "top-end",
+  position: "bottom-end",
   showConfirmButton: false,
   timer: 3000,
   timerProgressBar: true,

@@ -2,44 +2,63 @@ import {
   QueryClient,
   QueryClientProvider,
   useMutation,
+  useQuery,
 } from "@tanstack/react-query";
 import type { ResourceKey } from "i18next";
-import { type FC, type PropsWithChildren, useState } from "react";
+import type { FC, PropsWithChildren } from "react";
 import { ErrorBoundary } from "react-error-boundary";
 import { I18nextProvider } from "react-i18next";
 
 import styles from "./EditStory.module.css";
 
 import unsupported from "@domain/story/client/unsupportedResult.js";
-import type {
-  PersistentScene,
-  PersistentStory,
-} from "../../../domain/index.js";
+import useScrollIntoView from "src/hooks/useScrollIntoView.js";
+import type { PersistentStory } from "../../../domain/index.js";
 import useI18N from "../../../i18n/client/useI18N.js";
+import htmlIdForStory from "../htmlIdForStory.js";
 import {
   ClientContext,
   type WithFeedback,
-  type WithSaveSceneTitle,
+  type WithGetStory,
   type WithSaveStoryTitle,
   createClientEnvironment,
   useEnvironment,
 } from "./context/ClientContext.js";
 import StoryHeader, { type StoryHeaderProps } from "./header/StoryHeader.js";
-import Scene, {
-  type SceneProps,
-  type SceneTitleChangeEvent,
-} from "./scene/Scene.js";
+import Scene from "./scene/Scene.js";
+import htmlIdForScene from "./scene/htmlIdForScene.js";
+import type { OnSceneChanged } from "./scene/types.js";
 
 type StoryEditorProps = {
   story: PersistentStory;
 };
 
 const StoryEditor: FC<StoryEditorProps> = ({ story: initialStory }) => {
-  const [story, setStory] = useState(initialStory);
+  const scrollTo = useScrollIntoView();
 
-  const { saveStoryTitle, saveSceneTitle, feedback } = useEnvironment<
-    WithSaveStoryTitle & WithSaveSceneTitle & WithFeedback
+  const { saveStoryTitle, getStory, feedback } = useEnvironment<
+    WithSaveStoryTitle & WithGetStory & WithFeedback
   >();
+
+  const { data: story, refetch: refetchStory } = useQuery<
+    PersistentStory,
+    Error
+  >({
+    enabled: false,
+    queryKey: [`story-${initialStory.id}`],
+    initialData: initialStory,
+    queryFn: () =>
+      getStory(initialStory.id).then((result) => {
+        switch (result.kind) {
+          case "gotStory":
+            return result.story;
+          case "error":
+            return Promise.reject(result.error);
+          default:
+            return unsupported(result);
+        }
+      }),
+  });
 
   const saveTheStoryTitle = useMutation<
     PersistentStory,
@@ -58,53 +77,56 @@ const StoryEditor: FC<StoryEditorProps> = ({ story: initialStory }) => {
         }
       }),
     onError: feedback.notify.error,
-    onSuccess: (story) => {
+    onSuccess: () => {
       feedback.notify.info("story.title.saved");
 
-      setStory(story);
+      refetchStory();
     },
   });
 
-  const onStoryTitleChange: StoryHeaderProps["onTitleChange"] = (title) => {
+  const onStoryTitleChanged: StoryHeaderProps["onStoryTitleChanged"] = (
+    title,
+  ) => {
     saveTheStoryTitle.mutate(title);
   };
 
-  const saveTheSceneTitle = useMutation<
-    PersistentScene,
-    Error,
-    SceneTitleChangeEvent
-  >({
-    mutationFn: ({ sceneId, title }) =>
-      saveSceneTitle(story.id, sceneId, title).then((result) => {
-        switch (result.kind) {
-          case "sceneTitleSaved":
-            return result.scene;
-          case "error":
-            return Promise.reject(result.error);
-          default:
-            return unsupported(result);
-        }
-      }),
-    onError: feedback.notify.error,
-    onSuccess: () => {
-      feedback.notify.info("scene.title.saved");
-    },
-  });
+  const onSceneChanged: OnSceneChanged = (e) => {
+    switch (e.kind) {
+      case "sceneCreated": {
+        refetchStory().then(() => {
+          scrollTo(htmlIdForScene(e.scene.id));
+        });
+        break;
+      }
 
-  const onSceneTitleChange: SceneProps["onTitleChange"] = (event) => {
-    return saveTheSceneTitle.mutateAsync(event);
+      case "sceneDeleted": {
+        refetchStory().then(() => {
+          scrollTo(htmlIdForStory(story.id));
+        });
+        break;
+      }
+
+      default: {
+        // do nothing
+      }
+    }
   };
 
   return (
-    <main className={styles.story}>
-      <StoryHeader story={story} onTitleChange={onStoryTitleChange} />
+    <main className={styles.story} id={htmlIdForStory(story.id)}>
+      <StoryHeader
+        story={story}
+        onSceneChanged={onSceneChanged}
+        onStoryTitleChanged={onStoryTitleChanged}
+      />
+
       <div className={styles.storyEditScenes}>
         {story.scenes.map((scene) => (
           <Scene
             key={scene.id}
             scene={scene}
             storyId={story.id}
-            onTitleChange={onSceneTitleChange}
+            onSceneChanged={onSceneChanged}
           />
         ))}
       </div>

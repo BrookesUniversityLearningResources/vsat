@@ -1,5 +1,7 @@
-.scene h2 {
-  color: var(--color-text);
+.scene {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px dashed var(--color-text);
 }
 
 .sceneMedia {

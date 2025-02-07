@@ -13,11 +13,11 @@ export type ChangeEvent = {
   oldValue: string;
 };
 
-export type OnChange = (event: ChangeEvent) => void;
+export type OnChanged = (event: ChangeEvent) => void;
 
 type InlineTextInputProps = PropsWithChildren<{
   initialValue: string;
-  onChange: OnChange;
+  onChanged: OnChanged;
   i18n: {
     editing: {
       labelName: string;
@@ -33,7 +33,7 @@ type InlineTextInputProps = PropsWithChildren<{
 const InlineTextInput: FC<InlineTextInputProps> = ({
   children,
   initialValue,
-  onChange,
+  onChanged,
   i18n,
   inputAttributes = {},
 }) => {
@@ -49,7 +49,7 @@ const InlineTextInput: FC<InlineTextInputProps> = ({
     const newValue = value.trim();
 
     if (newValue !== initialValue) {
-      onChange({ value: newValue, oldValue: initialValue });
+      onChanged({ value: newValue, oldValue: initialValue });
     }
   };
 

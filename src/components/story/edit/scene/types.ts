@@ -29,11 +29,17 @@ export type SceneCreated = Readonly<{
   scene: PersistentScene;
 }>;
 
+export type SceneTitleChanged = Readonly<{
+  kind: "sceneTitleChanged";
+  title: PersistentScene["title"];
+}>;
+
 export type SceneChanged =
   | SceneImageChanged
   | SceneAudioChanged
   | SceneDeleted
   | SceneCreated
+  | SceneTitleChanged
   | SceneContentChanged;
 
 export type OnSceneChanged = (scene: SceneChanged) => void;

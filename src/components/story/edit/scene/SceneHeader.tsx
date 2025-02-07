@@ -4,27 +4,27 @@ import { useTranslation } from "react-i18next";
 import styles from "./SceneHeader.module.css";
 
 import InlineTextInput, {
-  type OnChange,
+  type OnChanged,
 } from "@components/input/InlineTextInput/InlineTextInput.js";
 
 import type { PersistentScene } from "../../../../domain/index.js";
 
 export type SceneHeaderProps = {
   title: PersistentScene["title"];
-  onTitleChange: (title: string) => void;
+  onTitleChanged: (title: string) => void;
 };
 
-const SceneHeader: FC<SceneHeaderProps> = ({ title, onTitleChange }) => {
+const SceneHeader: FC<SceneHeaderProps> = ({ title, onTitleChanged }) => {
   const { t } = useTranslation();
 
-  const onChange: OnChange = ({ value }) => {
-    onTitleChange(value);
+  const onChanged: OnChanged = ({ value }) => {
+    onTitleChanged(value);
   };
 
   return (
     <div className={styles.header}>
       <InlineTextInput
-        onChange={onChange}
+        onChanged={onChanged}
         initialValue={title}
         i18n={{
           editing: {
