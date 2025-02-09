@@ -107,16 +107,18 @@ export type DeleteSceneAudio = (
   request: DeleteAudioRequest,
 ) => Promise<unknown>;
 
-export type StoryTitle = Omit<PersistentStory, "scenes" | "author">;
-
-export type StoryTitlesByAuthor = {
-  author: Omit<AuthorDto, "email">;
-  titles: StoryTitle[];
+export type StorySummary = Omit<PersistentStory, "scenes" | "author"> & {
+  imageUrl: Image["thumbnailUrl"] | null;
 };
 
-export type GetStoryTitlesByAuthor = (
+export type StorySummariesByAuthor = {
+  author: Omit<AuthorDto, "email">;
+  stories: StorySummary[];
+};
+
+export type GetStorySummariesByAuthor = (
   id: AuthorDto["id"],
-) => Promise<StoryTitlesByAuthor | null>;
+) => Promise<StorySummariesByAuthor | null>;
 
 export type GetPublishedStories = () => Promise<ReadonlyArray<PublishedStory>>;
 
@@ -159,7 +161,7 @@ export type UnpublishStory = (id: StoryDto["id"]) => Promise<void>;
 
 export type RepositoryStory = Readonly<{
   saveStory: SaveStory;
-  getStoryTitlesByAuthor: GetStoryTitlesByAuthor;
+  getStorySummariesByAuthor: GetStorySummariesByAuthor;
   getStory: GetStory;
   publishStory: PublishStory;
   unpublishStory: UnpublishStory;

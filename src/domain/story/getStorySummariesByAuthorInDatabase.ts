@@ -3,49 +3,52 @@ import type { Logger } from "pino";
 import type { GetDatabase } from "../../database/schema.js";
 import { isNonEmptyArray } from "../../util/nonEmptyArray.js";
 import type {
-  GetStoryTitlesByAuthor,
-  StoryTitle,
-  StoryTitlesByAuthor,
+  GetStorySummariesByAuthor,
+  StorySummariesByAuthor,
+  StorySummary,
 } from "../index.js";
 
-type StoryTitleAndAuthorRow = {
+type Row = {
   storyId: number;
   title: string;
   publishedOn: Date | null;
   authorId: number;
   authorName: string;
+  imageThumbnailUrl: string | null;
 };
 
-function getStoryTitlesByAuthorInDatabase(
+function getStorySummariesByAuthorInDatabase(
   log: Logger,
   db: GetDatabase,
-): GetStoryTitlesByAuthor {
+): GetStorySummariesByAuthor {
   return async (id) => {
-    log.debug({ id }, "Getting story titles by author");
+    log.debug({ id }, "Getting story summaries by author");
 
     const data = await db()
       .selectFrom("story")
       .innerJoin("authorToStory", "authorToStory.storyId", "story.id")
       .innerJoin("author", "authorToStory.authorId", "author.id")
+      .innerJoin("scene", "scene.storyId", "story.id")
+      .leftJoin("image", "scene.imageId", "image.id")
       .select([
         "story.id as storyId",
         "story.title",
         "story.publishedOn",
         "author.id as authorId",
         "author.name as authorName",
+        "image.thumbnailUrl as imageThumbnailUrl",
       ])
       .where("authorToStory.authorId", "=", id)
+      .where("scene.isOpeningScene", "=", true)
       .execute();
 
-    return toStoryTitlesByAuthor(data);
+    return toStorySummariesByAuthor(data);
   };
 }
 
-export default getStoryTitlesByAuthorInDatabase;
+export default getStorySummariesByAuthorInDatabase;
 
-function toStoryTitlesByAuthor(
-  rows: StoryTitleAndAuthorRow[],
-): StoryTitlesByAuthor | null {
+function toStorySummariesByAuthor(rows: Row[]): StorySummariesByAuthor | null {
   if (!isNonEmptyArray(rows)) {
     return null;
   }
@@ -53,31 +56,33 @@ function toStoryTitlesByAuthor(
   const author = toAuthor(rows[0]);
 
   return rows.reduce((stories, row) => {
-    stories.titles.push(toTitle(row));
+    stories.stories.push(toSummary(row));
 
     return stories;
-  }, authorWithNoTitles(author));
+  }, authorWithNoStories(author));
 }
 
-type Author = StoryTitlesByAuthor["author"];
+type Author = StorySummariesByAuthor["author"];
 
-function toAuthor(row: StoryTitleAndAuthorRow): Author {
+function toAuthor(row: Row): Author {
   return {
     id: row.authorId,
     name: row.authorName,
   };
 }
 
-function authorWithNoTitles(author: Author): StoryTitlesByAuthor {
+function authorWithNoStories(author: Author): StorySummariesByAuthor {
   return {
     author,
-    titles: [],
+    stories: [],
   };
 }
-function toTitle(row: StoryTitleAndAuthorRow): StoryTitle {
+
+function toSummary(row: Row): StorySummary {
   return {
     id: row.storyId,
     title: row.title,
     publishedOn: row.publishedOn,
+    imageUrl: row.imageThumbnailUrl,
   };
 }

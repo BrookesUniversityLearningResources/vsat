@@ -1,0 +1,66 @@
+---
+import type { StorySummary } from "@domain/index";
+
+interface Props {
+  story: StorySummary;
+}
+
+const { i18n } = Astro.locals.environment<
+  App.WithStoryRepository & App.WithI18N
+>();
+
+const { story } = Astro.props;
+
+let storyImageUrl = story.imageUrl;
+
+if (!storyImageUrl) {
+  storyImageUrl = `https://placehold.co/288x192?text=${encodeURIComponent(story.title)}`;
+}
+---
+
+<div class="summary">
+  <a href={`/author/story/${story.id}`}>
+    <img
+      src={storyImageUrl}
+      alt={i18n.t("page.stories.summary.image.alt-text", {
+        title: story.title,
+      })}
+    />
+    <div>{story.title}</div>
+  </a>
+</div>
+
+<style>
+  .summary {
+    margin: 1rem 1rem 1rem auto;
+  }
+
+  img {
+    border: 1px solid black;
+    border-bottom: 0;
+    border-radius: var(--border-radius-medium) var(--border-radius-medium) 0 0;
+  }
+
+  img:hover {
+    box-shadow: 0rem 0rem 1rem 0.125rem #32393c;
+  }
+
+  .summary div {
+    border: 1px solid black;
+    border-radius: 0 0 var(--border-radius-medium) var(--border-radius-medium);
+    padding: 0.5rem 1rem;
+    text-align: center;
+    font-size: 1.5rem;
+    background-color: var(--color-text);
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    max-width: 290px;
+  }
+
+  a,
+  a:visited {
+    text-decoration: none;
+    color: black;
+  }
+</style>

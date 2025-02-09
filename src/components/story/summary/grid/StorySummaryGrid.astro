@@ -1,0 +1,27 @@
+---
+import type { StorySummary as Summary } from "@domain/index";
+
+import StorySummary from "./StorySummary.astro";
+
+interface Props {
+  stories: Summary[];
+}
+
+const { stories } = Astro.props;
+---
+
+<div class="summaries">
+  {
+    stories.map((story) => {
+      return <StorySummary story={story} />;
+    })
+  }
+</div>
+
+<style>
+  .summaries {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 1rem;
+  }
+</style>

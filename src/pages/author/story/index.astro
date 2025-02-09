@@ -1,6 +1,10 @@
 ---
-import CreateStory from "../../../components/story/create/CreateStory";
+import StorySummaryGrid from "@components/story/summary/grid/StorySummaryGrid.astro";
+import CreateStory from "@components/story/create/CreateStory";
+
 import Layout from "../../../layouts/AuthoringLayout.astro";
+
+import "./_stories.module.css";
 
 const user = Astro.locals.user;
 if (!user?.id) {
@@ -11,7 +15,7 @@ const { repositoryStory, i18n } = Astro.locals.environment<
   App.WithStoryRepository & App.WithI18N
 >();
 
-let stories = await repositoryStory.getStoryTitlesByAuthor(user.id);
+let stories = await repositoryStory.getStorySummariesByAuthor(user.id);
 
 if (!stories) {
   stories = {
@@ -19,7 +23,7 @@ if (!stories) {
       id: user.id,
       name: user.name,
     },
-    titles: [],
+    stories: [],
   };
 }
 
@@ -33,19 +37,13 @@ const translations = i18n.getTranslationsForPage({
   title={i18n.t("page.stories.meta.title")}
   description={i18n.t("page.stories.meta.description")}
 >
-  <h1>{i18n.t("page.stories.heading", { authorName: stories.author.name })}</h1>
+  <main>
+    <h1>
+      {i18n.t("page.stories.heading", { authorName: stories.author.name })}
+    </h1>
 
-  <CreateStory translations={translations} client:only="react" />
+    <CreateStory translations={translations} client:only="react" />
 
-  <ul>
-    {
-      stories.titles.map((story) => {
-        return (
-          <li>
-            <a href={`/author/story/${story.id}`}>{story.title}</a>
-          </li>
-        );
-      })
-    }
-  </ul>
+    <StorySummaryGrid stories={stories.stories} />
+  </main>
 </Layout>

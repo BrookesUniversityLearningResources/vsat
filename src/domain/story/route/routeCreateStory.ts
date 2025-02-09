@@ -23,7 +23,7 @@ function routeCreateStory(log: Logger, createStory: SaveStory): Router {
         {
           title: "On the bus",
           content: "",
-          isOpeningScene: false,
+          isOpeningScene: true,
         },
       ],
       publishedOn: null,

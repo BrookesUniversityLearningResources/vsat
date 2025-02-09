@@ -41,10 +41,15 @@
         "title": "Stories • VSAT",
         "description": "Your stories"
       },
-      "heading": "Your stories",
+      "heading": "My stories",
       "action": {
         "create-story": {
           "label": "New story"
+        }
+      },
+      "summary": {
+        "image": {
+          "alt-text": "Background image for '{{title}}'"
         }
       },
       "notify": {

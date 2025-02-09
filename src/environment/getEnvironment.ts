@@ -37,7 +37,7 @@ import getSceneForStoryInDatabase from "../domain/story/getSceneForStoryInDataba
 import getScenesForStoryInDatabase from "../domain/story/getScenesForStoryInDatabase.js";
 import getStoriesInDatabase from "../domain/story/getStoriesInDatabase.js";
 import getStoryInDatabase from "../domain/story/getStoryInDatabase.js";
-import getStoryTitlesByAuthorInDatabase from "../domain/story/getStoryTitlesByAuthorInDatabase.js";
+import getStorySummariesByAuthorInDatabase from "../domain/story/getStorySummariesByAuthorInDatabase.js";
 import publishStory from "../domain/story/publish/publishStory.js";
 import publishStoryInDatabase from "../domain/story/publish/publishStoryInDatabase.js";
 import unpublishStoryInDatabase from "../domain/story/publish/unpublishStoryInDatabase.js";
@@ -136,7 +136,9 @@ const getEnvironment: App.GetEnvironment = (() => {
         repositoryScene.deleteScene,
       ),
     ),
-    getStoryTitlesByAuthor: tx(getStoryTitlesByAuthorInDatabase(logDb, getDB)),
+    getStorySummariesByAuthor: tx(
+      getStorySummariesByAuthorInDatabase(logDb, getDB),
+    ),
     getStory,
     publishStory: tx(
       publishStory(getStory, publishStoryInDatabase(logDb, getDB)),
