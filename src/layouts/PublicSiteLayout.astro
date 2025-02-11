@@ -13,8 +13,11 @@ const { title, description } = Astro.props;
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width" />
     <link rel="stylesheet" href="/styles/site-public.css" />
-    <meta name="description" content={description ?? "VSAT"} />
-    <title>{title ?? "VSAT"}</title>
+    <meta
+      name="description"
+      content={description ?? "Virtual Storytelling Application Toolkit"}
+    />
+    <title>{title ?? "Virtual Storytelling Application Toolkit"}</title>
     <slot name="scripts" />
   </head>
   <body>

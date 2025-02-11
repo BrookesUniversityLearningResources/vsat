@@ -4,8 +4,6 @@ import CreateStory from "@components/story/create/CreateStory";
 
 import Layout from "../../../layouts/AuthoringLayout.astro";
 
-import "./_stories.module.css";
-
 const user = Astro.locals.user;
 if (!user?.id) {
   return Astro.redirect("/login");
@@ -38,12 +36,29 @@ const translations = i18n.getTranslationsForPage({
   description={i18n.t("page.stories.meta.description")}
 >
   <main>
-    <h1>
-      {i18n.t("page.stories.heading", { authorName: stories.author.name })}
-    </h1>
+    <div class="header">
+      <h1>
+        {i18n.t("page.stories.heading", { authorName: stories.author.name })}
+      </h1>
 
-    <CreateStory translations={translations} client:only="react" />
+      <CreateStory translations={translations} client:only="react" />
+    </div>
 
     <StorySummaryGrid stories={stories.stories} />
   </main>
 </Layout>
+
+<style>
+  main {
+    margin: 1rem;
+  }
+
+  .header {
+    display: grid;
+    grid-template-columns: 3fr 1fr;
+
+    h1 {
+      color: var(--color-text);
+    }
+  }
+</style>
