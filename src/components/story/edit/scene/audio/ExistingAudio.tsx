@@ -72,13 +72,20 @@ const ExistingAudio: FC<ExistingAudioProps> = ({
             <BarLoader width="100%" height="0.5rem" color="green" />
           )}
         </div>
-        <button
-          type="button"
-          disabled={deletion.isPending}
-          onClick={() => deletion.mutate(audio)}
-        >
-          {t("scene.action.delete-audio.label")}
-        </button>
+
+        {!deletion.isPending && (
+          <button
+            type="button"
+            disabled={deletion.isPending}
+            onClick={() => deletion.mutate(audio)}
+          >
+            <img
+              src="/images/delete-white.svg"
+              alt={t("scene.action.delete-audio.label")}
+              title={t("scene.action.delete-audio.label")}
+            />
+          </button>
+        )}
       </div>
     </div>
   );

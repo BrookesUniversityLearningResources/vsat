@@ -16,6 +16,7 @@
   width: 100%;
   gap: 1rem;
   padding: 0.4rem;
+  min-height: 55px;
   background: var(--color-text);
   border-radius: 0 0 var(--border-radius-medium) var(--border-radius-medium);
   border: 0.1rem solid var(--color-bg);
@@ -46,5 +47,5 @@
 
 .uploadingIndicator {
   width: 100%;
-  margin: 0.5rem 0.5rem 0.5rem 1rem;
+  margin: 0.5rem 1rem;
 }

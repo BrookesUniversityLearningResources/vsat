@@ -70,13 +70,20 @@ const ExistingImage: FC<ExistingImageProps> = ({
             <BarLoader width="100%" height="0.5rem" color="green" />
           )}
         </div>
-        <button
-          type="button"
-          disabled={deletion.isPending}
-          onClick={() => deletion.mutate(image)}
-        >
-          {t("scene.action.delete-image.label")}
-        </button>
+
+        {!deletion.isPending && (
+          <button
+            type="button"
+            disabled={deletion.isPending}
+            onClick={() => deletion.mutate(image)}
+          >
+            <img
+              src="/images/delete-white.svg"
+              alt={t("scene.action.delete-image.label")}
+              title={t("scene.action.delete-image.label")}
+            />
+          </button>
+        )}
       </div>
     </div>
   );

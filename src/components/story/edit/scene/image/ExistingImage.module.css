@@ -4,7 +4,7 @@
   height: 200px;
 }
 
-.existingImage img {
+.existingImage > img {
   border: 1px solid black;
   border-bottom: 0;
   border-radius: var(--border-radius-medium) var(--border-radius-medium) 0 0;
@@ -19,6 +19,9 @@
   border-radius: var(--border-radius-medium);
   color: var(--color-text);
   cursor: pointer;
+  min-width: 3.5rem;
+  display: flex;
+  justify-content: center;
 }
 
 .actionBar {
@@ -26,6 +29,7 @@
   flex-direction: row;
   gap: 1rem;
   padding: 0.4rem;
+  min-height: 55px;
   align-items: center;
   background: var(--color-text);
   border-radius: 0 0 1rem 1rem;
@@ -34,5 +38,5 @@
 
 .loadingContainer {
   width: 100%;
-  margin: 0.5rem auto 0.5rem 1rem;
+  margin: 0.5rem 1rem;
 }

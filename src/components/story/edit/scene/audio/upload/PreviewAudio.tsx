@@ -31,13 +31,28 @@ const PreviewAudio: FC<PreviewAudioProps> = ({
 
       <div className={styles.actionBar}>
         {!isUploading && (
-          <button
-            type="button"
-            onClick={() => cancel(audio)}
-            className={styles.cancelUpload}
-          >
-            {t("scene.action.cancel-audio.label")}
-          </button>
+          <>
+            <button
+              type="button"
+              onClick={() => cancel(audio)}
+              className={styles.cancelUpload}
+            >
+              {t("scene.action.cancel-audio.label")}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => upload(audio)}
+              className={styles.uploadAudio}
+              disabled={isUploading}
+            >
+              <img
+                src="/images/upload-white.svg"
+                alt={t("scene.action.upload-audio.label")}
+                title={t("scene.action.upload-audio.label")}
+              />
+            </button>
+          </>
         )}
 
         {isUploading && (
@@ -45,15 +60,6 @@ const PreviewAudio: FC<PreviewAudioProps> = ({
             <BarLoader width="100%" height="0.5rem" color="green" />
           </div>
         )}
-
-        <button
-          type="button"
-          onClick={() => upload(audio)}
-          className={styles.uploadAudio}
-          disabled={isUploading}
-        >
-          {t("scene.action.upload-audio.label")}
-        </button>
       </div>
     </div>
   );

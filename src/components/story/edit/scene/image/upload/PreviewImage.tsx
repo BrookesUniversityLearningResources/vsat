@@ -25,13 +25,28 @@ const PreviewImage: FC<PreviewImageProps> = ({
 
       <div className={styles.actionBar}>
         {!isUploading && (
-          <button
-            type="button"
-            onClick={() => cancel(image)}
-            className={styles.cancelUpload}
-          >
-            {t("scene.action.cancel-image.label")}
-          </button>
+          <>
+            <button
+              type="button"
+              onClick={() => cancel(image)}
+              className={styles.cancelUpload}
+            >
+              {t("scene.action.cancel-image.label")}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => upload(image)}
+              className={styles.uploadImage}
+              disabled={isUploading}
+            >
+              <img
+                src="/images/upload-white.svg"
+                alt={t("scene.action.upload-image.label")}
+                title={t("scene.action.upload-image.label")}
+              />
+            </button>
+          </>
         )}
 
         {isUploading && (
@@ -39,15 +54,6 @@ const PreviewImage: FC<PreviewImageProps> = ({
             <BarLoader width="100%" height="0.5rem" color="green" />
           </div>
         )}
-
-        <button
-          type="button"
-          onClick={() => upload(image)}
-          className={styles.uploadImage}
-          disabled={isUploading}
-        >
-          {t("scene.action.upload-image.label")}
-        </button>
       </div>
     </div>
   );
