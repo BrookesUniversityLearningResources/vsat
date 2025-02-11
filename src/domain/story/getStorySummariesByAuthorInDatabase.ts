@@ -40,6 +40,7 @@ function getStorySummariesByAuthorInDatabase(
       ])
       .where("authorToStory.authorId", "=", id)
       .where("scene.isOpeningScene", "=", true)
+      .orderBy("story.id", "desc")
       .execute();
 
     return toStorySummariesByAuthor(data);
