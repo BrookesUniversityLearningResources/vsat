@@ -4,8 +4,8 @@
 
 .editor {
   height: 100%;
+  width: 750px;
   background-color: whitesmoke;
   padding: 1rem;
   border-radius: var(--border-radius-medium);
-  width: 750px;
 }
