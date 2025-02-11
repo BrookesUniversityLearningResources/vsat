@@ -30,13 +30,15 @@ const PreviewAudio: FC<PreviewAudioProps> = ({
       </audio>
 
       <div className={styles.actionBar}>
-        <button
-          type="button"
-          onClick={() => cancel(audio)}
-          className={styles.cancelUpload}
-        >
-          {t("scene.action.cancel-audio.label")}
-        </button>
+        {!isUploading && (
+          <button
+            type="button"
+            onClick={() => cancel(audio)}
+            className={styles.cancelUpload}
+          >
+            {t("scene.action.cancel-audio.label")}
+          </button>
+        )}
 
         {isUploading && (
           <div className={styles.uploadingIndicator}>

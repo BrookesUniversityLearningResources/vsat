@@ -24,6 +24,7 @@ input[type="file"]::file-selector-button {
   margin-right: 1rem;
   border: none;
   background: var(--color-action-primary);
+  border-radius: var(--border-radius-medium);
   padding: 0.5rem 1rem;
   color: var(--color-text);
   cursor: pointer;

@@ -24,13 +24,15 @@ const PreviewImage: FC<PreviewImageProps> = ({
       <img src={URL.createObjectURL(image)} alt={t("scene.image.preview")} />
 
       <div className={styles.actionBar}>
-        <button
-          type="button"
-          onClick={() => cancel(image)}
-          className={styles.cancelUpload}
-        >
-          {t("scene.action.cancel-image.label")}
-        </button>
+        {!isUploading && (
+          <button
+            type="button"
+            onClick={() => cancel(image)}
+            className={styles.cancelUpload}
+          >
+            {t("scene.action.cancel-image.label")}
+          </button>
+        )}
 
         {isUploading && (
           <div className={styles.uploadingIndicator}>
