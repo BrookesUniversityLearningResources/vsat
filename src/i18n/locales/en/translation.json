@@ -96,6 +96,9 @@
           "prompt": "Add sound to the scene…"
         },
         "action": {
+          "back-to-my-stories": {
+            "label": "My stories"
+          },
           "delete-audio": {
             "label": "Delete"
           },

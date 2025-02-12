@@ -117,29 +117,34 @@ const StoryHeader: FC<StoryHeaderProps> = ({
         <h1>{t("title.label", { title: story.title })}</h1>
       </InlineTextInput>
 
-      <div className={styles.toolbar}>
-        <button
-          type="button"
-          onClick={onPublishStory}
-          disabled={publishTheStory.isPending}
-        >
-          <img
-            src="/images/publish-24.png"
-            alt={t("scene.action.publish-story.label")}
-            title={t("scene.action.publish-story.label")}
-          />
-        </button>
-        <button
-          type="button"
-          onClick={onCreateScene}
-          disabled={createTheScene.isPending}
-        >
-          <img
-            src="/images/message-square-add-solid-24.png"
-            alt={t("scene.action.create-scene.label")}
-            title={t("scene.action.create-scene.label")}
-          />
-        </button>
+      <div className={styles.actionBar}>
+        <a href="/author/story/">
+          {t("scene.action.back-to-my-stories.label")}
+        </a>
+        <div className={styles.toolbar}>
+          <button
+            type="button"
+            onClick={onPublishStory}
+            disabled={publishTheStory.isPending}
+          >
+            <img
+              src="/images/publish-24.png"
+              alt={t("scene.action.publish-story.label")}
+              title={t("scene.action.publish-story.label")}
+            />
+          </button>
+          <button
+            type="button"
+            onClick={onCreateScene}
+            disabled={createTheScene.isPending}
+          >
+            <img
+              src="/images/message-square-add-solid-24.png"
+              alt={t("scene.action.create-scene.label")}
+              title={t("scene.action.create-scene.label")}
+            />
+          </button>
+        </div>
       </div>
     </div>
   );
