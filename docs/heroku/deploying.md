@@ -1,11 +1,9 @@
-We're deploying to [Heroku](https://www.heroku.com/).
+You'll need:
 
-> You'll need ask someone on the team for access to the `vsat` app on Heroku.
->
-> You'll need to have:
->
-> - [registered an Heroku account](https://signup.heroku.com/)
-> - [installed the Heroku CLI](https://devcenter.heroku.com/articles/heroku-cli#install-the-heroku-cli)
+- [an Heroku account](https://signup.heroku.com/)
+- [the Heroku CLI](https://devcenter.heroku.com/articles/heroku-cli#install-the-heroku-cli) installed locally
+
+> You'll also need ask someone on the team for access to the `vsat` app on Heroku.
 
 ## Process
 
