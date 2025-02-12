@@ -8,6 +8,7 @@ Populate it with the following environment variables:
 
 ```
 NODE_ENV=development
+PORT=3000
 DATABASE_URL=
 CLOUDINARY_URL=
 MAGIC_SECRET_KEY=

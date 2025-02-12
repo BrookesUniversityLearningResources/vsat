@@ -13,7 +13,7 @@ export default function loadConfig(): AppConfig {
   return result.data;
 }
 
-export const NetworkPortModel = z.number().int().min(1024).max(65535);
+export const NetworkPortModel = z.coerce.number().int().min(1024).max(65535);
 
 export type NetworkPort = z.infer<typeof NetworkPortModel>;
 
