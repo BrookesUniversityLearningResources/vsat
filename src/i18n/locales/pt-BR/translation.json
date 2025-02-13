@@ -2,10 +2,10 @@
   "page": {
     "login": {
       "meta": {
-        "title": "Iniciar sessão • VSAT",
-        "description": "VSAT Iniciar sessão"
+        "title": "Login • VSAT",
+        "description": "VSAT login"
       },
-      "heading": "Iniciar sessão",
+      "heading": "Login",
       "field": {
         "email": {
           "label": "Email",
@@ -13,15 +13,20 @@
         }
       },
       "submit": {
-        "label": "Iniciar sessão"
+        "label": "Log in"
       },
-      "error": "Ocorreu um erro"
+      "message": {
+        "heading": "Check your email",
+        "description": "Complete your log in using the magic link we just sent."
+      },
+      "error": "There's been an error"
     },
     "login-callback": {
       "meta": {
-        "title": "Iniciar sessão • VSAT",
-        "description": "VSAT Iniciar sessão"
-      }
+        "title": "Login • VSAT",
+        "description": "VSAT login"
+      },
+      "message": "Setting up your writing space…"
     },
     "author": {
       "meta": {
@@ -36,27 +41,73 @@
         "title": "Histórias • VSAT",
         "description": "Suas histórias"
       },
-      "heading": "Histórias",
+      "heading": "My stories",
       "action": {
         "create-story": {
-          "label": "Nova história"
+          "label": "New story"
+        }
+      },
+      "summary": {
+        "image": {
+          "alt-text": "Background image for '{{title}}'"
+        }
+      },
+      "notify": {
+        "error": {
+          "code": {
+            "1": "Oops, something went wrong.",
+            "2": "Oops, something went wrong."
+          }
         }
       }
     },
     "story": {
       "meta": {
-        "title": "História • VSAT",
-        "description": "Sua história"
+        "title": "Story • VSAT",
+        "description": "Your story"
       },
-      "title": "{{title}}",
+      "title": {
+        "label": "{{title}}",
+        "field": {
+          "label": "Story title"
+        },
+        "action": {
+          "edit-title": "Edit",
+          "save-title": "Save"
+        }
+      },
       "scene": {
-        "heading": "{{title}}",
+        "title": {
+          "label": "{{title}}",
+          "field": {
+            "label": "Scene title"
+          },
+          "action": {
+            "edit-title": "Edit",
+            "save-title": "Save"
+          }
+        },
         "image": {
           "alt-text": "Thumbnail",
           "preview": "Preview",
           "placeholder": "Placeholder"
         },
+        "audio": {
+          "prompt": "Add sound to the scene…"
+        },
         "action": {
+          "back-to-my-stories": {
+            "label": "My stories"
+          },
+          "delete-audio": {
+            "label": "Delete"
+          },
+          "cancel-audio": {
+            "label": "Cancel"
+          },
+          "upload-audio": {
+            "label": "Upload"
+          },
           "delete-image": {
             "label": "Delete"
           },
@@ -92,7 +143,7 @@
       "notify": {
         "error": {
           "code": {
-            "1": "Darn, something went wrong.",
+            "1": "Oops, something went wrong.",
             "2": "Oops, something went wrong.",
             "4": "We can't find that story.",
             "5": "We can't find that scene.",
@@ -129,26 +180,43 @@
       "image": {
         "alt-text": "An unhappy face"
       },
+      "audio": {
+        "alt-text": "An unhappy face"
+      },
       "content": {
         "admission": "Something's gone wrong on our side, sorry about that.",
         "remediation": "Try refreshing the page: the error might be a blip."
       }
     },
-    "site": {
-      "story": {
-        "meta": {
-          "title": "Story • VSAT",
-          "description": "Your story"
-        },
-        "heading": "{{title}}"
+    "site-story": {
+      "meta": {
+        "title": "{{title}} • VSAT",
+        "description": "Your story"
+      }
+    },
+    "home": {
+      "meta": {
+        "title": "VSAT",
+        "description": "Virtual Storytelling Application Toolkit"
+      },
+      "heading": {
+        "label": "Virtual Storytelling Application Toolkit",
+        "strapline": "Write interactive stories.",
+        "logo": {
+          "alt-text": "VSAT logo"
+        }
+      },
+      "cta": {
+        "start-writing": "Start writing",
+        "read-stories": "Read stories"
       }
     }
   },
   "__common__": {
-    "yes": "Sim",
-    "no": "Não",
+    "yes": "Yes",
+    "no": "No",
     "loading": {
-      "text": "Carregamento…"
+      "text": "Loading…"
     }
   }
 }

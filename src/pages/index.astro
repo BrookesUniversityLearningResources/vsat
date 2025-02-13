@@ -1,0 +1,68 @@
+---
+import Layout from "../layouts/PublicSiteLayout.astro";
+
+const { i18n } = Astro.locals.environment<App.WithI18N>();
+---
+
+<Layout
+  title={i18n.t("page.home.meta.title")}
+  description={i18n.t("page.home.meta.description")}
+>
+  <main>
+    <div class="content">
+      <h1>{i18n.t("page.home.heading.label")}</h1>
+      <div class="strapline">{i18n.t("page.home.heading.strapline")}</div>
+      <div class="cta">
+        <a href="/story/">{i18n.t("page.home.cta.read-stories")}</a>
+        <a href="/author/story/">{i18n.t("page.home.cta.start-writing")}</a>
+      </div>
+    </div>
+    <img
+      src="/images/layered-docs.svg"
+      alt={i18n.t("page.home.heading.logo.alt-text")}
+    />
+  </main>
+</Layout>
+
+<style>
+  main {
+    display: flex;
+    gap: 3rem;
+    margin: 3rem;
+  }
+
+  main > img {
+    height: 300px;
+    width: 300px;
+  }
+
+  .content {
+    h1 {
+      font-size: 5rem;
+    }
+
+    .strapline {
+      font-size: 2rem;
+      margin: 2rem auto;
+    }
+  }
+
+  .cta {
+    display: flex;
+    gap: 3rem;
+    align-content: space-between;
+
+    a {
+      font-size: 2rem;
+      text-decoration: none;
+      border-radius: var(--border-radius-medium);
+      color: var(--color-text);
+      background-color: var(--color-action-primary);
+      padding: 1rem;
+    }
+
+    a:hover {
+      box-shadow: 0.25rem 0.25rem 0.5rem 0.5rem lightgray;
+    }
+  }
+</style>

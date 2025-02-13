@@ -1,10 +1,18 @@
 # Virtual Storytelling Application Toolkit • VSAT
 
-> You'll need some [environment variables](./docs/environment-variables.md).
 
 ```shell
-nvm use 22
-npm install
-docker compose up --detach
-npm run dev
+$ git clone https://github.com/BrookesUniversityLearningResources/vsat.git
+$ cd vsat
+$ nvm use 22
+$ npm install
+$ docker compose up --detach
+$ npm run dev
 ```
+
+[Surf to the login page](http://localhost:3000/login) to get started.
+
+Note that you'll need some:
+
+* [software](./docs/required-software.md)
+* [environment variables](./docs/environment-variables.md)

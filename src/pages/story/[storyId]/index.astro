@@ -2,10 +2,12 @@
 import PublishedStory from "@components/story/published/PublishedStory";
 import toStoryId from "@domain/story/toStoryId";
 
+import Layout from "../../../layouts/PublicSiteLayout.astro";
+
 const storyId = toStoryId(Astro.params.storyId);
 
 if (!storyId) {
-  return Astro.redirect("/author/story?err=345");
+  return Astro.redirect("/?err=345");
 }
 
 const { i18n, repositoryStory } = Astro.locals.environment<
@@ -15,33 +17,24 @@ const { i18n, repositoryStory } = Astro.locals.environment<
 const story = await repositoryStory.getPublishedStory(storyId);
 
 if (!story) {
-  return Astro.redirect("/story?err=754");
+  return Astro.redirect("/?err=754");
 }
 
 const translations = i18n.getTranslationsForPage({
   locale: Astro.preferredLocale,
-  page: "story",
+  page: "site-story",
 });
 ---
 
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width" />
-    <meta
-      name="description"
-      content={i18n.t("page.site.story.meta.description")}
+<Layout
+  title={i18n.t("page.site-story.meta.title", { title: story.title })}
+  description={i18n.t("page.site-story.meta.description")}
+>
+  <main>
+    <PublishedStory
+      story={story}
+      translations={translations}
+      client:only="react"
     />
-    <title>{story.title}</title>
-  </head>
-  <body>
-    <main>
-      <PublishedStory
-        story={story}
-        translations={translations}
-        client:only="react"
-      />
-    </main>
-  </body>
-</html>
+  </main>
+</Layout>
