@@ -24,14 +24,18 @@ input:focus {
 }
 
 button {
-  margin-top: 0.5rem;
   align-self: start;
+
+  margin: 1rem auto;
+  padding: 0.75rem;
   width: 100%;
 
   font-weight: bolder;
+  font-size: 1.5rem;
 
   background: var(--color-action-primary);
   color: var(--color-text);
 
   border: 0;
+  border-radius: var(--border-radius-medium);
 }
