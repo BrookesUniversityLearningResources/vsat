@@ -2,7 +2,7 @@ import { isNonEmptyArray } from "../../../util/nonEmptyArray.js";
 import { isPersistentAudio } from "../../audio/types.js";
 import { type ErrorCoded, ErrorCodes } from "../../error/errorCode.js";
 import { isPersistentImage } from "../../image/types.js";
-import type { PersistentStory } from "../../index.js";
+import type { PersistentImage, PersistentStory } from "../../index.js";
 import parse from "./parse/parse.js";
 import parseLinkTarget from "./parse/parseLinkTarget.js";
 import type {
@@ -22,32 +22,25 @@ export type ParseStoryFailed = ErrorCoded & {
 export type ParseStorySuccess = {
   kind: "storyParsed";
   story: PublishedStory;
+  errors: ReadonlyArray<ParseError>;
+};
+
+export type ParseError = ErrorCoded & {
+  reason: string;
 };
 
 export type ParseStoryResult = ParseStorySuccess | ParseStoryFailed;
 
 function parseStory(story: NotionallyPublishedStory): ParseStoryResult {
+  const parseErrors: ParseError[] = [];
   const publishedScenes: PublishedScene[] = [];
 
   for (const scene of story.scenes) {
-    const sceneLink = parseLinkTarget(scene.title);
-
-    if (sceneLink.kind === "failure") {
-      return {
-        kind: "storyFailedToParse",
-        story,
-        errorCode: ErrorCodes.MalformedLink,
-        reason: `Error parsing scene "${scene.title}": unable to derive link from title because "${sceneLink.reason}"`,
-      };
-    }
-
     if (!isPersistentImage(scene.image)) {
-      return {
-        kind: "storyFailedToParse",
-        story,
+      parseErrors.push({
         errorCode: ErrorCodes.AllScenesMustHaveAnImage,
         reason: `Error parsing scene "${scene.title}": image is missing"`,
-      };
+      });
     }
 
     const pages: Page[] = [];
@@ -89,74 +82,68 @@ function parseStory(story: NotionallyPublishedStory): ParseStoryResult {
           );
 
           if (targetResult.kind === "failure") {
-            return {
-              kind: "storyFailedToParse",
-              story,
+            parseErrors.push({
               errorCode: ErrorCodes.MalformedLink,
               reason: `Error parsing scene "${scene.title}" at line #${lineNumber}: ${targetResult.reason}`,
+            });
+          } else {
+            page = {
+              number: pages.length,
+              link: targetResult.link,
+              withinScene: scene.id,
+              content: [
+                {
+                  kind: "blockHeading",
+                  link: targetResult.link,
+                  text: result.text,
+                },
+              ],
             };
           }
-
-          page = {
-            number: pages.length,
-            link: targetResult.link,
-            withinScene: scene.id,
-            content: [
-              {
-                kind: "blockHeading",
-                link: targetResult.link,
-                text: result.text,
-              },
-            ],
-          };
 
           break;
         }
 
         case "plaintext": {
           if (!page) {
-            return {
-              kind: "storyFailedToParse",
-              story,
+            parseErrors.push({
               errorCode: ErrorCodes.MustAddHeadingBeforeAddingAParagraph,
               reason: `Error parsing scene "${scene.title}" at line #${lineNumber}: you must create a heading before adding a paragraph`,
-            };
+            });
+          } else {
+            page.content.push({
+              kind: "blockPlaintext",
+              text: result.text,
+            });
           }
-
-          page.content.push({
-            kind: "blockPlaintext",
-            text: result.text,
-          });
 
           break;
         }
 
         case "link": {
           if (!page) {
-            return {
-              kind: "storyFailedToParse",
-              story,
+            parseErrors.push({
               errorCode: ErrorCodes.MustAddHeadingBeforeAddingALink,
               reason: `Error parsing scene "${scene.title}" at line #${lineNumber}: you must create a heading before adding a link`,
-            };
+            });
+          } else {
+            page.content.push({
+              kind: "blockLink",
+              text: result.text,
+              link: result.link,
+            });
           }
-
-          page.content.push({
-            kind: "blockLink",
-            text: result.text,
-            link: result.link,
-          });
 
           break;
         }
 
         case "error": {
-          return {
-            kind: "storyFailedToParse",
-            story,
+          parseErrors.push({
             errorCode: result.errorCode ?? ErrorCodes.UnableToParseStory,
             reason: `Error parsing scene "${scene.title}" at line #${result.line.number}: "${result.message}"`,
-          };
+          });
+
+          break;
         }
 
         default:
@@ -178,11 +165,20 @@ function parseStory(story: NotionallyPublishedStory): ParseStoryResult {
       };
     }
 
+    const sceneLink = parseLinkTarget(scene.title);
+
+    if (sceneLink.kind === "failure") {
+      parseErrors.push({
+        errorCode: ErrorCodes.MalformedLink,
+        reason: `Error parsing scene "${scene.title}": unable to derive link from title because "${sceneLink.reason}"`,
+      });
+    }
+
     const publishedScene: PublishedScene = {
       id: scene.id,
       title: scene.title,
-      image: scene.image,
-      link: sceneLink.link,
+      image: (scene.image as PersistentImage) ?? null,
+      link: sceneLink.kind === "link" ? sceneLink.link : null,
       isOpeningScene: scene.isOpeningScene,
 
       ...((audio) => (isPersistentAudio(audio) ? { audio } : {}))(scene.audio),
@@ -212,13 +208,11 @@ function parseStory(story: NotionallyPublishedStory): ParseStoryResult {
   const linksResult = validateLinks(publishedScenes);
 
   if (linksResult.kind === "linksAreBad") {
-    return {
-      kind: "storyFailedToParse",
-      story,
+    parseErrors.push({
       errorCode: ErrorCodes.MalformedLink,
       reason:
         "One or more of the links in the story don't link to a known target",
-    };
+    });
   }
 
   const publishedStory: PublishedStory = {
@@ -232,6 +226,7 @@ function parseStory(story: NotionallyPublishedStory): ParseStoryResult {
   return {
     kind: "storyParsed",
     story: publishedStory,
+    errors: parseErrors,
   };
 }
 

@@ -44,12 +44,12 @@ export type PublishedScene = Readonly<
     Omit<PersistentScene, "content" | "image" | "audio"> & {
       pages: RequireAtLeastOne<Record<Page["link"], Page>>;
 
-      image: PersistentImage;
+      image: PersistentImage | null;
 
       audio?: PersistentAudio;
 
       // a scene is a valid link target from the fiction
-      link: LinkTarget;
+      link: LinkTarget | null;
     }
   >
 >;

@@ -18,12 +18,14 @@ export type Linkable = LinkableScene | LinkablePage;
 export function allLinkablesIn(scenes: NonEmptyArray<PublishedScene>) {
   return scenes.reduce(
     (links, scene) => {
-      // a scene can itself be the target of a link in the fiction
-      links[scene.link] = {
-        kind: "scene",
-        scene,
-        link: scene.link,
-      };
+      if (scene.link) {
+        // a scene can itself be the target of a link in the fiction
+        links[scene.link] = {
+          kind: "scene",
+          scene,
+          link: scene.link,
+        };
+      }
 
       for (const [link, page] of Object.entries(scene.pages)) {
         links[link] = {

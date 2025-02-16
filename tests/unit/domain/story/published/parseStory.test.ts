@@ -4,6 +4,7 @@ import { describe, test } from "node:test";
 import { ErrorCodes } from "@domain/error/errorCode";
 import parseStory, {
   type ParseStoryFailed,
+  type ParseStorySuccess,
 } from "@domain/story/published/parseStory.js";
 import type {
   NotionallyPublishedStory,
@@ -329,9 +330,9 @@ describe("parseStory", () => {
     const expectedResult: ParseStoryFailed = {
       kind: "storyFailedToParse",
       story,
-      errorCode: ErrorCodes.MustAddHeadingBeforeAddingAParagraph,
+      errorCode: ErrorCodes.AllScenesMustHaveContent,
       reason:
-        'Error parsing scene "Introduction" at line #0: you must create a heading before adding a paragraph',
+        'Error parsing scene "Introduction": you must create enough content in the scene for at least one page',
     };
 
     const result = parseStory(story);
@@ -368,9 +369,9 @@ describe("parseStory", () => {
     const expectedResult: ParseStoryFailed = {
       kind: "storyFailedToParse",
       story,
-      errorCode: ErrorCodes.MustAddHeadingBeforeAddingALink,
+      errorCode: ErrorCodes.AllScenesMustHaveContent,
       reason:
-        'Error parsing scene "Introduction" at line #0: you must create a heading before adding a link',
+        'Error parsing scene "Introduction": you must create enough content in the scene for at least one page',
     };
 
     const result = parseStory(story);
@@ -439,7 +440,7 @@ describe("parseStory", () => {
             "To his right are shelves of books.\n\n" +
             "To his left he sees Lucy, his colleague.\n\n" +
             "[Mark's ::eye:: is caught by a book](thebookshelves)\n" +
-            "[Chat with Lucy](the peerless colleague)\n\n" + // ⬅️ misnamed link "peerless"
+            "[Chat with Lucy](the peerless colleague)\n\n" + // ⬅️ misnamed link "peerless", should be "erudite"
             "# The Book's Story|thebookshelves\n\n" +
             "There are many valuable books to borrow.\n\n" +
             "# The Erudite Colleague\n\n" +
@@ -453,12 +454,107 @@ describe("parseStory", () => {
       ],
     };
 
-    const expectedResult: ParseStoryFailed = {
-      kind: "storyFailedToParse",
-      story,
-      errorCode: ErrorCodes.MalformedLink,
-      reason:
-        "One or more of the links in the story don't link to a known target",
+    const expectedStory: PublishedStory = {
+      id: 0,
+      title: "Mark at the Sackler",
+      author: {
+        id: 987,
+        name: "Mark",
+      },
+      publishedOn: new Date(2020, 2 /* Feb */, 17),
+      scenes: [
+        {
+          id: 7,
+          isOpeningScene: true,
+          title: "Introduction",
+          link: "introduction",
+          pages: {
+            "introduction-the-opening": {
+              number: 0,
+              withinScene: 7,
+              link: "introduction-the-opening",
+              content: [
+                {
+                  kind: "blockHeading",
+                  link: "introduction-the-opening",
+                  text: "Introduction: The Opening!",
+                },
+                {
+                  kind: "blockPlaintext",
+                  text: "Mark entered the Sackler.",
+                },
+                {
+                  kind: "blockPlaintext",
+                  text: "To his right are shelves of books.",
+                },
+                {
+                  kind: "blockPlaintext",
+                  text: "To his left he sees Lucy, his colleague.",
+                },
+                {
+                  kind: "blockLink",
+                  text: "Mark's ::eye:: is caught by a book",
+                  link: "thebookshelves",
+                },
+                {
+                  kind: "blockLink",
+                  text: "Chat with Lucy",
+                  link: "the-peerless-colleague",
+                },
+              ],
+            },
+            thebookshelves: {
+              number: 1,
+              link: "thebookshelves",
+              withinScene: 7,
+              content: [
+                {
+                  kind: "blockHeading",
+                  link: "thebookshelves",
+                  text: "The Book's Story",
+                },
+                {
+                  kind: "blockPlaintext",
+                  text: "There are many valuable books to borrow.",
+                },
+              ],
+            },
+            "the-erudite-colleague": {
+              number: 2,
+              link: "the-erudite-colleague",
+              withinScene: 7,
+              content: [
+                {
+                  kind: "blockHeading",
+                  link: "the-erudite-colleague",
+                  text: "The Erudite Colleague",
+                },
+                {
+                  kind: "blockPlaintext",
+                  text: "Lucy's knowledge of Akkadian is peerless.",
+                },
+              ],
+            },
+          },
+          image: {
+            id: 17,
+            url: "https://res.cloudinary.com/1-7.jpg",
+            thumbnailUrl: "https://res.cloudinary.com/1-7-thumbnail.jpg",
+          },
+        },
+      ],
+    };
+
+    const expectedResult: ParseStorySuccess = {
+      kind: "storyParsed",
+      story: expectedStory,
+      errors: [
+        {
+          errorCode: ErrorCodes.MalformedLink,
+          reason:
+            "One or more of the links in the story don't link to a known target",
+        },
+      ],
     };
 
     const result = parseStory(story);
@@ -502,12 +598,102 @@ describe("parseStory", () => {
       ],
     };
 
-    const expectedResult: ParseStoryFailed = {
-      kind: "storyFailedToParse",
-      story,
-      errorCode: ErrorCodes.MalformedLink,
-      reason:
-        'Error parsing scene "Introduction" at line #9: "Link doesn\'t have any text"',
+    const expectedStory: PublishedStory = {
+      id: 0,
+      title: "Mark at the Sackler",
+      author: {
+        id: 987,
+        name: "Mark",
+      },
+      publishedOn: new Date(2020, 2 /* Feb */, 17),
+      scenes: [
+        {
+          id: 7,
+          isOpeningScene: true,
+          title: "Introduction",
+          link: "introduction",
+          pages: {
+            "introduction-the-opening": {
+              number: 0,
+              withinScene: 7,
+              link: "introduction-the-opening",
+              content: [
+                {
+                  kind: "blockHeading",
+                  link: "introduction-the-opening",
+                  text: "Introduction: The Opening!",
+                },
+                {
+                  kind: "blockPlaintext",
+                  text: "Mark entered the Sackler.",
+                },
+                {
+                  kind: "blockPlaintext",
+                  text: "To his right are shelves of books.",
+                },
+                {
+                  kind: "blockPlaintext",
+                  text: "To his left he sees Lucy, his colleague.",
+                },
+                {
+                  kind: "blockLink",
+                  text: "Mark's ::eye:: is caught by a book",
+                  link: "thebookshelves",
+                },
+              ],
+            },
+            thebookshelves: {
+              number: 1,
+              link: "thebookshelves",
+              withinScene: 7,
+              content: [
+                {
+                  kind: "blockHeading",
+                  link: "thebookshelves",
+                  text: "The Book's Story",
+                },
+                {
+                  kind: "blockPlaintext",
+                  text: "There are many valuable books to borrow.",
+                },
+              ],
+            },
+            "the-erudite-colleague": {
+              number: 2,
+              link: "the-erudite-colleague",
+              withinScene: 7,
+              content: [
+                {
+                  kind: "blockHeading",
+                  link: "the-erudite-colleague",
+                  text: "The Erudite Colleague",
+                },
+                {
+                  kind: "blockPlaintext",
+                  text: "Lucy's knowledge of Akkadian is peerless.",
+                },
+              ],
+            },
+          },
+          image: {
+            id: 17,
+            url: "https://res.cloudinary.com/1-7.jpg",
+            thumbnailUrl: "https://res.cloudinary.com/1-7-thumbnail.jpg",
+          },
+        },
+      ],
+    };
+
+    const expectedResult: ParseStorySuccess = {
+      kind: "storyParsed",
+      story: expectedStory,
+      errors: [
+        {
+          errorCode: ErrorCodes.MalformedLink,
+          reason:
+            'Error parsing scene "Introduction" at line #9: "Link doesn\'t have any text"',
+        },
+      ],
     };
 
     const result = parseStory(story);
@@ -551,12 +737,102 @@ describe("parseStory", () => {
       ],
     };
 
-    const expectedResult: ParseStoryFailed = {
-      kind: "storyFailedToParse",
-      story,
-      errorCode: ErrorCodes.MalformedLink,
-      reason:
-        'Error parsing scene "Introduction" at line #9: "Link doesn\'t have a target"',
+    const expectedStory: PublishedStory = {
+      id: 0,
+      title: "Mark at the Sackler",
+      author: {
+        id: 987,
+        name: "Mark",
+      },
+      publishedOn: new Date(2020, 2 /* Feb */, 17),
+      scenes: [
+        {
+          id: 7,
+          isOpeningScene: true,
+          title: "Introduction",
+          link: "introduction",
+          pages: {
+            "introduction-the-opening": {
+              number: 0,
+              withinScene: 7,
+              link: "introduction-the-opening",
+              content: [
+                {
+                  kind: "blockHeading",
+                  link: "introduction-the-opening",
+                  text: "Introduction: The Opening!",
+                },
+                {
+                  kind: "blockPlaintext",
+                  text: "Mark entered the Sackler.",
+                },
+                {
+                  kind: "blockPlaintext",
+                  text: "To his right are shelves of books.",
+                },
+                {
+                  kind: "blockPlaintext",
+                  text: "To his left he sees Lucy, his colleague.",
+                },
+                {
+                  kind: "blockLink",
+                  text: "Mark's ::eye:: is caught by a book",
+                  link: "thebookshelves",
+                },
+              ],
+            },
+            thebookshelves: {
+              number: 1,
+              link: "thebookshelves",
+              withinScene: 7,
+              content: [
+                {
+                  kind: "blockHeading",
+                  link: "thebookshelves",
+                  text: "The Book's Story",
+                },
+                {
+                  kind: "blockPlaintext",
+                  text: "There are many valuable books to borrow.",
+                },
+              ],
+            },
+            "the-erudite-colleague": {
+              number: 2,
+              link: "the-erudite-colleague",
+              withinScene: 7,
+              content: [
+                {
+                  kind: "blockHeading",
+                  link: "the-erudite-colleague",
+                  text: "The Erudite Colleague",
+                },
+                {
+                  kind: "blockPlaintext",
+                  text: "Lucy's knowledge of Akkadian is peerless.",
+                },
+              ],
+            },
+          },
+          image: {
+            id: 17,
+            url: "https://res.cloudinary.com/1-7.jpg",
+            thumbnailUrl: "https://res.cloudinary.com/1-7-thumbnail.jpg",
+          },
+        },
+      ],
+    };
+
+    const expectedResult: ParseStorySuccess = {
+      kind: "storyParsed",
+      story: expectedStory,
+      errors: [
+        {
+          errorCode: ErrorCodes.MalformedLink,
+          reason:
+            'Error parsing scene "Introduction" at line #9: "Link doesn\'t have a target"',
+        },
+      ],
     };
 
     const result = parseStory(story);
