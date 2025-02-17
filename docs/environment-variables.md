@@ -16,4 +16,6 @@ MAGIC_PUBLISHABLE_KEY=
 NODE_V8_COVERAGE=./coverage
 ```
 
-> You'll need ask someone on the team for the values.
+> You'll need to ask
+> [someone on the team](https://github.com/BrookesUniversityLearningResources/vsat/graphs/contributors)
+> for the values.

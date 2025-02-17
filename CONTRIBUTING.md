@@ -14,9 +14,10 @@ The contribution process typically involves:
 * [creating a Pull Request](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-a-pull-request) (PR) to merge your feature branch into `main`
   * ensure that [the tests pass](https://github.com/BrookesUniversityLearningResources/vsat/actions)
   * ensure that the linting / formatting is cool
-* getting your PR reviewed by someone else on the team
+* getting your PR reviewed by [someone else on the team](https://github.com/BrookesUniversityLearningResources/vsat/graphs/contributors)
   * [proactively assign the PR to someone for review](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/requesting-a-pull-request-review)
   * you may need to action any review comments
+  * you may find the BBC's [guide to helpful code reviews](https://github.com/bbc/simorgh/blob/latest/docs/Code-Reviews.mdx) worth reading
 * rebasing / or squashing your branch into `main` once your PR is approved
 
 ## Linting / Formatting

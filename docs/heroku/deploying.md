@@ -3,7 +3,9 @@ You'll need:
 - [an Heroku account](https://signup.heroku.com/)
 - [the Heroku CLI](https://devcenter.heroku.com/articles/heroku-cli#install-the-heroku-cli) installed locally
 
-> You'll also need ask someone on the team for access to the `vsat` app on Heroku.
+> You'll also need to ask
+> [someone on the team](https://github.com/BrookesUniversityLearningResources/vsat/graphs/contributors)
+> for access to the `vsat` app on Heroku.
 
 ## Process
 

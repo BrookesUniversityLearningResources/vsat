@@ -7,7 +7,7 @@ We're using icons from these (Open Source) sets:
 ## Astro Usage
 
 The subset of icons used are explicitly configured in
-[the Astro config](../astro.config.mjs):
+[the Astro config](/astro.config.mjs):
 
 ```js
 integrations: [
@@ -21,7 +21,7 @@ integrations: [
 ],
 ```
 
-They're then used like so in your Astro pages and components:
+They're used like so in your Astro pages and components:
 
 ```jsx
 import { Icon } from "astro-icon/components";
@@ -31,9 +31,9 @@ import { Icon } from "astro-icon/components";
 
 ## React Usage
 
-The icons are saved to the [public images folder](../public/images/).
+The icons are saved to the [public images folder](/public/images/).
 
-They're then referenced like so in your React components:
+They're referenced like so in your React components:
 
 ```jsx
 <button type="button">
