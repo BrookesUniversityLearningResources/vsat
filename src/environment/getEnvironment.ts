@@ -31,11 +31,10 @@ import deleteSceneImageInDatabase from "../domain/story/deleteSceneImageInDataba
 import deleteSceneInDatabase from "../domain/story/deleteSceneInDatabase.js";
 import deleteStory from "../domain/story/deleteStory.js";
 import deleteStoryInDatabase from "../domain/story/deleteStoryInDatabase.js";
-import getPublishedStories from "../domain/story/getPublishedStories.js";
-import getPublishedStory from "../domain/story/getPublishedStory.js";
+import getPublishedStorySummariesInDatabase from "../domain/story/getPublishedStorySummariesInDatabase.js";
+import getPublishedStoryInDatabase from "../domain/story/getPublishedStoryInDatabase.js";
 import getSceneForStoryInDatabase from "../domain/story/getSceneForStoryInDatabase.js";
 import getScenesForStoryInDatabase from "../domain/story/getScenesForStoryInDatabase.js";
-import getStoriesInDatabase from "../domain/story/getStoriesInDatabase.js";
 import getStoryInDatabase from "../domain/story/getStoryInDatabase.js";
 import getStorySummariesByAuthorInDatabase from "../domain/story/getStorySummariesByAuthorInDatabase.js";
 import publishStory from "../domain/story/publish/publishStory.js";
@@ -141,12 +140,12 @@ const getEnvironment: App.GetEnvironment = (() => {
     ),
     getStory,
     publishStory: tx(
-      publishStory(getStory, publishStoryInDatabase(logDb, getDB)),
+      publishStory(log, getStory, publishStoryInDatabase(logDb, getDB)),
     ),
-    unpublishStory: tx(unpublishStoryInDatabase(logDb, getDB)),
-    getPublishedStory: tx(getPublishedStory(log, getStory)),
-    getPublishedStories: tx(
-      getPublishedStories(log, getStoriesInDatabase(logDb, getDB)),
+    unpublishStory: tx(unpublishStoryInDatabase(logDb, getDB, getStory)),
+    getPublishedStory: tx(getPublishedStoryInDatabase(log, getDB)),
+    getPublishedStorySummaries: tx(
+      getPublishedStorySummariesInDatabase(log, getDB),
     ),
     saveStoryTitle: tx(saveStoryTitleInDatabase(logDb, getDB, getStory)),
   };

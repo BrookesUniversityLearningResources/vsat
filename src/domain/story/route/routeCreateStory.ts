@@ -26,7 +26,6 @@ function routeCreateStory(log: Logger, createStory: SaveStory): Router {
           isOpeningScene: true,
         },
       ],
-      publishedOn: null,
     })
       .then((story) => {
         const location = url.format({

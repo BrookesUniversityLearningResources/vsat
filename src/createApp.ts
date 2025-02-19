@@ -16,6 +16,7 @@ import routePublishStory from "./domain/story/route/routePublishStory.js";
 import routeSaveSceneContent from "./domain/story/route/routeSaveSceneContent.js";
 import routeSaveSceneTitle from "./domain/story/route/routeSaveSceneTitle.js";
 import routeSaveStoryTitle from "./domain/story/route/routeSaveStoryTitle.js";
+import routeUnpublishStory from "./domain/story/route/routeUnpublishStory.js";
 import routeUploadSceneAudio from "./domain/story/route/routeUploadSceneAudio.js";
 import routeUploadSceneImage from "./domain/story/route/routeUploadSceneImage.js";
 import assertAuthorHandler from "./domain/story/support/assertAuthorHandler.js";
@@ -76,6 +77,7 @@ async function createApp(): Promise<[StartServer, Logger]> {
     routeSaveSceneTitle(log, repositoryScene.saveSceneTitle, assertAuthor),
     routeDeleteScene(repositoryScene.deleteScene, assertAuthor),
     routePublishStory(log, repositoryStory.publishStory, assertAuthor),
+    routeUnpublishStory(log, repositoryStory.unpublishStory, assertAuthor),
   ].reduce((router, route) => {
     router.use("/api", route);
     return router;

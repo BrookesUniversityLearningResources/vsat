@@ -5,12 +5,7 @@ import { isPersistentImage } from "../../image/types.js";
 import type { PersistentImage, PersistentStory } from "../../index.js";
 import parse from "./parse/parse.js";
 import parseLinkTarget from "./parse/parseLinkTarget.js";
-import type {
-  NotionallyPublishedStory,
-  Page,
-  PublishedScene,
-  PublishedStory,
-} from "./types.js";
+import type { Page, PublishedScene, PublishedStory } from "./types.js";
 import validateLinks from "./validate/links/validateLinks.js";
 
 export type ParseStoryFailed = ErrorCoded & {
@@ -19,9 +14,11 @@ export type ParseStoryFailed = ErrorCoded & {
   reason: string;
 };
 
+export type ParsedStory = Omit<PublishedStory, "createdAt">;
+
 export type ParseStorySuccess = {
   kind: "storyParsed";
-  story: PublishedStory;
+  story: ParsedStory;
   errors: ReadonlyArray<ParseError>;
 };
 
@@ -31,7 +28,7 @@ export type ParseError = ErrorCoded & {
 
 export type ParseStoryResult = ParseStorySuccess | ParseStoryFailed;
 
-function parseStory(story: NotionallyPublishedStory): ParseStoryResult {
+function parseStory(story: PersistentStory): ParseStoryResult {
   const parseErrors: ParseError[] = [];
   const publishedScenes: PublishedScene[] = [];
 
@@ -215,11 +212,10 @@ function parseStory(story: NotionallyPublishedStory): ParseStoryResult {
     });
   }
 
-  const publishedStory: PublishedStory = {
+  const publishedStory: ParsedStory = {
     id: story.id,
     title: story.title,
     author: story.author,
-    publishedOn: story.publishedOn,
     scenes: publishedScenes,
   };
 

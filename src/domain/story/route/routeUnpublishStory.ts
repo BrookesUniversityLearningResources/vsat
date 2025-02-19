@@ -4,20 +4,20 @@ import { z } from "zod";
 
 import { ErrorCodes } from "../../error/errorCode.js";
 import { errorCodedContext } from "../../error/errorCodedContext.js";
-import type { PublishStory } from "../../index.js";
+import type { UnpublishStory } from "../../index.js";
 
-function routePublishStory(
+function routeUnpublishStory(
   log: Logger,
-  publishStory: PublishStory,
+  unpublishStory: UnpublishStory,
   ...otherHandlers: RequestHandler[]
 ): Router {
   const router = Router();
 
-  router.post(
+  router.delete(
     "/story/:storyId/publish",
     ...(otherHandlers ?? []),
     (req, res) => {
-      const parseResult = PublishStoryRequestModel.safeParse({
+      const parseResult = UnpublishStoryRequestModel.safeParse({
         storyId: req.params.storyId,
       });
 
@@ -26,15 +26,24 @@ function routePublishStory(
         return;
       }
 
-      publishStory(parseResult.data.storyId)
+      unpublishStory(parseResult.data.storyId)
         .then((result) => {
           switch (result.kind) {
-            case "published": {
+            case "unpublished": {
               return res.status(200).json(result.story);
             }
 
-            case "publishingFailed": {
-              log.debug({ result }, "Failed to publish story");
+            case "unpublishingFailed": {
+              log.debug({ result }, "Failed to unpublish story");
+
+              if (
+                result.errorCode ===
+                ErrorCodes.UnableToUnpublishStoryThatIsNotPublished
+              ) {
+                return res
+                  .status(400)
+                  .json(errorCodedContext(result.errorCode, result));
+              }
 
               return res
                 .status(500)
@@ -50,7 +59,7 @@ function routePublishStory(
           }
         })
         .catch((err) => {
-          log.warn({ err, parseResult }, "Failed to publish story");
+          log.warn({ err, parseResult }, "Failed to unpublish story");
 
           res.status(500).json(errorCodedContext(ErrorCodes.Error, err));
         });
@@ -60,8 +69,8 @@ function routePublishStory(
   return router;
 }
 
-export default routePublishStory;
+export default routeUnpublishStory;
 
-export const PublishStoryRequestModel = z.object({
+export const UnpublishStoryRequestModel = z.object({
   storyId: z.coerce.number().min(0),
 });

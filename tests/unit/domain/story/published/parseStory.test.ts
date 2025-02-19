@@ -2,27 +2,25 @@ import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 
 import { ErrorCodes } from "@domain/error/errorCode";
+import type { PersistentStory } from "@domain/index";
 import parseStory, {
+  type ParsedStory,
   type ParseStoryFailed,
   type ParseStorySuccess,
 } from "@domain/story/published/parseStory.js";
-import type {
-  NotionallyPublishedStory,
-  PublishedStory,
-} from "@domain/story/published/types.js";
 
 describe("parseStory", () => {
   test("given a story with one scene of three pages" +
     " when that story is parsed" +
     " then we get a published story with one scene of three pages", () => {
-    const story: NotionallyPublishedStory = {
+    const story: PersistentStory = {
       id: 0,
       title: "Mark at the Sackler",
       author: {
         id: 987,
         name: "Mark",
       },
-      publishedOn: new Date(2020, 2 /* Feb */, 17),
+      publishedOn: null,
       scenes: [
         {
           id: 7,
@@ -48,14 +46,13 @@ describe("parseStory", () => {
       ],
     };
 
-    const expectedStory: PublishedStory = {
+    const expectedStory: ParsedStory = {
       id: 0,
       title: "Mark at the Sackler",
       author: {
         id: 987,
         name: "Mark",
       },
-      publishedOn: new Date(2020, 2 /* Feb */, 17),
       scenes: [
         {
           id: 7,
@@ -148,14 +145,14 @@ describe("parseStory", () => {
   test("given a story with two scenes that are linked" +
     " when that story is parsed" +
     " then we get a published story with those scenes", () => {
-    const story: NotionallyPublishedStory = {
+    const story: PersistentStory = {
       id: 0,
       title: "Mark at the Sackler",
       author: {
         id: 987,
         name: "Mark",
       },
-      publishedOn: new Date(2020, 2 /* Feb */, 17),
+      publishedOn: null,
       scenes: [
         {
           id: 7,
@@ -191,14 +188,13 @@ describe("parseStory", () => {
       ],
     };
 
-    const expectedStory: PublishedStory = {
+    const expectedStory: ParsedStory = {
       id: 0,
       title: "Mark at the Sackler",
       author: {
         id: 987,
         name: "Mark",
       },
-      publishedOn: new Date(2020, 2 /* Feb */, 17),
       scenes: [
         {
           id: 7,
@@ -304,14 +300,14 @@ describe("parseStory", () => {
   test("given a story with plaintext scene content that does not start with a header" +
     " when that story is parsed" +
     " then we get an error about the header", () => {
-    const story: NotionallyPublishedStory = {
+    const story: PersistentStory = {
       id: 0,
       title: "Mark at the Sackler",
       author: {
         id: 987,
         name: "Mark",
       },
-      publishedOn: new Date(2020, 2 /* Feb */, 17),
+      publishedOn: null,
       scenes: [
         {
           id: 7,
@@ -343,14 +339,14 @@ describe("parseStory", () => {
   test("given a story with link scene content that does not start with a header" +
     " when that story is parsed" +
     " then we get an error about the header", () => {
-    const story: NotionallyPublishedStory = {
+    const story: PersistentStory = {
       id: 0,
       title: "Mark at the Sackler",
       author: {
         id: 987,
         name: "Mark",
       },
-      publishedOn: new Date(2020, 2 /* Feb */, 17),
+      publishedOn: null,
       scenes: [
         {
           id: 7,
@@ -382,14 +378,14 @@ describe("parseStory", () => {
   test("given a story with empty scene content" +
     " when that story is parsed" +
     " then we get an error about the empty scene content", () => {
-    const story: NotionallyPublishedStory = {
+    const story: PersistentStory = {
       id: 0,
       title: "Mark at the Sackler",
       author: {
         id: 987,
         name: "Mark",
       },
-      publishedOn: new Date(2020, 2 /* Feb */, 17),
+      publishedOn: null,
       scenes: [
         {
           id: 7,
@@ -421,14 +417,14 @@ describe("parseStory", () => {
   test("given a story with an exit that doesn't link to a known target" +
     " when that story is parsed" +
     " then we get an error about the errant link", () => {
-    const story: NotionallyPublishedStory = {
+    const story: PersistentStory = {
       id: 0,
       title: "Mark at the Sackler",
       author: {
         id: 987,
         name: "Mark",
       },
-      publishedOn: new Date(2020, 2 /* Feb */, 17),
+      publishedOn: null,
       scenes: [
         {
           id: 7,
@@ -454,14 +450,13 @@ describe("parseStory", () => {
       ],
     };
 
-    const expectedStory: PublishedStory = {
+    const expectedStory: ParsedStory = {
       id: 0,
       title: "Mark at the Sackler",
       author: {
         id: 987,
         name: "Mark",
       },
-      publishedOn: new Date(2020, 2 /* Feb */, 17),
       scenes: [
         {
           id: 7,
@@ -565,14 +560,14 @@ describe("parseStory", () => {
   test("given a story with an exit that is empty text" +
     " when that story is parsed" +
     " then we get an error about the errant link", () => {
-    const story: NotionallyPublishedStory = {
+    const story: PersistentStory = {
       id: 0,
       title: "Mark at the Sackler",
       author: {
         id: 987,
         name: "Mark",
       },
-      publishedOn: new Date(2020, 2 /* Feb */, 17),
+      publishedOn: null,
       scenes: [
         {
           id: 7,
@@ -598,14 +593,13 @@ describe("parseStory", () => {
       ],
     };
 
-    const expectedStory: PublishedStory = {
+    const expectedStory: ParsedStory = {
       id: 0,
       title: "Mark at the Sackler",
       author: {
         id: 987,
         name: "Mark",
       },
-      publishedOn: new Date(2020, 2 /* Feb */, 17),
       scenes: [
         {
           id: 7,
@@ -704,14 +698,14 @@ describe("parseStory", () => {
   test("given a story with an exit link target that is empty text" +
     " when that story is parsed" +
     " then we get an error about the errant link", () => {
-    const story: NotionallyPublishedStory = {
+    const story: PersistentStory = {
       id: 0,
       title: "Mark at the Sackler",
       author: {
         id: 987,
         name: "Mark",
       },
-      publishedOn: new Date(2020, 2 /* Feb */, 17),
+      publishedOn: null,
       scenes: [
         {
           id: 7,
@@ -737,14 +731,13 @@ describe("parseStory", () => {
       ],
     };
 
-    const expectedStory: PublishedStory = {
+    const expectedStory: ParsedStory = {
       id: 0,
       title: "Mark at the Sackler",
       author: {
         id: 987,
         name: "Mark",
       },
-      publishedOn: new Date(2020, 2 /* Feb */, 17),
       scenes: [
         {
           id: 7,

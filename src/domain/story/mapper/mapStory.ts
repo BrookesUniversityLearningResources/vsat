@@ -3,21 +3,21 @@ import type { PersistentScene, PersistentStory } from "../../index.js";
 type StoryAndAuthorRow = {
   storyId: number;
   storyTitle: string;
-  publishedOn: Date | null;
   authorId: number;
   authorName: string;
+  publishedOn: Date | null;
 };
 
 export function mapStory(
-  data: StoryAndAuthorRow,
+  row: StoryAndAuthorRow,
   scenes: PersistentScene[],
 ): PersistentStory {
   return {
-    id: data.storyId,
-    title: data.storyTitle,
-    publishedOn: data.publishedOn,
-    author: mapAuthor(data),
+    id: row.storyId,
+    title: row.storyTitle,
+    author: mapAuthor(row),
     scenes,
+    publishedOn: row.publishedOn,
   };
 }
 

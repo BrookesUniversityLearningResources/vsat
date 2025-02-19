@@ -12,26 +12,23 @@ function getStoryInDatabase(
   return async (request) => {
     log.debug({ request }, "Getting story");
 
-    let query = db()
+    const data = await db()
       .selectFrom("story")
       .innerJoin("authorToStory", "authorToStory.storyId", "story.id")
       .innerJoin("author", "authorToStory.authorId", "author.id")
+      .leftJoin("storyPublished", "story.id", "storyPublished.id")
       .select([
         // story
         "story.id as storyId",
         "story.title as storyTitle",
-        "story.publishedOn",
         // author
         "author.id as authorId",
         "author.name as authorName",
+        // storyPublished
+        "storyPublished.createdAt as publishedOn",
       ])
-      .where("authorToStory.storyId", "=", request.id);
-
-    if (request.published) {
-      query = query.where("story.publishedOn", "is not", null);
-    }
-
-    const data = await query.executeTakeFirst();
+      .where("authorToStory.storyId", "=", request.id)
+      .executeTakeFirst();
 
     if (!data) {
       return null;

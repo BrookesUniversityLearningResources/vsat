@@ -8,32 +8,10 @@ import type {
   PersistentStory,
 } from "../../index.js";
 
-/**
- * A notionally published story is one where the `publishedOn` field is set but
- * the story may not meet the criteria for full publication.
- *
- * In order for a story to be published &mdash;the `publishedOn` field is
- * set&mdash; the story must have once met the criteria for full publication.
- *
- * However, after publication, the author may have changed elements of the story
- * such that it no longer meets the criteria for full publication.
- */
-export type NotionallyPublishedStory = Prettify<
-  Omit<PersistentStory, "publishedOn"> & {
-    publishedOn: Date;
-  }
->;
-
-export function isNotionallyPublishedStory(
-  story: PersistentStory,
-): story is NotionallyPublishedStory {
-  return !!story.publishedOn;
-}
-
 export type PublishedStory = Readonly<
   Prettify<
-    Omit<PersistentStory, "publishedOn" | "scenes"> & {
-      publishedOn: Date;
+    Omit<PersistentStory, "scenes" | "publishedOn"> & {
+      createdAt: Date;
       scenes: NonEmptyArray<PublishedScene>;
     }
   >

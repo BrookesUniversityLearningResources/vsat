@@ -6,35 +6,35 @@ import { ErrorCodeModel, ErrorCodes } from "@domain/error/errorCode";
 
 import type { PersistentStory } from "../../index";
 
-const PublishStoryResponseErrorModel = z.object({
+const UnpublishStoryResponseErrorModel = z.object({
   errorCode: ErrorCodeModel,
   context: z.record(z.string(), z.unknown()).optional(),
 });
 
-export type PublishStoryResponseError = z.infer<
-  typeof PublishStoryResponseErrorModel
+export type UnpublishStoryResponseError = z.infer<
+  typeof UnpublishStoryResponseErrorModel
 >;
 
-export type StoryPublished = {
-  kind: "storyPublished";
+export type StoryUnpublished = {
+  kind: "storyUnpublished";
   story: PersistentStory;
 };
 
-export type PublishStoryError = {
+export type UnpublishStoryError = {
   kind: "error";
-  error: PublishStoryResponseError;
+  error: UnpublishStoryResponseError;
 };
 
-export type PublishStoryResult = StoryPublished | PublishStoryError;
+export type UnpublishStoryResult = StoryUnpublished | UnpublishStoryError;
 
-export type PublishStory = (
+export type UnpublishStory = (
   storyId: PersistentStory["id"],
-) => Promise<PublishStoryResult>;
+) => Promise<UnpublishStoryResult>;
 
-const publishStory: PublishStory = async (storyId) => {
+const unpublishStory: UnpublishStory = async (storyId) => {
   try {
     const response = await fetch(`/api/story/${storyId}/publish`, {
-      method: "POST",
+      method: "DELETE",
     });
 
     if (!response.ok) {
@@ -48,7 +48,7 @@ const publishStory: PublishStory = async (storyId) => {
     const story = await response.json();
 
     return {
-      kind: "storyPublished",
+      kind: "storyUnpublished",
       story,
     };
   } catch (err) {
@@ -64,12 +64,12 @@ const publishStory: PublishStory = async (storyId) => {
   }
 };
 
-export default publishStory;
+export default unpublishStory;
 
-async function errorResult(response: Response): Promise<PublishStoryError> {
+async function errorResult(response: Response): Promise<UnpublishStoryError> {
   const body = await response.json();
 
-  const error = PublishStoryResponseErrorModel.safeParse(body);
+  const error = UnpublishStoryResponseErrorModel.safeParse(body);
 
   if (error.success) {
     return {

@@ -31,7 +31,7 @@ function getScenesForStoryInDatabase(
         "image.thumbnailUrl as imageThumbnailUrl",
       ])
       .where("scene.storyId", "=", storyId)
-      .orderBy("scene.id")
+      .orderBy("scene.id", "asc")
       .execute();
 
     if (!isNonEmptyArray(rows)) {

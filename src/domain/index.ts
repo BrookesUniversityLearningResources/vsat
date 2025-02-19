@@ -51,7 +51,6 @@ export type Scene = WithId & {
 
 export type Story = WithId & {
   title: string;
-  publishedOn: Date | null;
   scenes: Scene[];
   author: Omit<Author, "email">;
 };
@@ -60,6 +59,7 @@ export type PersistentScene = Persistent<Scene>;
 
 export type PersistentStory = Omit<Persistent<Story>, "scenes"> & {
   scenes: PersistentScene[];
+  publishedOn: Date | null;
 };
 
 export type SaveStory = (story: Story) => Promise<PersistentStory>;
@@ -71,8 +71,19 @@ type DeleteStoryRequest = {
 export type DeleteStory = (request: DeleteStoryRequest) => Promise<unknown>;
 
 export type CreateSceneRequest = {
+  /**
+   * Identifies the `Story` that the created `Scene` is to be added to.
+   */
   storyId: PersistentStory["id"];
+
+  /**
+   * Can be used to localize the initial (example) text for the `Scene`.
+   */
   locale?: string | undefined;
+
+  /**
+   * Optional values for the created `Scene` that will override any defaults.
+   */
   source?:
     | Partial<{
         title: string | undefined;
@@ -81,6 +92,12 @@ export type CreateSceneRequest = {
       }>
     | undefined;
 };
+
+/**
+ * Create a _new_ `Scene` and add it to the `Story` mentioned in the `request`.
+ *
+ * @param request deets about the `Scene` to be created.
+ */
 export type CreateSceneInStory = (
   request: CreateSceneRequest,
 ) => Promise<PersistentScene>;
@@ -89,12 +106,14 @@ type DeleteSceneRequest = {
   storyId: PersistentStory["id"];
   sceneId: PersistentScene["id"];
 };
+
 export type DeleteScene = (request: DeleteSceneRequest) => Promise<unknown>;
 
 export type DeleteImageRequest = {
   sceneId: PersistentScene["id"];
   imageId: PersistentImage["id"];
 };
+
 export type DeleteSceneImage = (
   request: DeleteImageRequest,
 ) => Promise<unknown>;
@@ -103,11 +122,15 @@ export type DeleteAudioRequest = {
   sceneId: PersistentScene["id"];
   audioId: PersistentAudio["id"];
 };
+
 export type DeleteSceneAudio = (
   request: DeleteAudioRequest,
 ) => Promise<unknown>;
 
-export type StorySummary = Omit<PersistentStory, "scenes" | "author"> & {
+export type StorySummary = Omit<
+  PersistentStory,
+  "scenes" | "author" | "publishedOn"
+> & {
   imageUrl: Image["thumbnailUrl"] | null;
 };
 
@@ -120,32 +143,45 @@ export type GetStorySummariesByAuthor = (
   id: AuthorDto["id"],
 ) => Promise<StorySummariesByAuthor | null>;
 
-export type GetPublishedStories = () => Promise<ReadonlyArray<PublishedStory>>;
+/**
+ * A "lite" model of a published `Story`.
+ *
+ * This omits "heavier" content such as any multimedia and `Scene` fiction.
+ *
+ * The intent is that this can be used to display a listing of published stories
+ * that a reader might peruse: they can then click into the `Story to read the
+ * full fat version.
+ */
+export type PublishedStorySummary = Pick<PublishedStory, "id" | "title"> & {
+  publishedOn: Date;
+  author: Omit<AuthorDto, "email">;
+  imageUrl: Image["thumbnailUrl"] | null;
+};
 
-export type GetPublishedStory = (
-  storyId: PublishedStory["id"],
-) => Promise<PublishedStory | null>;
-
-export type GetStoriesRequest = Readonly<{
-  published?: boolean;
+// biome-ignore lint/complexity/noBannedTypes: see inline TODO below
+export type GetPublishedStorySummariesRequest = Readonly<{
+  // TODO populate with filtering and pagination fields
 }>;
 
-export type GetStories = (
-  request: GetStoriesRequest,
-) => Promise<PersistentStory[]>;
+export type GetPublishedStorySummaries = (
+  request: GetPublishedStorySummariesRequest,
+) => Promise<ReadonlyArray<PublishedStorySummary>>;
 
 export type GetStoryRequest = Readonly<{
   id: StoryDto["id"];
-  published?: boolean;
 }>;
 
 export type GetStory = (
   request: GetStoryRequest,
 ) => Promise<PersistentStory | null>;
 
+export type GetPublishedStory = (
+  id: PersistentStory["id"],
+) => Promise<PublishedStory | null>;
+
 export type StoryPublished = {
   kind: "published";
-  story: PublishedStory;
+  story: PersistentStory;
 };
 
 export type PublishingFailed = {
@@ -156,8 +192,26 @@ export type PublishingFailed = {
 
 export type PublishStoryResult = StoryPublished | PublishingFailed;
 
-export type PublishStory = (id: StoryDto["id"]) => Promise<PublishStoryResult>;
-export type UnpublishStory = (id: StoryDto["id"]) => Promise<void>;
+export type PublishStory = (
+  id: PersistentStory["id"],
+) => Promise<PublishStoryResult>;
+
+export type StoryUnpublished = {
+  kind: "unpublished";
+  story: PersistentStory;
+};
+
+export type UnpublishingFailed = {
+  kind: "unpublishingFailed";
+  errorCode: ErrorCode;
+  reason: string;
+};
+
+export type UnpublishStoryResult = StoryUnpublished | UnpublishingFailed;
+
+export type UnpublishStory = (
+  id: StoryDto["id"],
+) => Promise<UnpublishStoryResult>;
 
 export type RepositoryStory = Readonly<{
   saveStory: SaveStory;
@@ -167,7 +221,7 @@ export type RepositoryStory = Readonly<{
   unpublishStory: UnpublishStory;
   deleteStory: DeleteStory;
   getPublishedStory: GetPublishedStory;
-  getPublishedStories: GetPublishedStories;
+  getPublishedStorySummaries: GetPublishedStorySummaries;
   saveStoryTitle: SaveStoryTitleInDatabase;
 }>;
 

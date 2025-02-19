@@ -7,39 +7,45 @@ import styles from "./StoryHeader.module.css";
 import InlineTextInput, {
   type OnChanged,
 } from "@components/input/InlineTextInput/InlineTextInput.js";
-import unsupported from "@domain/story/client/unsupportedResult.js";
 
 import type {
   PersistentScene,
   PersistentStory,
 } from "../../../../domain/index.js";
+import unsupported from "../../../../domain/story/client/unsupportedResult.js";
 import {
   type WithCreateScene,
   type WithFeedback,
   type WithPublishStory,
+  type WithUnpublishStory,
   useEnvironment,
 } from "../context/ClientContext.js";
 import type { OnSceneChanged } from "../scene/types.js";
+import type { OnStoryChanged } from "../types.js";
 
 export type StoryHeaderProps = {
   story: PersistentStory;
   onSceneChanged: OnSceneChanged;
-  onStoryTitleChanged: (title: string) => void;
+  onStoryChanged: OnStoryChanged;
 };
 
 const StoryHeader: FC<StoryHeaderProps> = ({
   story,
   onSceneChanged,
-  onStoryTitleChanged,
+  onStoryChanged,
 }) => {
   const { t } = useTranslation();
 
-  const { createScene, publishStory, feedback } = useEnvironment<
-    WithCreateScene & WithPublishStory & WithFeedback
-  >();
+  const { createScene, publishStory, unpublishStory, feedback } =
+    useEnvironment<
+      WithCreateScene & WithPublishStory & WithUnpublishStory & WithFeedback
+    >();
 
   const onSceneTitleChanged: OnChanged = ({ value }) => {
-    onStoryTitleChanged(value);
+    onStoryChanged({
+      kind: "storyTitleChanged",
+      title: value,
+    });
   };
 
   const publishTheStory = useMutation<
@@ -59,13 +65,51 @@ const StoryHeader: FC<StoryHeaderProps> = ({
         }
       }),
     onError: feedback.notify.error,
-    onSuccess: () => {
-      feedback.notify.info("story.published");
+    onSuccess: (publishedStory) => {
+      onStoryChanged({
+        kind: "storyPublished",
+        story: publishedStory,
+      });
     },
   });
 
   const onPublishStory = () => {
     publishTheStory.mutate(story.id);
+  };
+
+  const unpublishTheStory = useMutation<
+    PersistentStory,
+    Error,
+    PersistentStory["id"]
+  >({
+    mutationFn: () =>
+      unpublishStory(story.id).then((result) => {
+        switch (result.kind) {
+          case "storyUnpublished":
+            return result.story;
+          case "error":
+            return Promise.reject(result.error);
+          default:
+            return unsupported(result);
+        }
+      }),
+    onError: feedback.notify.error,
+    onSuccess: (unpublishedStory) => {
+      onStoryChanged({
+        kind: "storyUnpublished",
+        story: unpublishedStory,
+      });
+    },
+  });
+
+  const onUnpublishStory = async () => {
+    const result = await feedback.dialog.yesNo(
+      "scene.action.unpublish-story.confirm.prompt",
+    );
+
+    if (result.isConfirmed) {
+      unpublishTheStory.mutate(story.id);
+    }
   };
 
   const createTheScene = useMutation<
@@ -131,6 +175,17 @@ const StoryHeader: FC<StoryHeaderProps> = ({
               src="/images/publish-24.png"
               alt={t("scene.action.publish-story.label")}
               title={t("scene.action.publish-story.label")}
+            />
+          </button>
+          <button
+            type="button"
+            onClick={onUnpublishStory}
+            disabled={story.publishedOn === null || unpublishTheStory.isPending}
+          >
+            <img
+              src="/images/unpublish-24.png"
+              alt={t("scene.action.unpublish-story.label")}
+              title={t("scene.action.unpublish-story.label")}
             />
           </button>
           <button

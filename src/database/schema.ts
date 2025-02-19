@@ -1,10 +1,22 @@
-import type { Generated, Insertable, Kysely, Selectable } from "kysely";
+import type {
+  Generated,
+  Insertable,
+  JSONColumnType,
+  Kysely,
+  Selectable,
+} from "kysely";
 
+import type { NonEmptyArray } from "@util/nonEmptyArray.js";
 import type { PersistentScene, PersistentStory } from "../domain/index.js";
+import type {
+  PublishedScene,
+  PublishedStory,
+} from "../domain/story/published/types.js";
 
 // https://kysely.dev/docs/getting-started#types
 export interface Database {
   story: TableStory;
+  storyPublished: TableStoryPublished;
   scene: TableScene;
   image: TableImage;
   audio: TableAudio;
@@ -61,7 +73,6 @@ export type DeleteAudioInDatabase = (id: AudioDto["id"]) => Promise<unknown>;
 export interface TableStory {
   id: Generated<number>;
   title: string;
-  publishedOn: Date | null;
 }
 
 export type StoryDto = Selectable<TableStory>;
@@ -94,16 +105,32 @@ export type SaveSceneTitleInDatabase = (
   request: SaveSceneTitleInDatabaseRequest,
 ) => Promise<PersistentScene>;
 
+// #endregion Story
+
+// #region StoryPublished
+
+export interface TableStoryPublished {
+  id: number;
+  title: string;
+  content: JSONColumnType<NonEmptyArray<PublishedScene>>;
+  createdAt: Date;
+}
+
+export type StoryPublishedDto = Selectable<TableStoryPublished>;
+
 type PublishStoryInDatabaseRequest = {
-  storyId: StoryDto["id"];
-  publishedOn: Date;
+  story: PublishedStory;
 };
 
 export type PublishStoryInDatabase = (
   request: PublishStoryInDatabaseRequest,
-) => Promise<StoryDto>;
+) => Promise<StoryPublishedDto>;
 
-// #endregion Story
+export type GetPublishedStoryInDatabase = (
+  storyId: number,
+) => Promise<StoryPublishedDto | null>;
+
+// #endregion StoryPublished
 
 export interface TableAuthorToStory {
   authorId: number;

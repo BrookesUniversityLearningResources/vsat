@@ -3,6 +3,7 @@ import {
   QueryClientProvider,
   useMutation,
   useQuery,
+  useQueryClient,
 } from "@tanstack/react-query";
 import type { ResourceKey } from "i18next";
 import type { FC, PropsWithChildren } from "react";
@@ -11,9 +12,9 @@ import { I18nextProvider } from "react-i18next";
 
 import styles from "./EditStory.module.css";
 
-import unsupported from "@domain/story/client/unsupportedResult.js";
-import useScrollIntoView from "src/hooks/useScrollIntoView.js";
 import type { PersistentStory } from "../../../domain/index.js";
+import unsupported from "../../../domain/story/client/unsupportedResult.js";
+import useScrollIntoView from "../../../hooks/useScrollIntoView.js";
 import useI18N from "../../../i18n/client/useI18N.js";
 import htmlIdForStory from "../htmlIdForStory.js";
 import {
@@ -24,10 +25,11 @@ import {
   createClientEnvironment,
   useEnvironment,
 } from "./context/ClientContext.js";
-import StoryHeader, { type StoryHeaderProps } from "./header/StoryHeader.js";
+import StoryHeader from "./header/StoryHeader.js";
 import Scene from "./scene/Scene.js";
 import htmlIdForScene from "./scene/htmlIdForScene.js";
 import type { OnSceneChanged } from "./scene/types.js";
+import type { OnStoryChanged } from "./types.js";
 
 type StoryEditorProps = {
   story: PersistentStory;
@@ -40,12 +42,16 @@ const StoryEditor: FC<StoryEditorProps> = ({ story: initialStory }) => {
     WithSaveStoryTitle & WithGetStory & WithFeedback
   >();
 
+  const queryClient = useQueryClient();
+
+  const queryKeyStory = `story-${initialStory.id}`;
+
   const { data: story, refetch: refetchStory } = useQuery<
     PersistentStory,
     Error
   >({
     enabled: false,
-    queryKey: [`story-${initialStory.id}`],
+    queryKey: [queryKeyStory],
     initialData: initialStory,
     queryFn: () =>
       getStory(initialStory.id).then((result) => {
@@ -84,12 +90,6 @@ const StoryEditor: FC<StoryEditorProps> = ({ story: initialStory }) => {
     },
   });
 
-  const onStoryTitleChanged: StoryHeaderProps["onStoryTitleChanged"] = (
-    title,
-  ) => {
-    saveTheStoryTitle.mutate(title);
-  };
-
   const onSceneChanged: OnSceneChanged = (e) => {
     switch (e.kind) {
       case "sceneCreated": {
@@ -112,12 +112,37 @@ const StoryEditor: FC<StoryEditorProps> = ({ story: initialStory }) => {
     }
   };
 
+  const onStoryChanged: OnStoryChanged = (e) => {
+    switch (e.kind) {
+      case "storyPublished": {
+        queryClient.setQueryData([queryKeyStory], e.story);
+        feedback.notify.info("story.published");
+        break;
+      }
+
+      case "storyUnpublished": {
+        queryClient.setQueryData([queryKeyStory], e.story);
+        feedback.notify.info("story.unpublished");
+        break;
+      }
+
+      case "storyTitleChanged": {
+        saveTheStoryTitle.mutate(e.title);
+        break;
+      }
+
+      default: {
+        ((_: never) => _)(e);
+      }
+    }
+  };
+
   return (
     <main className={styles.story} id={htmlIdForStory(story.id)}>
       <StoryHeader
         story={story}
         onSceneChanged={onSceneChanged}
-        onStoryTitleChanged={onStoryTitleChanged}
+        onStoryChanged={onStoryChanged}
       />
 
       <div className={styles.storyEditScenes}>

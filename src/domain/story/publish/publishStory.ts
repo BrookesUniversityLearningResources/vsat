@@ -1,12 +1,14 @@
+import type { Logger } from "pino";
+
 import type { PublishStoryInDatabase } from "../../../database/schema.js";
 import { ErrorCodes } from "../../error/errorCode.js";
 import type { GetStory, PublishStory } from "../../index.js";
 import parseStory from "../published/parseStory.js";
-import type { NotionallyPublishedStory } from "../published/types.js";
 
 type Now = () => Date;
 
 function publishStory(
+  log: Logger,
   getStory: GetStory,
   publishStoryInDB: PublishStoryInDatabase,
   now: Now = () => new Date(),
@@ -22,25 +24,27 @@ function publishStory(
       };
     }
 
-    // let's notionally publish the story to see if it's ready for publication
-    const notionallyPublishedStory: NotionallyPublishedStory = {
-      ...story,
-      publishedOn: now(),
-    };
-
-    const result = parseStory(notionallyPublishedStory);
+    const result = parseStory(story);
 
     switch (result.kind) {
       case "storyParsed": {
-        // it's fit for publication… publish it!
+        const publishedStory = {
+          ...result.story,
+          createdAt: now(),
+        };
+
+        log.info({ publishedStory, errors: result.errors }, "Publishing story");
+
         await publishStoryInDB({
-          storyId,
-          publishedOn: result.story.publishedOn,
+          story: publishedStory,
         });
 
         return {
           kind: "published",
-          story: result.story,
+          story: {
+            ...story,
+            publishedOn: publishedStory.createdAt,
+          },
         };
       }
 

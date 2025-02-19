@@ -1,7 +1,7 @@
 import type { Logger } from "pino";
 
 import type { GetDatabase } from "../../database/schema.js";
-import type { SaveStory } from "../index.js";
+import type { PersistentStory, SaveStory } from "../index.js";
 
 function saveStoryInDatabase(log: Logger, db: GetDatabase): SaveStory {
   return async (story) => {
@@ -12,12 +12,10 @@ function saveStoryInDatabase(log: Logger, db: GetDatabase): SaveStory {
       .values({
         id: story.id,
         title: story.title,
-        publishedOn: story.publishedOn,
       })
       .onConflict((oc) =>
         oc.column("id").doUpdateSet({
           title: story.title,
-          publishedOn: story.publishedOn,
         }),
       )
       .returningAll()
@@ -59,10 +57,16 @@ function saveStoryInDatabase(log: Logger, db: GetDatabase): SaveStory {
       ),
     );
 
-    const savedStory = {
+    const publishedOnResult = await db()
+      .selectFrom("storyPublished")
+      .select("createdAt as publishedOn")
+      .executeTakeFirst();
+
+    const savedStory: PersistentStory = {
       ...story,
       id: storyDto.id,
       scenes,
+      publishedOn: publishedOnResult?.publishedOn ?? null,
     };
 
     log.debug({ savedStory }, "Saved story");

@@ -11,7 +11,6 @@ import type {
 type Row = {
   storyId: number;
   title: string;
-  publishedOn: Date | null;
   authorId: number;
   authorName: string;
   imageThumbnailUrl: string | null;
@@ -33,7 +32,6 @@ function getStorySummariesByAuthorInDatabase(
       .select([
         "story.id as storyId",
         "story.title",
-        "story.publishedOn",
         "author.id as authorId",
         "author.name as authorName",
         "image.thumbnailUrl as imageThumbnailUrl",
@@ -83,7 +81,6 @@ function toSummary(row: Row): StorySummary {
   return {
     id: row.storyId,
     title: row.title,
-    publishedOn: row.publishedOn,
     imageUrl: row.imageThumbnailUrl,
   };
 }

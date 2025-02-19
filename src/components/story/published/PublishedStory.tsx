@@ -58,7 +58,7 @@ const PublishedStoryView: FC<PublishedStoryViewProps> = ({ story }) => {
 
       <OrbitControls />
 
-      <Skybox url={currentScene.image.url} />
+      {currentScene.image && <Skybox url={currentScene.image.url} />}
 
       {currentScene.audio && <BackgroundSound audio={currentScene.audio} />}
 
