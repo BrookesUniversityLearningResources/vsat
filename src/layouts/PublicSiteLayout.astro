@@ -21,9 +21,26 @@ const { title, description } = Astro.props;
     <slot name="scripts" />
   </head>
   <body>
-    <slot />
+    <div>
+      <slot />
+    </div>
     <footer>
-  Copyright &copy; 2025 Oxford Brookes University &bull; Learning Resources
-</footer>
+      Copyright &copy; 2025 Oxford Brookes University &bull; Learning Resources
+    </footer>
   </body>
 </html>
+
+<style>
+  body {
+    --footer-height: 3rem;
+  }
+
+  body > div {
+    min-height: calc(100vh - var(--footer-height));
+  }
+
+  footer {
+    height: var(--footer-height);
+    margin: auto 3rem;
+  }
+</style>
