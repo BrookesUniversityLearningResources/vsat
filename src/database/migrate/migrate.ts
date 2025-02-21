@@ -3,6 +3,11 @@ import { Migrator } from "kysely";
 import getEnvironment from "../../environment/getEnvironment.js";
 import ESMFileMigrationProvider from "./ESMFileMigrationProvider.js";
 
+/**
+ * A distinct program to run the (database) migrations.
+ *
+ * This will exit with a non-zero exit code in the event of errors.
+ */
 async function main() {
   const {
     log,
@@ -39,6 +44,8 @@ async function main() {
       },
       "Error running migrations",
     );
+
+    process.exit(1);
   } else {
     log.info({ results }, "Completed migrations");
   }
