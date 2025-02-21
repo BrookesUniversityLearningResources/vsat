@@ -2,7 +2,7 @@ import type { Logger } from "pino";
 
 import type { AudioDto, GetDatabase } from "../../database/schema.js";
 
-function getAudioByIdInDatabase(log: Logger, db: GetDatabase) {
+export default function getAudioByIdInDatabase(log: Logger, db: GetDatabase) {
   return (id: AudioDto["id"]) => {
     log.debug({ id }, "Getting audio by ID");
 
@@ -14,5 +14,3 @@ function getAudioByIdInDatabase(log: Logger, db: GetDatabase) {
       .executeTakeFirst();
   };
 }
-
-export default getAudioByIdInDatabase;

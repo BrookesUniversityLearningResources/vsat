@@ -4,7 +4,7 @@ import type { AudioInsert, GetDatabase } from "../../database/schema.js";
 import getAudioByUniqueUrlInDatabase from "./getAudioByUniqueUrlInDatabase.js";
 import undeleteAudioInDatabase from "./undeleteAudioInDatabase.js";
 
-function createAudioInDatabase(log: Logger, db: GetDatabase) {
+export default function createAudioInDatabase(log: Logger, db: GetDatabase) {
   const undeleteAudio = undeleteAudioInDatabase(log, db);
 
   const getAudioByUrl = getAudioByUniqueUrlInDatabase(log, db);
@@ -48,5 +48,3 @@ function createAudioInDatabase(log: Logger, db: GetDatabase) {
     };
   };
 }
-
-export default createAudioInDatabase;

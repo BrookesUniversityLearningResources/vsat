@@ -3,7 +3,7 @@ import type { Logger } from "pino";
 import type { CreateSceneInDatabase } from "../../database/schema.js";
 import type { CreateSceneInStory } from "../index.js";
 
-function createScene(
+export default function createScene(
   log: Logger,
   createSceneInDatabase: CreateSceneInDatabase,
 ): CreateSceneInStory {
@@ -13,7 +13,7 @@ function createScene(
     const scene = await createSceneInDatabase({
       storyId: request.storyId,
       title: request.source?.title ?? "A Scene",
-      content: request.source?.content ?? "Some content...",
+      content: request.source?.content ?? "# A Heading\n\nSome content...\n",
       isOpeningScene: request.source?.isOpeningScene ?? false,
     });
 
@@ -22,5 +22,3 @@ function createScene(
     return scene;
   };
 }
-
-export default createScene;

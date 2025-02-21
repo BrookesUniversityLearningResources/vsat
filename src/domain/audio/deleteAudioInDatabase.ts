@@ -5,7 +5,7 @@ import type {
   GetDatabase,
 } from "../../database/schema.js";
 
-function deleteAudioInDatabase(
+export default function deleteAudioInDatabase(
   log: Logger,
   db: GetDatabase,
 ): DeleteAudioInDatabase {
@@ -19,5 +19,3 @@ function deleteAudioInDatabase(
       .executeTakeFirstOrThrow();
   };
 }
-
-export default deleteAudioInDatabase;

@@ -69,7 +69,6 @@
   "devDependencies": {
     "@biomejs/biome": "1.9.4",
     "@iconify-json/noto-v1": "^1.2.1",
-    "@types/aframe": "^1.2.7",
     "@types/config": "^3.3.5",
     "@types/connect-pg-simple": "^7.0.3",
     "@types/express": "^5.0.0",

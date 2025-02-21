@@ -1,9 +1,13 @@
 import type { Logger } from "pino";
 
 import type { GetDatabase } from "../../database/schema.js";
+import type { GetAuthorByEmail } from "../../domain/index.js";
 
-function getAuthorByEmailInDatabase(log: Logger, db: GetDatabase) {
-  return (email: string) => {
+export default function getAuthorByEmailInDatabase(
+  log: Logger,
+  db: GetDatabase,
+): GetAuthorByEmail {
+  return (email) => {
     log.trace({ email }, "Getting author by email");
 
     return db()
@@ -13,5 +17,3 @@ function getAuthorByEmailInDatabase(log: Logger, db: GetDatabase) {
       .executeTakeFirst();
   };
 }
-
-export default getAuthorByEmailInDatabase;

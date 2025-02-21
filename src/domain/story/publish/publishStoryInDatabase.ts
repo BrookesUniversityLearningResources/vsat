@@ -5,7 +5,7 @@ import type {
   PublishStoryInDatabase,
 } from "../../../database/schema.js";
 
-function publishStoryInDatabase(
+export default function publishStoryInDatabase(
   log: Logger,
   db: GetDatabase,
 ): PublishStoryInDatabase {
@@ -36,5 +36,3 @@ function publishStoryInDatabase(
     return publishedStory;
   };
 }
-
-export default publishStoryInDatabase;

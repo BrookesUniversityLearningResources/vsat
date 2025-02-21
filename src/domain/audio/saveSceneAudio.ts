@@ -10,7 +10,7 @@ import { type UploadAudio, audioName } from "./types.js";
 
 type SaveAudio = (audio: AudioInsert) => Promise<AudioDto>;
 
-function saveSceneAudio(
+export default function saveSceneAudio(
   log: Logger,
   db: GetDatabase,
   uploadAudio: UploadAudio,
@@ -46,5 +46,3 @@ function saveSceneAudio(
     return audio;
   };
 }
-
-export default saveSceneAudio;

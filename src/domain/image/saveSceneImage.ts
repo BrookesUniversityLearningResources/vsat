@@ -10,7 +10,7 @@ import { type UploadImage, imageName } from "./types.js";
 
 type SaveImage = (image: ImageInsert) => Promise<ImageDto>;
 
-function saveSceneImage(
+export default function saveSceneImage(
   log: Logger,
   db: GetDatabase,
   uploadImage: UploadImage,
@@ -47,5 +47,3 @@ function saveSceneImage(
     return image;
   };
 }
-
-export default saveSceneImage;

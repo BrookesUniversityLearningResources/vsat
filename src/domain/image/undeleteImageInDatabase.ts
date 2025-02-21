@@ -2,7 +2,7 @@ import type { Logger } from "pino";
 
 import type { GetDatabase, ImageDto } from "../../database/schema.js";
 
-function undeleteImageInDatabase(log: Logger, db: GetDatabase) {
+export default function undeleteImageInDatabase(log: Logger, db: GetDatabase) {
   return async (id: ImageDto["id"]) => {
     log.debug({ id }, "Undeleting image in DB");
 
@@ -15,5 +15,3 @@ function undeleteImageInDatabase(log: Logger, db: GetDatabase) {
       .executeTakeFirstOrThrow();
   };
 }
-
-export default undeleteImageInDatabase;

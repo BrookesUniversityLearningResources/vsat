@@ -4,7 +4,7 @@ import type { GetDatabase } from "../../../database/schema.js";
 import { ErrorCodes } from "../../error/errorCode.js";
 import type { GetStory, UnpublishStory } from "../../index.js";
 
-function unpublishStoryInDatabase(
+export default function unpublishStoryInDatabase(
   log: Logger,
   db: GetDatabase,
   getStory: GetStory,
@@ -55,5 +55,3 @@ function unpublishStoryInDatabase(
     }
   };
 }
-
-export default unpublishStoryInDatabase;

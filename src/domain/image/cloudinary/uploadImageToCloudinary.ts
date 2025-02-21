@@ -7,7 +7,7 @@ import type { UploadImage } from "../types.js";
 const THUMBNAIL_WIDTH = 288;
 const THUMBNAIL_HEIGHT = 192;
 
-function uploadImageToCloudinary(log: Logger): UploadImage {
+export default function uploadImageToCloudinary(log: Logger): UploadImage {
   const upload = cloudinary.uploader.upload_stream;
 
   return (name, data) =>
@@ -55,8 +55,6 @@ function uploadImageToCloudinary(log: Logger): UploadImage {
       ).end(data);
     });
 }
-
-export default uploadImageToCloudinary;
 
 type ThumbnailDimensions = {
   height: number;

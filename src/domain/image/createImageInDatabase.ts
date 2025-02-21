@@ -4,7 +4,7 @@ import type { GetDatabase, ImageInsert } from "../../database/schema.js";
 import getImageByUniqueUrlInDatabase from "./getImageByUniqueUrlInDatabase.js";
 import undeleteImageInDatabase from "./undeleteImageInDatabase.js";
 
-function createImageInDatabase(log: Logger, db: GetDatabase) {
+export default function createImageInDatabase(log: Logger, db: GetDatabase) {
   const undeleteImage = undeleteImageInDatabase(log, db);
 
   const getImageByUrl = getImageByUniqueUrlInDatabase(log, db);
@@ -48,5 +48,3 @@ function createImageInDatabase(log: Logger, db: GetDatabase) {
     };
   };
 }
-
-export default createImageInDatabase;

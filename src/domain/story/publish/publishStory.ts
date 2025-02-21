@@ -7,7 +7,7 @@ import parseStory from "../published/parseStory.js";
 
 type Now = () => Date;
 
-function publishStory(
+export default function publishStory(
   log: Logger,
   getStory: GetStory,
   publishStoryInDB: PublishStoryInDatabase,
@@ -66,5 +66,3 @@ function publishStory(
     }
   };
 }
-
-export default publishStory;

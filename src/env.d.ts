@@ -6,12 +6,6 @@ declare namespace Express {
   }
 }
 
-declare global {
-  interface Window {
-    AFRAME: import("aframe").AFrame;
-  }
-}
-
 declare namespace App {
   type WithLog = Readonly<{
     log: import("pino").Logger;

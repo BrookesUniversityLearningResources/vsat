@@ -2,7 +2,10 @@ import type { Logger } from "pino";
 
 import type { GetDatabase, ImageDto } from "../../database/schema.js";
 
-function getImageByUniqueUrlInDatabase(log: Logger, db: GetDatabase) {
+export default function getImageByUniqueUrlInDatabase(
+  log: Logger,
+  db: GetDatabase,
+) {
   return (url: ImageDto["url"], includeDeleted = false) => {
     log.debug({ url, includeDeleted }, "Getting image by unique URL");
 
@@ -18,5 +21,3 @@ function getImageByUniqueUrlInDatabase(log: Logger, db: GetDatabase) {
     return select.executeTakeFirst();
   };
 }
-
-export default getImageByUniqueUrlInDatabase;

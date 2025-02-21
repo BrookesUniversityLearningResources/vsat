@@ -1,9 +1,13 @@
 import type { Logger } from "pino";
 
-import type { AuthorInsert, GetDatabase } from "../../database/schema.js";
+import type { GetDatabase } from "../../database/schema.js";
+import type { CreateAuthor } from "../../domain/index.js";
 
-function createAuthorInDatabase(log: Logger, db: GetDatabase) {
-  return (author: AuthorInsert) => {
+export default function createAuthorInDatabase(
+  log: Logger,
+  db: GetDatabase,
+): CreateAuthor {
+  return (author) => {
     log.debug({ author }, "Creating author");
 
     return db()
@@ -13,5 +17,3 @@ function createAuthorInDatabase(log: Logger, db: GetDatabase) {
       .executeTakeFirstOrThrow();
   };
 }
-
-export default createAuthorInDatabase;

@@ -21,11 +21,15 @@ export type Author = {
   email: string;
 };
 
+export type GetAuthorByEmail = (
+  email: AuthorDto["email"],
+) => Promise<AuthorDto | undefined>;
+
+export type CreateAuthor = (author: AuthorInsert) => Promise<AuthorDto>;
+
 export type RepositoryAuthor = Readonly<{
-  getAuthorByEmail: (
-    email: AuthorDto["email"],
-  ) => Promise<AuthorDto | undefined>;
-  createAuthor: (author: AuthorInsert) => Promise<AuthorDto>;
+  getAuthorByEmail: GetAuthorByEmail;
+  createAuthor: CreateAuthor;
 }>;
 
 export type Audio = WithId & {
@@ -84,17 +88,15 @@ export type CreateSceneRequest = {
   /**
    * Optional values for the created `Scene` that will override any defaults.
    */
-  source?:
-    | Partial<{
-        title: string | undefined;
-        content: string | undefined;
-        isOpeningScene: boolean | undefined;
-      }>
-    | undefined;
+  source?: Partial<{
+    title: string | undefined;
+    content: string | undefined;
+    isOpeningScene: boolean | undefined;
+  }>;
 };
 
 /**
- * Create a _new_ `Scene` and add it to the `Story` mentioned in the `request`.
+ * Create a `Scene` and add it to the `Story` mentioned in the `request`.
  *
  * @param request deets about the `Scene` to be created.
  */

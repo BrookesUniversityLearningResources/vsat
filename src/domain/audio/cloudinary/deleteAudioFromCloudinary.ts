@@ -3,7 +3,7 @@ import type { Logger } from "pino";
 
 import type { AudioName } from "../types.js";
 
-function deleteAudioFromCloudinary(
+export default function deleteAudioFromCloudinary(
   log: Logger,
 ): (name: AudioName) => Promise<void> {
   const deleteAudio = cloudinary.uploader.destroy;
@@ -30,5 +30,3 @@ function deleteAudioFromCloudinary(
       });
     });
 }
-
-export default deleteAudioFromCloudinary;

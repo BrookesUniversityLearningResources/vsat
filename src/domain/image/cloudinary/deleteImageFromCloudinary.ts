@@ -3,7 +3,7 @@ import type { Logger } from "pino";
 
 import type { ImageName } from "../types.js";
 
-function deleteImageFromCloudinary(
+export default function deleteImageFromCloudinary(
   log: Logger,
 ): (name: ImageName) => Promise<void> {
   const deleteImage = cloudinary.uploader.destroy;
@@ -30,5 +30,3 @@ function deleteImageFromCloudinary(
       });
     });
 }
-
-export default deleteImageFromCloudinary;

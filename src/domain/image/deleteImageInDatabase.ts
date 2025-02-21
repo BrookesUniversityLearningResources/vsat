@@ -5,7 +5,7 @@ import type {
   GetDatabase,
 } from "../../database/schema.js";
 
-function deleteImageInDatabase(
+export default function deleteImageInDatabase(
   log: Logger,
   db: GetDatabase,
 ): DeleteImageInDatabase {
@@ -19,5 +19,3 @@ function deleteImageInDatabase(
       .executeTakeFirstOrThrow();
   };
 }
-
-export default deleteImageInDatabase;

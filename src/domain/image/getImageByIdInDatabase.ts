@@ -2,7 +2,7 @@ import type { Logger } from "pino";
 
 import type { GetDatabase, ImageDto } from "../../database/schema.js";
 
-function getImageByIdInDatabase(log: Logger, db: GetDatabase) {
+export default function getImageByIdInDatabase(log: Logger, db: GetDatabase) {
   return (id: ImageDto["id"]) => {
     log.debug({ id }, "Getting image by ID");
 
@@ -14,5 +14,3 @@ function getImageByIdInDatabase(log: Logger, db: GetDatabase) {
       .executeTakeFirst();
   };
 }
-
-export default getImageByIdInDatabase;

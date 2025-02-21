@@ -4,7 +4,7 @@ import type { Logger } from "pino";
 import type { Audio } from "../../index.js";
 import type { UploadAudio } from "../types.js";
 
-function uploadAudioToCloudinary(log: Logger): UploadAudio {
+export default function uploadAudioToCloudinary(log: Logger): UploadAudio {
   const upload = cloudinary.uploader.upload_stream;
 
   return (name, data) =>
@@ -44,5 +44,3 @@ function uploadAudioToCloudinary(log: Logger): UploadAudio {
       ).end(data);
     });
 }
-
-export default uploadAudioToCloudinary;
