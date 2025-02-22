@@ -21,6 +21,7 @@ export default function publishStoryInDatabase(
         title: story.title,
         content,
         createdAt: story.createdAt,
+        imageUrl: story.imageUrl,
       })
       .onConflict((oc) =>
         oc.column("id").doUpdateSet({

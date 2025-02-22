@@ -20,5 +20,9 @@ This file must adhere to the following naming convention:
 YYYYMMDDHHMM-someDescriptiveName.ts
 ```
 
+```shell
+touch ./src/database/migrate/migrations/$(date +%F%H-%M | tr -d '-' | tr -d ':')-RENAME.ts
+```
+
 See [the docs](https://kysely.dev/docs/migrations#migration-files) and the
 existing migrations for examples of what to write.

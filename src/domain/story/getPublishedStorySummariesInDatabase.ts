@@ -13,45 +13,36 @@ export default function getPublishedStorySummariesInDatabase(
   return async (request) => {
     log.debug({ request }, "Getting published stories");
 
-    const resultSet = await db()
+    const rows = await db()
       .selectFrom("storyPublished")
       .innerJoin("authorToStory", "authorToStory.storyId", "storyPublished.id")
       .innerJoin("author", "authorToStory.authorId", "author.id")
-      .innerJoin("scene", "scene.storyId", "storyPublished.id")
-      .leftJoin("image", "scene.imageId", "image.id")
       .select([
         // storyPublished
         "storyPublished.id as storyId",
         "storyPublished.title as storyTitle",
         "storyPublished.createdAt as storyPublishedOn",
+        "storyPublished.imageUrl as storyImageUrl",
         // author
         "author.id as authorId",
         "author.name as authorName",
-        // image
-        "image.thumbnailUrl as imageThumbnailUrl",
       ])
       .orderBy("storyPublished.createdAt", "desc")
       .execute();
 
-    const publishedStorySummaries: PublishedStorySummary[] = resultSet.map(
-      (row) => ({
-        id: row.storyId,
-        title: row.storyTitle,
-        publishedOn: row.storyPublishedOn,
-        imageUrl: row.imageThumbnailUrl,
-        author: {
-          id: row.authorId,
-          name: row.authorName,
-        },
-      }),
-    );
+    const summaries: PublishedStorySummary[] = rows.map((row) => ({
+      id: row.storyId,
+      title: row.storyTitle,
+      publishedOn: row.storyPublishedOn,
+      imageUrl: row.storyImageUrl,
+      author: {
+        id: row.authorId,
+        name: row.authorName,
+      },
+    }));
 
-    log.debug(
-      { request },
-      "Got %d published stories",
-      publishedStorySummaries.length,
-    );
+    log.debug({ request }, "Got %d published stories", summaries.length);
 
-    return publishedStorySummaries;
+    return summaries;
   };
 }

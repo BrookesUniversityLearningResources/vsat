@@ -2,16 +2,19 @@ import type { Logger } from "pino";
 
 import type { PublishStoryInDatabase } from "../../../database/schema.js";
 import { ErrorCodes } from "../../error/errorCode.js";
-import type { GetStory, PublishStory } from "../../index.js";
+import type {
+  GetStory,
+  PersistentImage,
+  PersistentStory,
+  PublishStory,
+} from "../../index.js";
 import parseStory from "../published/parseStory.js";
-
-type Now = () => Date;
 
 export default function publishStory(
   log: Logger,
   getStory: GetStory,
   publishStoryInDB: PublishStoryInDatabase,
-  now: Now = () => new Date(),
+  now: () => Date = () => new Date(),
 ): PublishStory {
   return async (storyId) => {
     const story = await getStory({ id: storyId });
@@ -31,6 +34,7 @@ export default function publishStory(
         const publishedStory = {
           ...result.story,
           createdAt: now(),
+          imageUrl: imageUrlFor(story),
         };
 
         log.info({ publishedStory, errors: result.errors }, "Publishing story");
@@ -65,4 +69,13 @@ export default function publishStory(
       }
     }
   };
+}
+
+function imageUrlFor(
+  story: PersistentStory,
+): PersistentImage["thumbnailUrl"] | null {
+  return (
+    (story.scenes.find((scene) => scene.isOpeningScene) ?? story.scenes[0])
+      ?.image?.thumbnailUrl ?? null
+  );
 }

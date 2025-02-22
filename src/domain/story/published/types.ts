@@ -13,6 +13,7 @@ export type PublishedStory = Readonly<
     Omit<PersistentStory, "scenes" | "publishedOn"> & {
       createdAt: Date;
       scenes: NonEmptyArray<PublishedScene>;
+      imageUrl: string | null;
     }
   >
 >;

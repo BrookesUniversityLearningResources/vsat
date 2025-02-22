@@ -14,7 +14,7 @@ export type ParseStoryFailed = ErrorCoded & {
   reason: string;
 };
 
-export type ParsedStory = Omit<PublishedStory, "createdAt">;
+export type ParsedStory = Omit<PublishedStory, "createdAt" | "imageUrl">;
 
 export type ParseStorySuccess = {
   kind: "storyParsed";

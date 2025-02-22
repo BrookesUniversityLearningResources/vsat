@@ -114,6 +114,7 @@ export interface TableStoryPublished {
   title: string;
   content: JSONColumnType<NonEmptyArray<PublishedScene>>;
   createdAt: Date;
+  imageUrl: string | null;
 }
 
 export type StoryPublishedDto = Selectable<TableStoryPublished>;
