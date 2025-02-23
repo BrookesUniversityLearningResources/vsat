@@ -10,6 +10,7 @@ import routeCreateStory from "./domain/story/route/routeCreateStory.js";
 import routeDeleteScene from "./domain/story/route/routeDeleteScene.js";
 import routeDeleteSceneAudio from "./domain/story/route/routeDeleteSceneAudio.js";
 import routeDeleteSceneImage from "./domain/story/route/routeDeleteSceneImage.js";
+import routeDeleteStory from "./domain/story/route/routeDeleteStory.js";
 import routeGetScene from "./domain/story/route/routeGetScene.js";
 import routeGetStory from "./domain/story/route/routeGetStory.js";
 import routePublishStory from "./domain/story/route/routePublishStory.js";
@@ -76,6 +77,7 @@ async function createApp(): Promise<[StartServer, Logger]> {
     routeSaveStoryTitle(log, repositoryStory.saveStoryTitle, assertAuthor),
     routeSaveSceneTitle(log, repositoryScene.saveSceneTitle, assertAuthor),
     routeDeleteScene(repositoryScene.deleteScene, assertAuthor),
+    routeDeleteStory(log, repositoryStory.deleteStory, assertAuthor),
     routePublishStory(log, repositoryStory.publishStory, assertAuthor),
     routeUnpublishStory(log, repositoryStory.unpublishStory, assertAuthor),
   ].reduce((router, route) => {

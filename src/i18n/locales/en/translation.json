@@ -76,6 +76,29 @@
           "save-title": "Save"
         }
       },
+      "action": {
+        "publish-story": {
+          "label": "Publish story"
+        },
+        "unpublish-story": {
+          "label": "Unpublish story",
+          "confirm": {
+            "prompt": "Unpublish this story?"
+          }
+        },
+        "delete-story": {
+          "label": "Delete story",
+          "confirm": {
+            "prompt": "Delete this story?"
+          }
+        },
+        "create-scene": {
+          "label": "New scene"
+        },
+        "back-to-my-stories": {
+          "label": "My stories"
+        }
+      },
       "scene": {
         "title": {
           "label": "{{title}}",
@@ -96,9 +119,6 @@
           "prompt": "Add sound to the scene…"
         },
         "action": {
-          "back-to-my-stories": {
-            "label": "My stories"
-          },
           "delete-audio": {
             "label": "Delete"
           },
@@ -131,18 +151,6 @@
             "confirm": {
               "prompt": "Delete this scene?"
             }
-          },
-          "publish-story": {
-            "label": "Publish story"
-          },
-          "unpublish-story": {
-            "label": "Unpublish story",
-            "confirm": {
-              "prompt": "Unpublish this story?"
-            }
-          },
-          "create-scene": {
-            "label": "New scene"
           }
         }
       },

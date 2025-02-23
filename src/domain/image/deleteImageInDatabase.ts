@@ -10,11 +10,10 @@ export default function deleteImageInDatabase(
   db: GetDatabase,
 ): DeleteImageInDatabase {
   return async (imageId) => {
-    log.debug({ imageId }, "(Soft) deleting image in DB");
+    log.debug({ imageId }, "Deleting image in DB");
 
     await db()
-      .updateTable("image")
-      .set({ isDeleted: true })
+      .deleteFrom("image")
       .where("id", "=", imageId)
       .executeTakeFirstOrThrow();
   };

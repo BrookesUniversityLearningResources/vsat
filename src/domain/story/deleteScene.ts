@@ -7,14 +7,16 @@ import type {
   DeleteSceneImage,
 } from "../index.js";
 
-function deleteScene(
+export default function deleteScene(
   log: Logger,
   deleteSceneInDatabase: DeleteSceneInDatabase,
   deleteImage: DeleteSceneImage,
   deleteAudio: DeleteSceneAudio,
 ): DeleteScene {
-  return async ({ storyId, sceneId }) => {
-    log.debug({ storyId, sceneId }, "Deleting scene");
+  return async (request) => {
+    log.debug({ request }, "Deleting scene");
+
+    const { storyId, sceneId } = request;
 
     const { imageId, audioId } = await deleteSceneInDatabase({
       storyId,
@@ -22,10 +24,8 @@ function deleteScene(
     });
 
     await Promise.all([
-      imageId ? deleteImage({ sceneId, imageId }) : Promise.resolve(),
-      audioId ? deleteAudio({ sceneId, audioId }) : Promise.resolve(),
+      imageId ? deleteImage({ storyId, sceneId, imageId }) : Promise.resolve(),
+      audioId ? deleteAudio({ storyId, sceneId, audioId }) : Promise.resolve(),
     ]);
   };
 }
-
-export default deleteScene;

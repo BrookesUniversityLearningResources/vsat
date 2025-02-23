@@ -10,11 +10,10 @@ export default function deleteAudioInDatabase(
   db: GetDatabase,
 ): DeleteAudioInDatabase {
   return async (audioId) => {
-    log.debug({ audioId }, "(Soft) deleting audio in DB");
+    log.debug({ audioId }, "Deleting audio in DB");
 
     await db()
-      .updateTable("audio")
-      .set({ isDeleted: true })
+      .deleteFrom("audio")
       .where("id", "=", audioId)
       .executeTakeFirstOrThrow();
   };

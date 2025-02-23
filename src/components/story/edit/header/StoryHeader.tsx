@@ -15,6 +15,7 @@ import type {
 import unsupported from "../../../../domain/story/client/unsupportedResult.js";
 import {
   type WithCreateScene,
+  type WithDeleteStory,
   type WithFeedback,
   type WithPublishStory,
   type WithUnpublishStory,
@@ -36,9 +37,13 @@ const StoryHeader: FC<StoryHeaderProps> = ({
 }) => {
   const { t } = useTranslation();
 
-  const { createScene, publishStory, unpublishStory, feedback } =
+  const { createScene, publishStory, unpublishStory, deleteStory, feedback } =
     useEnvironment<
-      WithCreateScene & WithPublishStory & WithUnpublishStory & WithFeedback
+      WithCreateScene &
+        WithPublishStory &
+        WithUnpublishStory &
+        WithDeleteStory &
+        WithFeedback
     >();
 
   const onSceneTitleChanged: OnChanged = ({ value }) => {
@@ -104,11 +109,41 @@ const StoryHeader: FC<StoryHeaderProps> = ({
 
   const onUnpublishStory = async () => {
     const result = await feedback.dialog.yesNo(
-      "scene.action.unpublish-story.confirm.prompt",
+      "action.unpublish-story.confirm.prompt",
     );
 
     if (result.isConfirmed) {
       unpublishTheStory.mutate(story.id);
+    }
+  };
+
+  const deleteTheStory = useMutation<unknown, Error, PersistentStory["id"]>({
+    mutationFn: () =>
+      deleteStory({ storyId: story.id }).then((result) => {
+        switch (result.kind) {
+          case "storyDeleted":
+            return null;
+          case "error":
+            return Promise.reject(result.error);
+          default:
+            return unsupported(result);
+        }
+      }),
+    onError: feedback.notify.error,
+    onSuccess: () => {
+      onStoryChanged({
+        kind: "storyDeleted",
+      });
+    },
+  });
+
+  const onDeleteStory = async () => {
+    const result = await feedback.dialog.yesNo(
+      "action.delete-story.confirm.prompt",
+    );
+
+    if (result.isConfirmed) {
+      deleteTheStory.mutate(story.id);
     }
   };
 
@@ -162,9 +197,7 @@ const StoryHeader: FC<StoryHeaderProps> = ({
       </InlineTextInput>
 
       <div className={styles.actionBar}>
-        <a href="/author/story/">
-          {t("scene.action.back-to-my-stories.label")}
-        </a>
+        <a href="/author/story/">{t("action.back-to-my-stories.label")}</a>
         <div className={styles.toolbar}>
           <button
             type="button"
@@ -173,8 +206,8 @@ const StoryHeader: FC<StoryHeaderProps> = ({
           >
             <img
               src="/images/publish-24.png"
-              alt={t("scene.action.publish-story.label")}
-              title={t("scene.action.publish-story.label")}
+              alt={t("action.publish-story.label")}
+              title={t("action.publish-story.label")}
             />
           </button>
           <button
@@ -184,8 +217,19 @@ const StoryHeader: FC<StoryHeaderProps> = ({
           >
             <img
               src="/images/unpublish-24.png"
-              alt={t("scene.action.unpublish-story.label")}
-              title={t("scene.action.unpublish-story.label")}
+              alt={t("action.unpublish-story.label")}
+              title={t("action.unpublish-story.label")}
+            />
+          </button>
+          <button
+            type="button"
+            onClick={onDeleteStory}
+            disabled={deleteTheStory.isPending}
+          >
+            <img
+              src="/images/message-square-x-solid-24.png"
+              alt={t("action.delete-story.label")}
+              title={t("action.delete-story.label")}
             />
           </button>
           <button
@@ -195,8 +239,8 @@ const StoryHeader: FC<StoryHeaderProps> = ({
           >
             <img
               src="/images/message-square-add-solid-24.png"
-              alt={t("scene.action.create-scene.label")}
-              title={t("scene.action.create-scene.label")}
+              alt={t("action.create-scene.label")}
+              title={t("action.create-scene.label")}
             />
           </button>
         </div>

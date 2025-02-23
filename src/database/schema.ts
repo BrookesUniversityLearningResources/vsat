@@ -79,7 +79,6 @@ export type StoryDto = Selectable<TableStory>;
 
 type DeleteStoryInDatabaseRequest = {
   storyId: StoryDto["id"];
-  authorId: AuthorDto["id"];
 };
 
 export type DeleteStoryInDatabase = (

@@ -21,8 +21,8 @@ function routeCreateStory(log: Logger, createStory: SaveStory): Router {
       author: req.user,
       scenes: [
         {
-          title: "On the bus",
-          content: "",
+          title: "Introduction",
+          content: "# Introduction\n\n…",
           isOpeningScene: true,
         },
       ],

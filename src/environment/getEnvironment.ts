@@ -6,12 +6,14 @@ import { pino } from "pino";
 import logUsingPino from "../database/logUsingPino.js";
 import type { Database } from "../database/schema.js";
 import withTransaction from "../database/transaction/withTransaction.js";
+import deleteAudioFromCloudinary from "../domain/audio/cloudinary/deleteAudioFromCloudinary.js";
 import uploadAudioToCloudinary from "../domain/audio/cloudinary/uploadAudioToCloudinary.js";
 import createAudioInDatabase from "../domain/audio/createAudioInDatabase.js";
 import getAudioByIdInDatabase from "../domain/audio/getAudioByIdInDatabase.js";
 import saveSceneAudio from "../domain/audio/saveSceneAudio.js";
 import createAuthorInDatabase from "../domain/author/createAuthorInDatabase.js";
 import getAuthorByEmailInDatabase from "../domain/author/getAuthorByEmailInDatabase.js";
+import deleteImageFromCloudinary from "../domain/image/cloudinary/deleteImageFromCloudinary.js";
 import uploadImageToCloudinary from "../domain/image/cloudinary/uploadImageToCloudinary.js";
 import createImageInDatabase from "../domain/image/createImageInDatabase.js";
 import getImageByIdInDatabase from "../domain/image/getImageByIdInDatabase.js";
@@ -25,14 +27,17 @@ import type {
 } from "../domain/index.js";
 import createScene from "../domain/story/createScene.js";
 import createSceneInDatabase from "../domain/story/createSceneInDatabase.js";
+import deletePublishedStoryInDatabase from "../domain/story/deletePublishedStoryInDatabase.js";
 import deleteScene from "../domain/story/deleteScene.js";
+import deleteSceneAudio from "../domain/story/deleteSceneAudio.js";
 import deleteSceneAudioInDatabase from "../domain/story/deleteSceneAudioInDatabase.js";
+import deleteSceneImage from "../domain/story/deleteSceneImage.js";
 import deleteSceneImageInDatabase from "../domain/story/deleteSceneImageInDatabase.js";
 import deleteSceneInDatabase from "../domain/story/deleteSceneInDatabase.js";
 import deleteStory from "../domain/story/deleteStory.js";
 import deleteStoryInDatabase from "../domain/story/deleteStoryInDatabase.js";
-import getPublishedStorySummariesInDatabase from "../domain/story/getPublishedStorySummariesInDatabase.js";
 import getPublishedStoryInDatabase from "../domain/story/getPublishedStoryInDatabase.js";
+import getPublishedStorySummariesInDatabase from "../domain/story/getPublishedStorySummariesInDatabase.js";
 import getSceneForStoryInDatabase from "../domain/story/getSceneForStoryInDatabase.js";
 import getScenesForStoryInDatabase from "../domain/story/getScenesForStoryInDatabase.js";
 import getStoryInDatabase from "../domain/story/getStoryInDatabase.js";
@@ -79,11 +84,33 @@ const getEnvironment: App.GetEnvironment = (() => {
 
   const [tx, getDB] = withTransaction(logDb, db);
 
+  const repositoryImage: RepositoryImage = {
+    getImageById: tx(getImageByIdInDatabase(logDb, getDB)),
+    deleteImage: deleteImageFromCloudinary(log),
+  };
+
+  const repositoryAudio: RepositoryAudio = {
+    getAudioById: tx(getAudioByIdInDatabase(logDb, getDB)),
+    deleteAudio: deleteAudioFromCloudinary(log),
+  };
+
   const getScenesForStory = tx(getScenesForStoryInDatabase(logDb, getDB));
 
-  const deleteSceneAudio = tx(deleteSceneAudioInDatabase(logDb, getDB));
+  const deleteTheSceneAudio = tx(
+    deleteSceneAudio(
+      log,
+      deleteSceneAudioInDatabase(logDb, getDB),
+      deleteAudioFromCloudinary(log),
+    ),
+  );
 
-  const deleteSceneImage = tx(deleteSceneImageInDatabase(logDb, getDB));
+  const deleteTheSceneImage = tx(
+    deleteSceneImage(
+      log,
+      deleteSceneImageInDatabase(logDb, getDB),
+      deleteImageFromCloudinary(log),
+    ),
+  );
 
   const getScene = tx(getSceneForStoryInDatabase(logDb, getDB));
 
@@ -99,7 +126,7 @@ const getEnvironment: App.GetEnvironment = (() => {
         createImageInDatabase(logDb, getDB),
       ),
     ),
-    deleteSceneImage,
+    deleteSceneImage: deleteTheSceneImage,
     saveSceneAudio: tx(
       saveSceneAudio(
         log,
@@ -108,14 +135,14 @@ const getEnvironment: App.GetEnvironment = (() => {
         createAudioInDatabase(logDb, getDB),
       ),
     ),
-    deleteSceneAudio,
+    deleteSceneAudio: deleteTheSceneAudio,
     saveSceneContent: tx(saveSceneContentInDatabase(logDb, getDB)),
     deleteScene: tx(
       deleteScene(
         log,
         deleteSceneInDatabase(logDb, getDB),
-        deleteSceneImage,
-        deleteSceneAudio,
+        deleteTheSceneImage,
+        deleteTheSceneAudio,
       ),
     ),
     saveSceneTitle: tx(saveSceneTitleInDatabase(log, getDB, getScene)),
@@ -133,6 +160,7 @@ const getEnvironment: App.GetEnvironment = (() => {
         getScenesForStory,
         deleteStoryInDatabase(logDb, getDB),
         repositoryScene.deleteScene,
+        deletePublishedStoryInDatabase(log, getDB),
       ),
     ),
     getStorySummariesByAuthor: tx(
@@ -148,14 +176,6 @@ const getEnvironment: App.GetEnvironment = (() => {
       getPublishedStorySummariesInDatabase(log, getDB),
     ),
     saveStoryTitle: tx(saveStoryTitleInDatabase(logDb, getDB, getStory)),
-  };
-
-  const repositoryImage: RepositoryImage = {
-    getImageById: tx(getImageByIdInDatabase(logDb, getDB)),
-  };
-
-  const repositoryAudio: RepositoryAudio = {
-    getAudioById: tx(getAudioByIdInDatabase(logDb, getDB)),
   };
 
   const repositoryAuthor: RepositoryAuthor = {

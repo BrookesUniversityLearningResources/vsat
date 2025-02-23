@@ -66,7 +66,7 @@ export async function up(db: Kysely<unknown>): Promise<void> {
       col.notNull().defaultTo(false),
     )
     .addColumn("story_id", "integer", (col) =>
-      col.references("story.id").onDelete("cascade").notNull(),
+      col.references("story.id").notNull(),
     )
     .addColumn("image_id", "integer", (col) => col.references("image.id"))
     .addColumn("audio_id", "integer", (col) => col.references("audio.id"))

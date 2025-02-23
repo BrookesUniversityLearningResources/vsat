@@ -16,6 +16,9 @@ import deleteSceneAudio, {
 import deleteSceneImage, {
   type DeleteSceneImage,
 } from "@domain/story/client/deleteSceneImage";
+import deleteStory, {
+  type DeleteStory,
+} from "@domain/story/client/deleteStory";
 import getScene, { type GetScene } from "@domain/story/client/getScene";
 import getStory, { type GetStory } from "@domain/story/client/getStory";
 import publishStory, {
@@ -70,6 +73,10 @@ export type WithCreateStory = {
   createStory: CreateStory;
 };
 
+export type WithDeleteStory = {
+  deleteStory: DeleteStory;
+};
+
 export type WithCreateScene = {
   createScene: CreateScene;
 };
@@ -115,6 +122,7 @@ export type ClientEnvironment = WithDeleteSceneImage &
   WithDeleteScene &
   WithCreateScene &
   WithCreateStory &
+  WithDeleteStory &
   WithPublishStory &
   WithUnpublishStory &
   WithSaveStoryTitle &
@@ -140,6 +148,7 @@ export const createClientEnvironment = (
     createScene,
     createStory,
     publishStory,
+    deleteStory,
     unpublishStory,
     saveStoryTitle,
     saveSceneTitle,

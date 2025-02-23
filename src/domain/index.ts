@@ -8,7 +8,9 @@ import type {
   SaveStoryTitleInDatabase,
   StoryDto,
 } from "../database/schema.js";
+import type { AudioName } from "./audio/types.js";
 import type { ErrorCode } from "./error/errorCode.js";
+import type { ImageName } from "./image/types.js";
 import type { PublishedStory } from "./story/published/types.js";
 
 type WithId = { id?: number };
@@ -70,9 +72,16 @@ export type SaveStory = (story: Story) => Promise<PersistentStory>;
 
 type DeleteStoryRequest = {
   storyId: PersistentStory["id"];
-  authorId: Author["id"];
 };
 export type DeleteStory = (request: DeleteStoryRequest) => Promise<unknown>;
+
+type DeletePublishedStoryRequest = {
+  storyId: PersistentStory["id"];
+};
+
+export type DeletePublishedStory = (
+  request: DeletePublishedStoryRequest,
+) => Promise<unknown>;
 
 export type CreateSceneRequest = {
   /**
@@ -112,6 +121,7 @@ type DeleteSceneRequest = {
 export type DeleteScene = (request: DeleteSceneRequest) => Promise<unknown>;
 
 export type DeleteImageRequest = {
+  storyId: PersistentStory["id"];
   sceneId: PersistentScene["id"];
   imageId: PersistentImage["id"];
 };
@@ -121,6 +131,7 @@ export type DeleteSceneImage = (
 ) => Promise<unknown>;
 
 export type DeleteAudioRequest = {
+  storyId: PersistentStory["id"];
   sceneId: PersistentScene["id"];
   audioId: PersistentAudio["id"];
 };
@@ -229,10 +240,12 @@ export type RepositoryStory = Readonly<{
 
 export type RepositoryImage = Readonly<{
   getImageById: (id: ImageDto["id"]) => Promise<Image | undefined>;
+  deleteImage: (name: ImageName) => Promise<unknown>;
 }>;
 
 export type RepositoryAudio = Readonly<{
   getAudioById: (id: AudioDto["id"]) => Promise<Audio | undefined>;
+  deleteAudio: (name: AudioName) => Promise<unknown>;
 }>;
 
 export type GetScenesForStory = (

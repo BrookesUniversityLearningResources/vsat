@@ -10,6 +10,10 @@ export type StoryUnpublished = Readonly<{
   story: PersistentStory;
 }>;
 
+export type StoryDeleted = Readonly<{
+  kind: "storyDeleted";
+}>;
+
 export type StoryTitleChanged = Readonly<{
   kind: "storyTitleChanged";
   title: PersistentStory["title"];
@@ -18,6 +22,7 @@ export type StoryTitleChanged = Readonly<{
 export type StoryChanged =
   | StoryPublished
   | StoryUnpublished
+  | StoryDeleted
   | StoryTitleChanged;
 
 export type OnStoryChanged = (change: StoryChanged) => void;

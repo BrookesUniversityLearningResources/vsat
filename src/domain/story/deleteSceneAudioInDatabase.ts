@@ -13,11 +13,12 @@ function deleteSceneAudioInDatabase(
   return async ({ sceneId, audioId }) => {
     log.debug({ sceneId, audioId }, "Deleting scene's audio from DB");
 
+    // the scene may already be deleted: we don't care and plough on
     await db()
       .updateTable("scene")
       .set({ audioId: null })
       .where("scene.id", "=", sceneId)
-      .executeTakeFirstOrThrow();
+      .execute();
 
     await deleteAudio(audioId);
 

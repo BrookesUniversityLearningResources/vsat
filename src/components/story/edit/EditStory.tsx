@@ -131,6 +131,11 @@ const StoryEditor: FC<StoryEditorProps> = ({ story: initialStory }) => {
         break;
       }
 
+      case "storyDeleted": {
+        window.location.href = "/author/story";
+        break;
+      }
+
       default: {
         ((_: never) => _)(e);
       }
