@@ -5,7 +5,7 @@ import { ErrorCodes } from "../../error/errorCode.js";
 import { errorCodedContext } from "../../error/errorCodedContext.js";
 import type { CreateSceneInStory } from "../../index.js";
 
-function routeCreateScene(
+export default function routeCreateScene(
   createScene: CreateSceneInStory,
   ...otherHandlers: RequestHandler[]
 ): Router {
@@ -32,8 +32,6 @@ function routeCreateScene(
 
   return router;
 }
-
-export default routeCreateScene;
 
 export const CreateSceneRequestModel = z.object({
   storyId: z.coerce.number().min(0),

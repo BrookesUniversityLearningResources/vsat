@@ -27,6 +27,7 @@ import type {
 } from "../domain/index.js";
 import createScene from "../domain/story/createScene.js";
 import createSceneInDatabase from "../domain/story/createSceneInDatabase.js";
+import createStory from "../domain/story/createStory.js";
 import deletePublishedStoryInDatabase from "../domain/story/deletePublishedStoryInDatabase.js";
 import deleteScene from "../domain/story/deleteScene.js";
 import deleteSceneAudio from "../domain/story/deleteSceneAudio.js";
@@ -152,8 +153,11 @@ const getEnvironment: App.GetEnvironment = (() => {
     getStoryInDatabase(logDb, getDB, repositoryScene.getScenesForStory),
   );
 
+  const saveStory = tx(saveStoryInDatabase(logDb, getDB));
+
   const repositoryStory: RepositoryStory = {
-    saveStory: tx(saveStoryInDatabase(logDb, getDB)),
+    createStory: tx(createStory(log, saveStory)),
+    saveStory,
     deleteStory: tx(
       deleteStory(
         log,

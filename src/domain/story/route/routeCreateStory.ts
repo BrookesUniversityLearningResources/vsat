@@ -5,9 +5,12 @@ import type { Logger } from "pino";
 
 import { ErrorCodes } from "../../error/errorCode.js";
 import { errorCodedContext } from "../../error/errorCodedContext.js";
-import type { SaveStory } from "../../index.js";
+import type { CreateStory } from "../../index.js";
 
-function routeCreateStory(log: Logger, createStory: SaveStory): Router {
+export default function routeCreateStory(
+  log: Logger,
+  createStory: CreateStory,
+): Router {
   const router = Router();
 
   router.post("/story", (req, res) => {
@@ -17,15 +20,7 @@ function routeCreateStory(log: Logger, createStory: SaveStory): Router {
     }
 
     createStory({
-      title: "My story",
       author: req.user,
-      scenes: [
-        {
-          title: "Introduction",
-          content: "# Introduction\n\n…",
-          isOpeningScene: true,
-        },
-      ],
     })
       .then((story) => {
         const location = url.format({
@@ -47,5 +42,3 @@ function routeCreateStory(log: Logger, createStory: SaveStory): Router {
 
   return router;
 }
-
-export default routeCreateStory;

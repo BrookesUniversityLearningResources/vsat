@@ -68,6 +68,28 @@ export type PersistentStory = Omit<Persistent<Story>, "scenes"> & {
   publishedOn: Date | null;
 };
 
+type CreateStoryRequest = {
+  author: Author;
+
+  /**
+   * Can be used to localize the initial (example) text for the `Story`.
+   */
+  locale?: string | undefined;
+
+  /**
+   * Optional values for the created `Story` that will override any defaults.
+   */
+  source?:
+    | Partial<{
+        title: string | undefined;
+      }>
+    | undefined;
+};
+
+export type CreateStory = (
+  request: CreateStoryRequest,
+) => Promise<PersistentStory>;
+
 export type SaveStory = (story: Story) => Promise<PersistentStory>;
 
 type DeleteStoryRequest = {
@@ -97,11 +119,13 @@ export type CreateSceneRequest = {
   /**
    * Optional values for the created `Scene` that will override any defaults.
    */
-  source?: Partial<{
-    title: string | undefined;
-    content: string | undefined;
-    isOpeningScene: boolean | undefined;
-  }>;
+  source?:
+    | Partial<{
+        title: string | undefined;
+        content: string | undefined;
+        isOpeningScene: boolean | undefined;
+      }>
+    | undefined;
 };
 
 /**
@@ -228,6 +252,7 @@ export type UnpublishStory = (
 
 export type RepositoryStory = Readonly<{
   saveStory: SaveStory;
+  createStory: CreateStory;
   getStorySummariesByAuthor: GetStorySummariesByAuthor;
   getStory: GetStory;
   publishStory: PublishStory;

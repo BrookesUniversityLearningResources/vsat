@@ -64,7 +64,7 @@ async function createApp(): Promise<[StartServer, Logger]> {
   const assertAuthor = assertAuthorHandler(log, isAuthorOfTheStory(db));
 
   const apiRoutes = [
-    routeCreateStory(log, repositoryStory.saveStory),
+    routeCreateStory(log, repositoryStory.createStory),
     routeCreateScene(repositoryScene.createScene),
     routeGetStory(repositoryStory.getStory, assertAuthor),
     routeGetStory(repositoryStory.getStory, assertAuthor),
