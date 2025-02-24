@@ -20,19 +20,21 @@ export default function publishStoryInDatabase(
         id: story.id,
         title: story.title,
         content,
-        createdAt: story.createdAt,
         imageUrl: story.imageUrl,
+        createdAt: story.createdAt,
       })
       .onConflict((oc) =>
         oc.column("id").doUpdateSet({
+          title: story.title,
           content,
+          imageUrl: story.imageUrl,
           createdAt: story.createdAt,
         }),
       )
       .returningAll()
       .executeTakeFirstOrThrow();
 
-    log.debug({ publishedStory }, "Published story in DB");
+    log.debug({ story, publishedStory }, "Published story in DB");
 
     return publishedStory;
   };
