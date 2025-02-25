@@ -1,6 +1,8 @@
 import type { PersistentStory } from "../index.js";
 
-function toStoryId(value: string | undefined): PersistentStory["id"] | null {
+export default function toStoryId(
+  value: string | undefined,
+): PersistentStory["id"] | null {
   if (!value) {
     return null;
   }
@@ -17,5 +19,3 @@ function toStoryId(value: string | undefined): PersistentStory["id"] | null {
 
   return maybeId;
 }
-
-export default toStoryId;
