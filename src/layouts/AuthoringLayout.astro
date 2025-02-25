@@ -20,12 +20,12 @@ const language = i18n.hasSupportFor(Astro.preferredLocale)
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width" />
-    <link rel="stylesheet" href="/styles/site-authoring.css" />
+    <title>{title ?? "Virtual Storytelling Application Toolkit"}</title>
     <meta
       name="description"
       content={description ?? "Virtual Storytelling Application Toolkit"}
     />
-    <title>{title ?? "Virtual Storytelling Application Toolkit"}</title>
+    <link rel="stylesheet" href="/styles/site-authoring.css" />
   </head>
   <body>
     <slot />

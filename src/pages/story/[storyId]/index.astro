@@ -2,8 +2,6 @@
 import PublishedStory from "@components/story/published/PublishedStory";
 import toStoryId from "@domain/story/toStoryId";
 
-import Layout from "../../../layouts/PublicSiteLayout.astro";
-
 const storyId = toStoryId(Astro.params.storyId);
 
 if (!storyId) {
@@ -26,15 +24,29 @@ const translations = i18n.getTranslationsForPage({
 });
 ---
 
-<Layout
-  title={i18n.t("page.site-story.meta.title", { title: story.title })}
-  description={i18n.t("page.site-story.meta.description")}
->
-  <main>
-    <PublishedStory
-      story={story}
-      translations={translations}
-      client:only="react"
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width" />
+    <title>
+      {i18n.t("page.site-story.meta.title", { title: story.title })}
+    </title>
+    <meta
+      name="description"
+      content={i18n.t("page.site-story.meta.description", {
+        author: story.author.name,
+      })}
     />
-  </main>
-</Layout>
+    <link rel="stylesheet" href="/styles/site-public.css" />
+  </head>
+  <body>
+    <main>
+      <PublishedStory
+        story={story}
+        translations={translations}
+        client:only="react"
+      />
+    </main>
+  </body>
+</html>

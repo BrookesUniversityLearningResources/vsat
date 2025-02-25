@@ -8,4 +8,5 @@
   background-color: whitesmoke;
   padding: 1rem;
   border-radius: var(--border-radius-medium);
+  font-size: 1.5rem;
 }

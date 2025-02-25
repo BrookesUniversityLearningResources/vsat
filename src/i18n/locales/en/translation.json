@@ -208,7 +208,7 @@
     "site-story": {
       "meta": {
         "title": "{{title}} • VSAT",
-        "description": "Your story"
+        "description": "A story by {{author}}"
       }
     },
     "home": {
