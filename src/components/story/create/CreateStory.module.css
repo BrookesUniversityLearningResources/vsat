@@ -1,0 +1,11 @@
+.createStory {
+  border: none;
+  background: var(--color-action-primary);
+  color: var(--color-text);
+  border-radius: var(--border-radius-medium);
+  cursor: pointer;
+  padding: 0.65rem 0.65rem 0.65rem 0.85rem;
+  justify-self: flex-end;
+  display: flex;
+  gap: 0.5rem;
+}

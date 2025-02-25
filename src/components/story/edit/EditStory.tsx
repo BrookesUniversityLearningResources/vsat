@@ -149,8 +149,7 @@ const StoryEditor: FC<StoryEditorProps> = ({ story: initialStory }) => {
         onSceneChanged={onSceneChanged}
         onStoryChanged={onStoryChanged}
       />
-
-      <div className={styles.storyEditScenes}>
+      <div className="scenes">
         {story.scenes.map((scene) => (
           <Scene
             key={scene.id}

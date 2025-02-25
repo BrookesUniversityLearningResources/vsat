@@ -7,6 +7,8 @@ import type { ResourceKey } from "i18next";
 import type { FC } from "react";
 import { I18nextProvider, useTranslation } from "react-i18next";
 
+import styles from "./CreateStory.module.css";
+
 import { ErrorCodedError } from "../../../domain/error/ErrorCodedError.js";
 import type { StoryCreated } from "../../../domain/story/client/createStory.js";
 import unsupported from "../../../domain/story/client/unsupportedResult.js";
@@ -56,17 +58,17 @@ const StoryCreator: FC = () => {
     createTheStory.mutate();
   };
 
+  const label = t("action.create-story.label");
+
   return (
     <button
       type="button"
+      className={styles.createStory}
       onClick={onCreateStory}
       disabled={createTheStory.isPending}
     >
-      <img
-        src="/images/add-white-24.svg"
-        alt={t("action.create-story.label")}
-        title={t("action.create-story.label")}
-      />
+      {label}
+      <img src="/images/add-white-24.svg" alt={label} title={label} />
     </button>
   );
 };
