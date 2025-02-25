@@ -11,7 +11,7 @@ import type { PersistentScene, PersistentStory } from "../domain/index.js";
 import type {
   PublishedScene,
   PublishedStory,
-} from "../domain/story/published/types.js";
+} from "../domain/story/publish/types.js";
 
 // https://kysely.dev/docs/getting-started#types
 export interface Database {

@@ -1,13 +1,13 @@
-import { allLinkablesIn } from "@domain/story/published/allLinkables.js";
-import findSceneById from "@domain/story/published/support/findSceneById.js";
-import isWithinScene from "@domain/story/published/support/isWithinScene.js";
-import openingPageFor from "@domain/story/published/support/openingPage.js";
+import { allLinkablesIn } from "@domain/story/publish/allLinkables.js";
+import findSceneById from "@domain/story/publish/support/findSceneById.js";
+import isWithinScene from "@domain/story/publish/support/isWithinScene.js";
+import openingPageFor from "@domain/story/publish/support/openingPage.js";
 import type {
   PublishedScene,
   PublishedStory,
   LinkTarget,
   Page,
-} from "@domain/story/published/types.js";
+} from "@domain/story/publish/types.js";
 
 export type ChangeToPage = Readonly<{
   /**

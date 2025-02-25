@@ -5,14 +5,14 @@ import type { ResourceKey } from "i18next";
 import { type FC, useState } from "react";
 import { I18nextProvider } from "react-i18next";
 
-import openingPageFor from "@domain/story/published/support/openingPage.js";
-import openingSceneFor from "@domain/story/published/support/openingScene.js";
+import openingPageFor from "@domain/story/publish/support/openingPage.js";
+import openingSceneFor from "@domain/story/publish/support/openingScene.js";
 import type {
   LinkTarget,
   Page,
   PublishedScene,
   PublishedStory,
-} from "@domain/story/published/types.js";
+} from "@domain/story/publish/types.js";
 import useI18N from "@i18n/client/useI18N.js";
 
 import Skybox from "./Skybox/Skybox.js";

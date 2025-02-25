@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 
-import parseLinkTarget from "@domain/story/published/parse/parseLinkTarget.js";
+import parseLinkTarget from "@domain/story/publish/parse/parseLinkTarget.js";
 
 describe("parseTarget", () => {
   test("given 'introduction' then the target is 'introduction'", () => {

@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 
-import openingPageFor from "@domain/story/published/support/openingPage.js";
-import type { PublishedScene } from "@domain/story/published/types.js";
+import openingPageFor from "@domain/story/publish/support/openingPage.js";
+import type { PublishedScene } from "@domain/story/publish/types.js";
 
 describe("openingPageFor", () => {
   test("given a scene with no explicit opening page" +

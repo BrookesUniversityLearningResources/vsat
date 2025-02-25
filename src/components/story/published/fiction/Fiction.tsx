@@ -1,7 +1,7 @@
 import { DefaultProperties } from "@react-three/uikit";
 import type { FC } from "react";
 
-import type { Block, LinkTarget } from "@domain/story/published/types";
+import type { Block, LinkTarget } from "@domain/story/publish/types";
 import type { NonEmptyArray } from "@util/nonEmptyArray";
 
 import Card from "../support/Card";

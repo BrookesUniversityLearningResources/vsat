@@ -1,7 +1,7 @@
 import { Container, Text } from "@react-three/uikit";
 import type { FC } from "react";
 
-import type { PlaintextBlock } from "@domain/story/published/types";
+import type { PlaintextBlock } from "@domain/story/publish/types";
 
 type BlockPlaintextProps = { block: PlaintextBlock };
 

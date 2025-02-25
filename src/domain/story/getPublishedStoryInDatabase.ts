@@ -4,7 +4,7 @@ import type { GetDatabase } from "../../database/schema.js";
 import type { Json } from "../../util/json/types.js";
 import type { NonEmptyArray } from "../../util/nonEmptyArray.js";
 import type { GetPublishedStory } from "../index.js";
-import type { PublishedScene, PublishedStory } from "./published/types.js";
+import type { PublishedScene, PublishedStory } from "./publish/types.js";
 
 function getPublishedStoryInDatabase(
   log: Logger,

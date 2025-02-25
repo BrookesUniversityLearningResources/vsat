@@ -1,3 +1,5 @@
+"use client";
+
 import I18N, { type i18n } from "i18next";
 import { createContext, useContext } from "react";
 
@@ -21,6 +23,9 @@ import deleteStory, {
 } from "@domain/story/client/deleteStory";
 import getScene, { type GetScene } from "@domain/story/client/getScene";
 import getStory, { type GetStory } from "@domain/story/client/getStory";
+import previewStory, {
+  type PreviewStory,
+} from "@domain/story/client/previewStory";
 import publishStory, {
   type PublishStory,
 } from "@domain/story/client/publishStory";
@@ -71,6 +76,10 @@ export type WithGetScene = {
 
 export type WithCreateStory = {
   createStory: CreateStory;
+};
+
+export type WithPreviewStory = {
+  previewStory: PreviewStory;
 };
 
 export type WithDeleteStory = {
@@ -127,31 +136,33 @@ export type ClientEnvironment = WithDeleteSceneImage &
   WithUnpublishStory &
   WithSaveStoryTitle &
   WithSaveSceneTitle &
+  WithPreviewStory &
   WithFeedback;
 
 export const createClientEnvironment = (
   i18n: i18n = I18N,
 ): ClientEnvironment => {
   return {
-    deleteSceneImage,
+    createScene,
+    createStory,
     deleteSceneAudio,
-    uploadSceneImage,
-    uploadSceneAudio,
-    getStory,
-    getScene,
-    saveSceneContent,
+    deleteSceneImage,
+    deleteScene,
+    deleteStory,
     feedback: {
       notify: notifyUsingSweetAlert(i18n),
       dialog: dialogUsingSweetAlert(i18n),
     },
-    deleteScene,
-    createScene,
-    createStory,
+    getScene,
+    getStory,
+    previewStory,
     publishStory,
-    deleteStory,
-    unpublishStory,
-    saveStoryTitle,
+    saveSceneContent,
     saveSceneTitle,
+    saveStoryTitle,
+    unpublishStory,
+    uploadSceneImage,
+    uploadSceneAudio,
   };
 };
 

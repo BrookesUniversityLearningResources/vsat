@@ -19,6 +19,7 @@ import {
   type WithFeedback,
   type WithPublishStory,
   type WithUnpublishStory,
+  type WithPreviewStory,
   useEnvironment,
 } from "../context/ClientContext.js";
 import type { OnSceneChanged } from "../scene/types.js";
@@ -37,14 +38,21 @@ const StoryHeader: FC<StoryHeaderProps> = ({
 }) => {
   const { t } = useTranslation();
 
-  const { createScene, publishStory, unpublishStory, deleteStory, feedback } =
-    useEnvironment<
-      WithCreateScene &
-        WithPublishStory &
-        WithUnpublishStory &
-        WithDeleteStory &
-        WithFeedback
-    >();
+  const {
+    createScene,
+    publishStory,
+    unpublishStory,
+    deleteStory,
+    previewStory,
+    feedback,
+  } = useEnvironment<
+    WithCreateScene &
+      WithPublishStory &
+      WithUnpublishStory &
+      WithDeleteStory &
+      WithPreviewStory &
+      WithFeedback
+  >();
 
   const onSceneTitleChanged: OnChanged = ({ value }) => {
     onStoryChanged({
@@ -175,6 +183,10 @@ const StoryHeader: FC<StoryHeaderProps> = ({
     createTheScene.mutate(story.id);
   };
 
+  const onPreviewStory = () => {
+    previewStory(story.id);
+  };
+
   return (
     <div className={styles.header}>
       <InlineTextInput
@@ -230,6 +242,13 @@ const StoryHeader: FC<StoryHeaderProps> = ({
               src="/images/message-square-x-solid-24.png"
               alt={t("action.delete-story.label")}
               title={t("action.delete-story.label")}
+            />
+          </button>
+          <button type="button" onClick={onPreviewStory}>
+            <img
+              src="/images/preview-24.svg"
+              alt={t("action.preview-story.label")}
+              title={t("action.preview-story.label")}
             />
           </button>
           <button

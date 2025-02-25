@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 
-import type { PublishedScene } from "@domain/story/published/types.js";
+import type { PublishedScene } from "@domain/story/publish/types.js";
 import validateLinks, {
   type BadLink,
-} from "@domain/story/published/validate/links/validateLinks.js";
+} from "@domain/story/publish/validate/links/validateLinks.js";
 import type { NonEmptyArray } from "@util/nonEmptyArray.js";
 
 describe("validateLinks", () => {

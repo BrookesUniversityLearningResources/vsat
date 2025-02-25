@@ -95,6 +95,9 @@
         "create-scene": {
           "label": "New scene"
         },
+        "preview-story": {
+          "label": "Preview story"
+        },
         "back-to-my-stories": {
           "label": "My stories"
         }
@@ -172,7 +175,8 @@
             "15": "Every scene must have an image.",
             "16": "Oops, we had an issue saving that title.",
             "17": "Oops, we had an issue unpublishing that story.",
-            "18": "We can't find that story so we can't unpublish it."
+            "18": "We can't find that story so we can't unpublish it.",
+            "19": "That story isn't quite ready for publishing yet."
           }
         },
         "scene": {
@@ -226,6 +230,12 @@
       "cta": {
         "start-writing": "Start writing",
         "read-stories": "Read stories"
+      }
+    },
+    "preview": {
+      "meta": {
+        "title": "{{title}} • VSAT",
+        "description": "A story by {{author}}"
       }
     }
   },

@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 
-import { allLinksIn } from "@domain/story/published/allLinkables";
-import type { PublishedScene } from "@domain/story/published/types";
+import { allLinksIn } from "@domain/story/publish/allLinkables";
+import type { PublishedScene } from "@domain/story/publish/types";
 import type { NonEmptyArray } from "@util/nonEmptyArray";
 
 describe("allLinksIn", () => {

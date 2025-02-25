@@ -1,6 +1,7 @@
 ---
 import ErrorBoundaryFallback from "@components/error/ErrorBoundaryFallback.astro";
 import EditStory from "@components/story/edit/EditStory";
+import { ErrorCodes } from "@domain/error/errorCode";
 import toStoryId from "@domain/story/toStoryId";
 import Layout from "@layouts/AuthoringLayout.astro";
 
@@ -11,13 +12,13 @@ const { repositoryStory, i18n } = Astro.locals.environment<
 const storyId = toStoryId(Astro.params.storyId);
 
 if (!storyId) {
-  return Astro.redirect("/author/story?err=345");
+  return Astro.redirect(`/author/story?err=${ErrorCodes.StoryNotFound}`);
 }
 
 const story = await repositoryStory.getStory({ id: storyId });
 
 if (!story) {
-  return Astro.redirect("/author/story?err=346");
+  return Astro.redirect(`/author/story?err=${ErrorCodes.StoryNotFound}`);
 }
 
 const translations = i18n.getTranslationsForPage({

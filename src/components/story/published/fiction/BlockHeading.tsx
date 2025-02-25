@@ -1,7 +1,7 @@
 import { Container, Text } from "@react-three/uikit";
 import type { FC } from "react";
 
-import type { HeadingBlock } from "@domain/story/published/types";
+import type { HeadingBlock } from "@domain/story/publish/types";
 
 type BlockHeadingProps = { block: HeadingBlock };
 

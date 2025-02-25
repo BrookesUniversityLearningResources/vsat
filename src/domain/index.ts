@@ -11,7 +11,7 @@ import type {
 import type { AudioName } from "./audio/types.js";
 import type { ErrorCode } from "./error/errorCode.js";
 import type { ImageName } from "./image/types.js";
-import type { PublishedStory } from "./story/published/types.js";
+import type { PublishedStory } from "./story/publish/types.js";
 
 type WithId = { id?: number };
 

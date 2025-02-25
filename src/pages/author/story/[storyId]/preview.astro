@@ -1,6 +1,8 @@
 ---
 import PublishedStory from "@components/story/published/PublishedStory";
 import { ErrorCodes } from "@domain/error/errorCode";
+import imageUrlFor from "@domain/story/publish/imageUrlFor";
+import parseStory from "@domain/story/publish/parseStory";
 import toStoryId from "@domain/story/toStoryId";
 
 const storyId = toStoryId(Astro.params.storyId);
@@ -13,15 +15,29 @@ const { i18n, repositoryStory } = Astro.locals.environment<
   App.WithI18N & App.WithStoryRepository
 >();
 
-const story = await repositoryStory.getPublishedStory(storyId);
+const story = await repositoryStory.getStory({
+  id: storyId,
+});
 
 if (!story) {
   return Astro.redirect(`/author/story?err=${ErrorCodes.StoryNotFound}`);
 }
 
+const parseResult = parseStory(story);
+
+if (parseResult.kind !== "storyParsed") {
+  return Astro.redirect(`/author/story?err=${ErrorCodes.UnableToPublishStory}`);
+}
+
+const publishedStory = {
+  ...parseResult.story,
+  createdAt: new Date(),
+  imageUrl: imageUrlFor(story),
+};
+
 const translations = i18n.getTranslationsForPage({
   locale: Astro.preferredLocale,
-  page: "site-story",
+  page: "preview",
 });
 ---
 
@@ -31,11 +47,11 @@ const translations = i18n.getTranslationsForPage({
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width" />
     <title>
-      {i18n.t("page.site-story.meta.title", { title: story.title })}
+      {i18n.t("page.preview.meta.title", { title: story.title })}
     </title>
     <meta
       name="description"
-      content={i18n.t("page.site-story.meta.description", {
+      content={i18n.t("page.preview.meta.description", {
         author: story.author.name,
       })}
     />
@@ -44,7 +60,7 @@ const translations = i18n.getTranslationsForPage({
   <body>
     <main>
       <PublishedStory
-        story={story}
+        story={publishedStory}
         translations={translations}
         client:only="react"
       />

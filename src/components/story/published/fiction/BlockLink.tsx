@@ -1,7 +1,7 @@
 import { Text } from "@react-three/uikit";
 import type { FC } from "react";
 
-import type { LinkBlock, LinkTarget } from "@domain/story/published/types";
+import type { LinkBlock, LinkTarget } from "@domain/story/publish/types";
 
 import Button from "../support/Button";
 

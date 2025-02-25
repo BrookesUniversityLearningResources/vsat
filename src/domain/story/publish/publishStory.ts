@@ -2,13 +2,9 @@ import type { Logger } from "pino";
 
 import type { PublishStoryInDatabase } from "../../../database/schema.js";
 import { ErrorCodes } from "../../error/errorCode.js";
-import type {
-  GetStory,
-  PersistentImage,
-  PersistentStory,
-  PublishStory,
-} from "../../index.js";
-import parseStory from "../published/parseStory.js";
+import type { GetStory, PublishStory } from "../../index.js";
+import parseStory from "../publish/parseStory.js";
+import imageUrlFor from "./imageUrlFor.js";
 
 export default function publishStory(
   log: Logger,
@@ -69,13 +65,4 @@ export default function publishStory(
       }
     }
   };
-}
-
-function imageUrlFor(
-  story: PersistentStory,
-): PersistentImage["thumbnailUrl"] | null {
-  return (
-    (story.scenes.find((scene) => scene.isOpeningScene) ?? story.scenes[0])
-      ?.image?.thumbnailUrl ?? null
-  );
 }

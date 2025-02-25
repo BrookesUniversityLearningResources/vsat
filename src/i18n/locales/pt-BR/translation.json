@@ -30,16 +30,16 @@
     },
     "author": {
       "meta": {
-        "title": "Autor • VSAT",
-        "description": "Sua página de autor"
+        "title": "Author • VSAT",
+        "description": "Your author page"
       },
-      "heading": "Sobre {{authorName}}",
-      "your-stories": "Suas histórias"
+      "heading": "About {{authorName}}",
+      "your-stories": "Your stories"
     },
     "stories": {
       "meta": {
-        "title": "Histórias • VSAT",
-        "description": "Suas histórias"
+        "title": "Stories • VSAT",
+        "description": "Your stories"
       },
       "heading": "My stories",
       "action": {
@@ -76,6 +76,32 @@
           "save-title": "Save"
         }
       },
+      "action": {
+        "publish-story": {
+          "label": "Publish story"
+        },
+        "unpublish-story": {
+          "label": "Unpublish story",
+          "confirm": {
+            "prompt": "Unpublish this story?"
+          }
+        },
+        "delete-story": {
+          "label": "Delete story",
+          "confirm": {
+            "prompt": "Delete this story?"
+          }
+        },
+        "create-scene": {
+          "label": "New scene"
+        },
+        "preview-story": {
+          "label": "Preview story"
+        },
+        "back-to-my-stories": {
+          "label": "My stories"
+        }
+      },
       "scene": {
         "title": {
           "label": "{{title}}",
@@ -96,9 +122,6 @@
           "prompt": "Add sound to the scene…"
         },
         "action": {
-          "back-to-my-stories": {
-            "label": "My stories"
-          },
           "delete-audio": {
             "label": "Delete"
           },
@@ -131,12 +154,6 @@
             "confirm": {
               "prompt": "Delete this scene?"
             }
-          },
-          "publish-story": {
-            "label": "Publish story"
-          },
-          "create-scene": {
-            "label": "New scene"
           }
         }
       },
@@ -156,21 +173,25 @@
             "13": "The story must have at least one scene.",
             "14": "Every scene must have some fiction.",
             "15": "Every scene must have an image.",
-            "16": "Oops, we had an issue saving that title."
+            "16": "Oops, we had an issue saving that title.",
+            "17": "Oops, we had an issue unpublishing that story.",
+            "18": "We can't find that story so we can't unpublish it.",
+            "19": "That story isn't quite ready for publishing yet."
           }
         },
         "scene": {
           "content": {
-            "saved": "Fiction saved ✌️"
+            "saved": "Fiction saved"
           },
           "title": {
-            "saved": "Scene title saved ✅"
+            "saved": "Scene title saved"
           }
         },
         "story": {
-          "published": "Story published ✌️",
+          "published": "Story published",
+          "unpublished": "Story unpublished",
           "title": {
-            "saved": "Story title saved ✅"
+            "saved": "Story title saved"
           }
         }
       }
@@ -191,7 +212,7 @@
     "site-story": {
       "meta": {
         "title": "{{title}} • VSAT",
-        "description": "Your story"
+        "description": "A story by {{author}}"
       }
     },
     "home": {
@@ -209,6 +230,12 @@
       "cta": {
         "start-writing": "Start writing",
         "read-stories": "Read stories"
+      }
+    },
+    "preview": {
+      "meta": {
+        "title": "{{title}} • VSAT",
+        "description": "A story by {{author}}"
       }
     }
   },

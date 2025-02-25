@@ -7,7 +7,7 @@ import parseStory, {
   type ParsedStory,
   type ParseStoryFailed,
   type ParseStorySuccess,
-} from "@domain/story/published/parseStory.js";
+} from "@domain/story/publish/parseStory.js";
 
 describe("parseStory", () => {
   test("given a story with one scene of three pages" +
