@@ -3,6 +3,9 @@
 import I18N, { type i18n } from "i18next";
 import { createContext, useContext } from "react";
 
+import saveAuthorName, {
+  type SaveAuthorName,
+} from "@domain/author/client/saveAuthorName";
 import createScene, {
   type CreateScene,
 } from "@domain/story/client/createScene";
@@ -114,6 +117,10 @@ export type WithDeleteScene = {
   deleteScene: DeleteScene;
 };
 
+export type WithSaveAuthorName = {
+  saveAuthorName: SaveAuthorName;
+};
+
 export type WithFeedback = {
   feedback: {
     notify: Notify;
@@ -134,6 +141,7 @@ export type ClientEnvironment = WithDeleteSceneImage &
   WithDeleteStory &
   WithPublishStory &
   WithUnpublishStory &
+  WithSaveAuthorName &
   WithSaveStoryTitle &
   WithSaveSceneTitle &
   WithPreviewStory &
@@ -158,6 +166,7 @@ export const createClientEnvironment = (
     previewStory,
     publishStory,
     saveSceneContent,
+    saveAuthorName,
     saveSceneTitle,
     saveStoryTitle,
     unpublishStory,

@@ -1,6 +1,6 @@
 ---
 import NoStories from "@components/story/NoStories.astro";
-import CreateStory from "@components/story/create/CreateStory";
+import StoriesHeader from "@components/story/StoriesHeader/StoriesHeaderIsland";
 import StorySummaryGrid from "@components/story/summary/grid/StorySummaryGrid.astro";
 import { isNonEmptyArray } from "@util/nonEmptyArray";
 
@@ -40,18 +40,12 @@ const thereIsAtLeastOneStory = isNonEmptyArray(stories.stories);
   description={i18n.t("page.stories.meta.description")}
 >
   <main>
-    <div class="header">
-      <h1>
-        {i18n.t("page.stories.heading", { authorName: stories.author.name })}
-      </h1>
-
-      {
-        thereIsAtLeastOneStory && (
-          <CreateStory translations={translations} client:only="react" />
-        )
-      }
-    </div>
-
+    <StoriesHeader
+      author={stories.author}
+      translations={translations}
+      showCreateStory={thereIsAtLeastOneStory}
+      client:only="react"
+    />
     {
       thereIsAtLeastOneStory ? (
         <StorySummaryGrid stories={stories.stories} />
@@ -64,16 +58,7 @@ const thereIsAtLeastOneStory = isNonEmptyArray(stories.stories);
 
 <style>
   main {
-    margin: 1rem auto;
+    margin: 2rem auto;
     width: 1000px;
-  }
-
-  .header {
-    display: grid;
-    grid-template-columns: 3fr 1fr;
-
-    h1 {
-      color: var(--color-text);
-    }
   }
 </style>

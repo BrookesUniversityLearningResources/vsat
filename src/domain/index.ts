@@ -3,6 +3,7 @@ import type {
   AuthorDto,
   AuthorInsert,
   ImageDto,
+  SaveAuthorNameInDatabase,
   SaveSceneContentInDatabase,
   SaveSceneTitleInDatabase,
   SaveStoryTitleInDatabase,
@@ -32,6 +33,7 @@ export type CreateAuthor = (author: AuthorInsert) => Promise<AuthorDto>;
 export type RepositoryAuthor = Readonly<{
   getAuthorByEmail: GetAuthorByEmail;
   createAuthor: CreateAuthor;
+  saveAuthorName: SaveAuthorNameInDatabase;
 }>;
 
 export type Audio = WithId & {

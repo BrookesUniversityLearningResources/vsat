@@ -46,7 +46,7 @@ function routeSaveStoryTitle(
 
           res
             .status(500)
-            .json(errorCodedContext(ErrorCodes.ErrorSavingSceneContent, err));
+            .json(errorCodedContext(ErrorCodes.ErrorSavingStoryTitle, err));
         });
     },
   );

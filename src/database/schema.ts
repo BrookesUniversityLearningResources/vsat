@@ -35,6 +35,15 @@ export interface TableAuthor {
 export type AuthorDto = Selectable<TableAuthor>;
 export type AuthorInsert = Insertable<TableAuthor>;
 
+type SaveAuthorNameInDatabaseRequest = {
+  id: AuthorDto["id"];
+  name: AuthorDto["name"];
+};
+
+export type SaveAuthorNameInDatabase = (
+  request: SaveAuthorNameInDatabaseRequest,
+) => Promise<unknown>;
+
 // #endregion Author
 
 // #region Image

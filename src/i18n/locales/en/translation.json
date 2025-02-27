@@ -41,10 +41,19 @@
         "title": "Stories • VSAT",
         "description": "Your stories"
       },
-      "heading": "My stories",
+      "heading": "Stories by {{authorName}}",
       "action": {
         "create-story": {
           "label": "New story"
+        }
+      },
+      "author-name": {
+        "field": {
+          "label": "Enter your name"
+        },
+        "action": {
+          "edit-name": "Change your name",
+          "save-name": "Save"
         }
       },
       "summary": {
@@ -58,11 +67,14 @@
             "1": "Oops, something went wrong.",
             "2": "Oops, something went wrong."
           }
+        },
+        "author-name": {
+          "saved": "Your name was changed"
         }
       },
       "no-stories": {
         "heading": "Let's get started",
-        "instruction": " 👇"
+        "instruction": "👇"
       }
     },
     "story": {
@@ -72,7 +84,7 @@
       },
       "no-scenes": {
         "heading": "Let's get started",
-        "instruction": " 👇"
+        "instruction": "👇"
       },
       "title": {
         "label": "{{title}}",
@@ -184,7 +196,8 @@
             "16": "Oops, we had an issue saving that title.",
             "17": "Oops, we had an issue unpublishing that story.",
             "18": "We can't find that story so we can't unpublish it.",
-            "19": "That story isn't quite ready for publishing yet."
+            "19": "That story isn't quite ready for publishing yet.",
+            "20": "Oops, we had an issue saving that name."
           }
         },
         "scene": {
