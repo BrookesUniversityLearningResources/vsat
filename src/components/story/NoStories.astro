@@ -1,0 +1,59 @@
+---
+import type { TranslationsForPage } from "@i18n/getTranslationsForPage";
+
+import CreateStory from "./create/CreateStory";
+
+interface Props {
+  translations: TranslationsForPage;
+}
+
+const translations = Astro.props.translations;
+
+const { i18n } = Astro.locals.environment<
+  App.WithStoryRepository & App.WithI18N
+>();
+---
+
+<div class="noStories">
+  <div class="heading">{i18n.t("page.stories.no-stories.heading")}</div>
+  <div class="instruction">{i18n.t("page.stories.no-stories.instruction")}</div>
+  <CreateStory translations={translations} client:only="react" />
+</div>
+
+<style>
+  .noStories {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+    align-items: center;
+
+    margin: 2rem auto;
+    padding: 3rem;
+    background-color: var(--color-text);
+    border: 1px solid black;
+    border-radius: var(--border-radius-medium);
+
+    button {
+      border: none;
+      background: var(--color-action-primary);
+      padding: 1rem;
+      border-radius: var(--border-radius-medium);
+      color: var(--color-text);
+      cursor: pointer;
+      min-width: 3.5rem;
+      display: flex;
+      gap: 1rem;
+      font-weight: bold;
+      font-size: 2rem;
+    }
+  }
+
+  .heading {
+    font-size: 2rem;
+    font-weight: bold;
+  }
+
+  .instruction {
+    font-size: 3rem;
+  }
+</style>

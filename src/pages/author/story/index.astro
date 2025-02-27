@@ -1,6 +1,8 @@
 ---
-import StorySummaryGrid from "@components/story/summary/grid/StorySummaryGrid.astro";
+import NoStories from "@components/story/NoStories.astro";
 import CreateStory from "@components/story/create/CreateStory";
+import StorySummaryGrid from "@components/story/summary/grid/StorySummaryGrid.astro";
+import { isNonEmptyArray } from "@util/nonEmptyArray";
 
 import Layout from "../../../layouts/AuthoringLayout.astro";
 
@@ -29,6 +31,8 @@ const translations = i18n.getTranslationsForPage({
   locale: Astro.preferredLocale,
   page: "stories",
 });
+
+const thereIsAtLeastOneStory = isNonEmptyArray(stories.stories);
 ---
 
 <Layout
@@ -41,10 +45,20 @@ const translations = i18n.getTranslationsForPage({
         {i18n.t("page.stories.heading", { authorName: stories.author.name })}
       </h1>
 
-      <CreateStory translations={translations} client:only="react" />
+      {
+        thereIsAtLeastOneStory && (
+          <CreateStory translations={translations} client:only="react" />
+        )
+      }
     </div>
 
-    <StorySummaryGrid stories={stories.stories} />
+    {
+      thereIsAtLeastOneStory ? (
+        <StorySummaryGrid stories={stories.stories} />
+      ) : (
+        <NoStories translations={translations} />
+      )
+    }
   </main>
 </Layout>
 

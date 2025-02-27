@@ -59,6 +59,10 @@
             "2": "Oops, something went wrong."
           }
         }
+      },
+      "no-stories": {
+        "heading": "Let's get started",
+        "instruction": " 👇"
       }
     },
     "story": {
