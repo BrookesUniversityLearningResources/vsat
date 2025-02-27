@@ -25,7 +25,7 @@ const Toolbar: FC<ToolbarProps> = ({ children: otherButtons }) => {
         disabled={editor.history.undos.length === 0}
       >
         <img
-          src="/images/undo-regular-24.png"
+          src="/images/undo.svg"
           alt={t("scene.action.undo.label")}
           title={t("scene.action.undo.label")}
         />
@@ -38,7 +38,7 @@ const Toolbar: FC<ToolbarProps> = ({ children: otherButtons }) => {
         disabled={editor.history.redos.length === 0}
       >
         <img
-          src="/images/redo-regular-24.png"
+          src="/images/redo.svg"
           alt={t("scene.action.redo.label")}
           title={t("scene.action.redo.label")}
         />

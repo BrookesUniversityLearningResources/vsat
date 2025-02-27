@@ -82,7 +82,7 @@ const InlineTextInput: FC<InlineTextInputProps> = ({
           />
           <button type="button" onClick={onSave} disabled={!isValid}>
             <img
-              src="/images/save-24.png"
+              src="/images/save.svg"
               alt={i18n.editing.labelSave}
               title={i18n.editing.labelSave}
             />
@@ -98,7 +98,7 @@ const InlineTextInput: FC<InlineTextInputProps> = ({
 
       <button type="button" onClick={() => setEditing(true)}>
         <img
-          src="/images/edit-white-24.png"
+          src="/images/edit-white.svg"
           alt={i18n.notEditing.labelEdit}
           title={i18n.notEditing.labelEdit}
         />

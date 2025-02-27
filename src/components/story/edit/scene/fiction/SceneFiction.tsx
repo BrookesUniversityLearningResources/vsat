@@ -121,7 +121,7 @@ const SceneFiction: FC<SceneFictionProps> = ({
             disabled={deleteTheScene.isPending}
           >
             <img
-              src="/images/message-square-x-solid-24.png"
+              src="/images/delete.svg"
               alt={t("scene.action.delete-scene.label")}
               title={t("scene.action.delete-scene.label")}
             />
@@ -132,7 +132,7 @@ const SceneFiction: FC<SceneFictionProps> = ({
             disabled={saveTheSceneContent.isPending}
           >
             <img
-              src="/images/save-solid-24.png"
+              src="/images/save.svg"
               alt={t("scene.action.save.label")}
               title={t("scene.action.save.label")}
             />

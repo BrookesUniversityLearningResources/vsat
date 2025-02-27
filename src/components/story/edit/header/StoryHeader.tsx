@@ -226,7 +226,7 @@ const StoryHeader: FC<StoryHeaderProps> = ({
             disabled={publishStoryDisabled}
           >
             <img
-              src="/images/publish-24.png"
+              src="/images/publish.svg"
               alt={t("action.publish-story.label")}
               title={t("action.publish-story.label")}
             />
@@ -237,7 +237,7 @@ const StoryHeader: FC<StoryHeaderProps> = ({
             disabled={unpublishStoryDisabled}
           >
             <img
-              src="/images/unpublish-24.png"
+              src="/images/unpublish.svg"
               alt={t("action.unpublish-story.label")}
               title={t("action.unpublish-story.label")}
             />
@@ -248,7 +248,7 @@ const StoryHeader: FC<StoryHeaderProps> = ({
             disabled={deleteTheStory.isPending}
           >
             <img
-              src="/images/message-square-x-solid-24.png"
+              src="/images/delete.svg"
               alt={t("action.delete-story.label")}
               title={t("action.delete-story.label")}
             />

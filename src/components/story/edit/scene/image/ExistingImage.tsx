@@ -78,7 +78,7 @@ const ExistingImage: FC<ExistingImageProps> = ({
             onClick={() => deletion.mutate(image)}
           >
             <img
-              src="/images/delete-white.svg"
+              src="/images/bin-white.svg"
               alt={t("scene.action.delete-image.label")}
               title={t("scene.action.delete-image.label")}
             />

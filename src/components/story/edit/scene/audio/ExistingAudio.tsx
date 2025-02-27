@@ -80,7 +80,7 @@ const ExistingAudio: FC<ExistingAudioProps> = ({
             onClick={() => deletion.mutate(audio)}
           >
             <img
-              src="/images/delete-white.svg"
+              src="/images/bin-white.svg"
               alt={t("scene.action.delete-audio.label")}
               title={t("scene.action.delete-audio.label")}
             />

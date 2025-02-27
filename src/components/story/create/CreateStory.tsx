@@ -68,7 +68,7 @@ const StoryCreator: FC = () => {
       disabled={createTheStory.isPending}
     >
       {label}
-      <img src="/images/add-white-24.svg" alt={label} title={label} />
+      <img src="/images/add-white.svg" alt={label} title={label} />
     </button>
   );
 };

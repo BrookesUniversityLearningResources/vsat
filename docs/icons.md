@@ -4,6 +4,8 @@ We're using icons from these (Open Source) sets:
 * [BoxIcons](https://icon-sets.iconify.design/bx/)
 * [BoxIcons Solid](https://icon-sets.iconify.design/bxs/) (sometimes)
 
+Prefer SVGs over other formats.
+
 ## Astro Usage
 
 The subset of icons used are explicitly configured in
@@ -37,6 +39,6 @@ They're referenced like so in your React components:
 
 ```jsx
 <button type="button">
-  <img src="/images/save-solid-24.png" />
+  <img src="/images/save.svg" />
 </button>
 ```
