@@ -66,6 +66,10 @@
         "title": "Story • VSAT",
         "description": "Your story"
       },
+      "no-scenes": {
+        "heading": "Let's get started",
+        "instruction": " 👇"
+      },
       "title": {
         "label": "{{title}}",
         "field": {

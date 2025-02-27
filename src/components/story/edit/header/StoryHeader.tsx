@@ -257,7 +257,7 @@ const StoryHeader: FC<StoryHeaderProps> = ({
             disabled={createTheScene.isPending}
           >
             <img
-              src="/images/message-square-add-solid-24.png"
+              src="/images/add.svg"
               alt={t("action.create-scene.label")}
               title={t("action.create-scene.label")}
             />

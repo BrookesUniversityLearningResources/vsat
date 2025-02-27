@@ -8,17 +8,25 @@ import {
 import type { ResourceKey } from "i18next";
 import type { FC, PropsWithChildren } from "react";
 import { ErrorBoundary } from "react-error-boundary";
-import { I18nextProvider } from "react-i18next";
+import { I18nextProvider, useTranslation } from "react-i18next";
 
 import styles from "./EditStory.module.css";
 
-import type { PersistentStory } from "../../../domain/index.js";
+import type {
+  PersistentScene,
+  PersistentStory,
+} from "../../../domain/index.js";
 import unsupported from "../../../domain/story/client/unsupportedResult.js";
 import useScrollIntoView from "../../../hooks/useScrollIntoView.js";
 import useI18N from "../../../i18n/client/useI18N.js";
+import {
+  type NonEmptyArray,
+  isNonEmptyArray,
+} from "../../../util/nonEmptyArray.js";
 import htmlIdForStory from "../htmlIdForStory.js";
 import {
   ClientContext,
+  type WithCreateScene,
   type WithFeedback,
   type WithGetStory,
   type WithSaveStoryTitle,
@@ -149,17 +157,97 @@ const StoryEditor: FC<StoryEditorProps> = ({ story: initialStory }) => {
         onSceneChanged={onSceneChanged}
         onStoryChanged={onStoryChanged}
       />
-      <div className="scenes">
-        {story.scenes.map((scene) => (
-          <Scene
-            key={scene.id}
-            scene={scene}
-            storyId={story.id}
-            onSceneChanged={onSceneChanged}
-          />
-        ))}
-      </div>
+      {isNonEmptyArray(story.scenes) ? (
+        <Scenes
+          storyId={story.id}
+          scenes={story.scenes}
+          onSceneChanged={onSceneChanged}
+        />
+      ) : (
+        <NoScenes storyId={story.id} onSceneChanged={onSceneChanged} />
+      )}
     </main>
+  );
+};
+
+type ScenesProps = {
+  storyId: PersistentStory["id"];
+  scenes: NonEmptyArray<PersistentScene>;
+  onSceneChanged: OnSceneChanged;
+};
+
+const Scenes: FC<ScenesProps> = ({ storyId, scenes, onSceneChanged }) => {
+  return (
+    <div className="scenes">
+      {scenes.map((scene) => (
+        <Scene
+          scene={scene}
+          key={scene.id}
+          storyId={storyId}
+          onSceneChanged={onSceneChanged}
+        />
+      ))}
+    </div>
+  );
+};
+
+type NoScenesProps = {
+  storyId: PersistentStory["id"];
+  onSceneChanged: OnSceneChanged;
+};
+
+const NoScenes: FC<NoScenesProps> = ({ storyId, onSceneChanged }) => {
+  const { t } = useTranslation();
+
+  const { createScene, feedback } = useEnvironment<
+    WithCreateScene & WithFeedback
+  >();
+
+  const createTheScene = useMutation<
+    PersistentScene,
+    Error,
+    PersistentStory["id"]
+  >({
+    mutationFn: (storyId) =>
+      createScene(storyId).then((result) => {
+        switch (result.kind) {
+          case "sceneCreated":
+            return result.scene;
+          case "error":
+            return Promise.reject(result.error);
+          default:
+            return unsupported(result);
+        }
+      }),
+    onError: feedback.notify.error,
+    onSuccess: (createdScene) =>
+      onSceneChanged({
+        kind: "sceneCreated",
+        scene: createdScene,
+      }),
+  });
+
+  const onCreateScene = () => {
+    createTheScene.mutate(storyId);
+  };
+
+  return (
+    <div className={styles.noScenes}>
+      <div className={styles.heading}>{t("no-scenes.heading")}</div>
+      <div className={styles.instruction}>{t("no-scenes.instruction")}</div>
+      <button
+        type="button"
+        onClick={onCreateScene}
+        disabled={createTheScene.isPending}
+      >
+        {t("action.create-scene.label")}
+        <img
+          src="/images/add-white.svg"
+          alt={t("action.create-scene.label")}
+          title={t("action.create-scene.label")}
+        />
+      </button>
+    </div>
   );
 };
 
