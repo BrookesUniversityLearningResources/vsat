@@ -13,13 +13,14 @@ import type {
   PersistentStory,
 } from "../../../../domain/index.js";
 import unsupported from "../../../../domain/story/client/unsupportedResult.js";
+import { isNonEmptyArray } from "../../../../util/nonEmptyArray.js";
 import {
   type WithCreateScene,
   type WithDeleteStory,
   type WithFeedback,
+  type WithPreviewStory,
   type WithPublishStory,
   type WithUnpublishStory,
-  type WithPreviewStory,
   useEnvironment,
 } from "../context/ClientContext.js";
 import type { OnSceneChanged } from "../scene/types.js";
@@ -187,6 +188,14 @@ const StoryHeader: FC<StoryHeaderProps> = ({
     previewStory(story.id);
   };
 
+  const publishStoryDisabled =
+    !isNonEmptyArray(story.scenes) || publishTheStory.isPending;
+
+  const unpublishStoryDisabled =
+    story.publishedOn === null || unpublishTheStory.isPending;
+
+  const previewStoryDisabled = !isNonEmptyArray(story.scenes);
+
   return (
     <div className={styles.header}>
       <InlineTextInput
@@ -214,7 +223,7 @@ const StoryHeader: FC<StoryHeaderProps> = ({
           <button
             type="button"
             onClick={onPublishStory}
-            disabled={publishTheStory.isPending}
+            disabled={publishStoryDisabled}
           >
             <img
               src="/images/publish-24.png"
@@ -225,7 +234,7 @@ const StoryHeader: FC<StoryHeaderProps> = ({
           <button
             type="button"
             onClick={onUnpublishStory}
-            disabled={story.publishedOn === null || unpublishTheStory.isPending}
+            disabled={unpublishStoryDisabled}
           >
             <img
               src="/images/unpublish-24.png"
@@ -244,7 +253,11 @@ const StoryHeader: FC<StoryHeaderProps> = ({
               title={t("action.delete-story.label")}
             />
           </button>
-          <button type="button" onClick={onPreviewStory}>
+          <button
+            type="button"
+            onClick={onPreviewStory}
+            disabled={previewStoryDisabled}
+          >
             <img
               src="/images/preview-24.svg"
               alt={t("action.preview-story.label")}
