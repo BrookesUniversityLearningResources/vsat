@@ -11,6 +11,7 @@
   --color-action-primary: #3498db;
   --color-text: #ecf0f1;
   --color-warning: #ffbf00;
+  --color-placeholder: lightgray;
 
   --border-radius-medium: 0.65rem;
 }

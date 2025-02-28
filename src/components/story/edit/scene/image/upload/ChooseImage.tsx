@@ -27,8 +27,9 @@ const ChooseImage: FC<ChooseImageProps> = ({ accept, onFileChange }) => {
   return (
     <div className={styles.chooseImageContainer}>
       <img
-        src="/images/scene-image-placeholder.svg"
+        src="/images/placeholder.svg"
         alt={t("scene.image.placeholder")}
+        title={t("scene.image.placeholder")}
       />
       <input
         type="file"
