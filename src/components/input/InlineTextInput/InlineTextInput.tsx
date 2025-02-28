@@ -58,12 +58,24 @@ const InlineTextInput: FC<InlineTextInputProps> = ({
     setValid(target.validity.valid);
   };
 
-  const maybeCancelEditing: KeyboardEventHandler<HTMLInputElement> = ({
-    key,
-  }) => {
-    if (key === "Escape") {
-      setEditing(false);
-      setValue(initialValue);
+  const onKeyDown: KeyboardEventHandler<HTMLInputElement> = ({ key }) => {
+    switch (key) {
+      case "Escape": {
+        setEditing(false);
+        setValue(initialValue);
+        break;
+      }
+
+      case "Enter": {
+        if (isValid) {
+          onSave();
+        }
+        break;
+      }
+
+      default: {
+        return;
+      }
     }
   };
 
@@ -78,7 +90,7 @@ const InlineTextInput: FC<InlineTextInputProps> = ({
             type="text"
             value={value}
             onInput={onInput}
-            onKeyDown={maybeCancelEditing}
+            onKeyDown={onKeyDown}
           />
           <button type="button" onClick={onSave} disabled={!isValid}>
             <img
