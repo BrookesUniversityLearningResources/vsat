@@ -22,6 +22,7 @@ type InlineTextInputProps = PropsWithChildren<{
     editing: {
       labelName: string;
       labelSave: string;
+      labelClose: string;
     };
     notEditing: {
       labelEdit: string;
@@ -92,13 +93,22 @@ const InlineTextInput: FC<InlineTextInputProps> = ({
             onInput={onInput}
             onKeyDown={onKeyDown}
           />
-          <button type="button" onClick={onSave} disabled={!isValid}>
-            <img
-              src="/images/save.svg"
-              alt={i18n.editing.labelSave}
-              title={i18n.editing.labelSave}
-            />
-          </button>
+          <div className={styles.actionsEditing}>
+            <button type="button" onClick={() => setEditing(false)}>
+              <img
+                src="/images/close.svg"
+                alt={i18n.editing.labelClose}
+                title={i18n.editing.labelClose}
+              />
+            </button>
+            <button type="button" onClick={onSave} disabled={!isValid}>
+              <img
+                src="/images/save.svg"
+                alt={i18n.editing.labelSave}
+                title={i18n.editing.labelSave}
+              />
+            </button>
+          </div>
         </div>
       </div>
     );

@@ -68,6 +68,7 @@ const StoriesHeader: FC<StoriesHeaderProps> = ({
           editing: {
             labelName: t("author-name.field.label"),
             labelSave: t("author-name.action.save-name"),
+            labelClose: t("common.close"),
           },
           notEditing: { labelEdit: t("author-name.action.edit-name") },
         }}

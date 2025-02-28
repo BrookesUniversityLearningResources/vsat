@@ -27,9 +27,6 @@
     border: none;
     background-color: whitesmoke;
     cursor: pointer;
-    position: absolute;
-    top: 0.45rem;
-    right: 0.25rem;
   }
 
   input[type="text"] {
@@ -54,4 +51,13 @@
     position: relative;
     display: inline-block;
   }
+}
+
+.actionsEditing {
+  position: absolute;
+  top: 0.45rem;
+  right: 0.5rem;
+  border: none;
+  margin: 0;
+  padding: 0;
 }

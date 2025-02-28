@@ -263,6 +263,7 @@
   "__common__": {
     "yes": "Yes",
     "no": "No",
+    "close": "Close",
     "loading": {
       "text": "Loading…"
     }

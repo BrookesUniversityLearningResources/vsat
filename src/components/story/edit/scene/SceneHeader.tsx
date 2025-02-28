@@ -30,6 +30,7 @@ const SceneHeader: FC<SceneHeaderProps> = ({ title, onTitleChanged }) => {
           editing: {
             labelName: t("scene.title.field.label"),
             labelSave: t("scene.title.action.save-title"),
+            labelClose: t("common.close"),
           },
           notEditing: { labelEdit: t("scene.title.action.edit-title") },
         }}
