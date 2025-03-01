@@ -11,6 +11,7 @@ import routeDeleteScene from "./domain/story/route/routeDeleteScene.js";
 import routeDeleteSceneAudio from "./domain/story/route/routeDeleteSceneAudio.js";
 import routeDeleteSceneImage from "./domain/story/route/routeDeleteSceneImage.js";
 import routeDeleteStory from "./domain/story/route/routeDeleteStory.js";
+import routeGetPublishedStories from "./domain/story/route/routeGetPublishedStories.js";
 import routeGetScene from "./domain/story/route/routeGetScene.js";
 import routeGetStory from "./domain/story/route/routeGetStory.js";
 import routePublishStory from "./domain/story/route/routePublishStory.js";
@@ -29,7 +30,7 @@ import createServer, { type StartServer } from "./server/createServer.js";
 import httpSession from "./server/httpSessionMiddleware.js";
 import routeHealthcheck from "./server/routeHealthcheck.js";
 
-async function createApp(): Promise<[StartServer, Logger]> {
+export default async function createApp(): Promise<[StartServer, Logger]> {
   const config = loadConfig();
 
   const {
@@ -82,6 +83,7 @@ async function createApp(): Promise<[StartServer, Logger]> {
     routeDeleteStory(log, repositoryStory.deleteStory, assertAuthor),
     routePublishStory(log, repositoryStory.publishStory, assertAuthor),
     routeUnpublishStory(log, repositoryStory.unpublishStory, assertAuthor),
+    routeGetPublishedStories(log, repositoryStory.getPublishedStorySummaries),
   ].reduce((router, route) => {
     router.use("/api", route);
     return router;
@@ -97,5 +99,3 @@ async function createApp(): Promise<[StartServer, Logger]> {
 
   return [startServer, log];
 }
-
-export default createApp;
