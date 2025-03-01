@@ -33,6 +33,18 @@ if (!storyImageUrl) {
 <style>
   .summary {
     width: 100%;
+
+    div {
+      border: 1px solid black;
+      border-radius: 0 0 var(--border-radius-medium) var(--border-radius-medium);
+      padding: 0.5rem 1rem;
+      text-align: center;
+      font-size: 1.5rem;
+      background-color: var(--color-text);
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
   }
 
   img {
@@ -44,20 +56,9 @@ if (!storyImageUrl) {
     background-color: var(--color-placeholder);
   }
 
-  img:hover {
+  summary:hover {
     box-shadow: 0rem 0rem 1rem 0.125rem #32393c;
-  }
-
-  .summary div {
-    border: 1px solid black;
-    border-radius: 0 0 var(--border-radius-medium) var(--border-radius-medium);
-    padding: 0.5rem 1rem;
-    text-align: center;
-    font-size: 1.5rem;
-    background-color: var(--color-text);
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
+    border-radius: var(--border-radius-medium);
   }
 
   a,

@@ -217,6 +217,12 @@
         }
       }
     },
+    "preview": {
+      "meta": {
+        "title": "{{title}} • VSAT",
+        "description": "A story by {{author}}"
+      }
+    },
     "error": {
       "heading": "Oops",
       "image": {
@@ -228,12 +234,6 @@
       "content": {
         "admission": "Something's gone wrong on our side, sorry about that.",
         "remediation": "Try refreshing the page: the error might be a blip."
-      }
-    },
-    "site-story": {
-      "meta": {
-        "title": "{{title}} • VSAT",
-        "description": "A story by {{author}}"
       }
     },
     "home": {
@@ -253,7 +253,22 @@
         "read-stories": "Read stories"
       }
     },
-    "preview": {
+    "site-stories": {
+      "meta": {
+        "title": "Published stories • VSAT",
+        "description": "Published stories"
+      },
+      "heading": {
+        "title": "VSAT • Interactive Non-Linear Stories",
+        "strapline": "From Brookes University students & Friends"
+      },
+      "summary": {
+        "image": {
+          "alt-text": "{{title}} • {{author}}"
+        }
+      }
+    },
+    "site-story": {
       "meta": {
         "title": "{{title}} • VSAT",
         "description": "A story by {{author}}"

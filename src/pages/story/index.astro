@@ -1,0 +1,47 @@
+---
+import PublishedStorySummary from "@components/story/published/PublishedStorySummary/PublishedStorySummary.astro";
+
+import Layout from "../../layouts/PublicSiteLayout.astro";
+
+const { i18n, repositoryStory } = Astro.locals.environment<
+  App.WithI18N & App.WithStoryRepository
+>();
+
+const stories = await repositoryStory.getPublishedStorySummaries({});
+---
+
+<Layout
+  title={i18n.t("page.site-stories.meta.title")}
+  description={i18n.t("page.site-stories.meta.description")}
+>
+  <header>
+    <h1>{i18n.t("page.site-stories.heading.title")}</h1>
+    <div class="strapline">{i18n.t("page.site-stories.heading.strapline")}</div>
+  </header>
+  <main class="stories">
+    {stories.map((story) => <PublishedStorySummary story={story} />)}
+  </main>
+</Layout>
+
+<style>
+  body {
+    --margin: 1rem 3rem;
+  }
+
+  header {
+    margin: var(--margin);
+
+    .strapline {
+      margin-top: 0.5rem;
+      font-size: 1.5rem;
+      font-style: italic;
+    }
+  }
+
+  .stories {
+    margin: var(--margin);
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 2rem;
+  }
+</style>
