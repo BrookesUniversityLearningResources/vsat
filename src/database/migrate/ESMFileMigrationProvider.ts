@@ -1,20 +1,23 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 
 import type { Migration, MigrationProvider } from "kysely";
 
 /**
  * @see https://github.com/kysely-org/kysely/issues/277
  */
-class ESMFileMigrationProvider implements MigrationProvider {
-  constructor(private relativePath: string) {}
+export default class ESMFileMigrationProvider implements MigrationProvider {
+  /**
+   * Create an instance of the `ESMFileMigrationProvider` class.
+   *
+   * @param relativePath the path _relative to this class_.
+   */
+  constructor(private relativePath = "migrations") {}
 
   async getMigrations(): Promise<Record<string, Migration>> {
     const migrations: Record<string, Migration> = Object.create(null);
 
-    const __dirname = fileURLToPath(new URL(".", import.meta.url));
-    const resolvedPath = path.resolve(__dirname, this.relativePath);
+    const resolvedPath = path.resolve(import.meta.dirname, this.relativePath);
 
     const files = await fs.readdir(resolvedPath);
 
@@ -23,12 +26,7 @@ class ESMFileMigrationProvider implements MigrationProvider {
         continue;
       }
 
-      const basePath = new URL(
-        this.relativePath,
-        import.meta.url,
-      ).pathname.replace("/C:", "file://C:/");
-
-      const importPath = path.join(basePath, fileName);
+      const importPath = `./${this.relativePath}/${fileName}`;
 
       const migration = await import(importPath);
 
@@ -40,5 +38,3 @@ class ESMFileMigrationProvider implements MigrationProvider {
     return migrations;
   }
 }
-
-export default ESMFileMigrationProvider;

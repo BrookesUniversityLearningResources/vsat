@@ -4,7 +4,7 @@ import getEnvironment from "../../environment/getEnvironment.js";
 import ESMFileMigrationProvider from "./ESMFileMigrationProvider.js";
 
 /**
- * A distinct program to run the (database) migrations.
+ * Run the database migrations.
  *
  * This will exit with a non-zero exit code in the event of errors.
  */
@@ -16,7 +16,7 @@ async function main() {
 
   const migrator = new Migrator({
     db,
-    provider: new ESMFileMigrationProvider("migrations"),
+    provider: new ESMFileMigrationProvider(),
   });
 
   const { error, results } = await migrator.migrateToLatest();
