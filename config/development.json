@@ -1,1 +1,11 @@
-{}
+{
+  "database": {
+    "import": {
+      "connectionString": "postgres://postgres:postgres@localhost:5432/db7cpi7pai1smn",
+      "log": {
+        "query": true,
+        "error": true
+      }
+    }
+  }
+}

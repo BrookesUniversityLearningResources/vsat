@@ -22,7 +22,8 @@ import routeSaveStoryTitle from "./domain/story/route/routeSaveStoryTitle.js";
 import routeUnpublishStory from "./domain/story/route/routeUnpublishStory.js";
 import routeUploadSceneAudio from "./domain/story/route/routeUploadSceneAudio.js";
 import routeUploadSceneImage from "./domain/story/route/routeUploadSceneImage.js";
-import assertAuthorHandler from "./domain/story/support/assertAuthorHandler.js";
+import assertIsAuthorHandler from "./domain/story/support/assertIsAuthorHandler.js";
+import assertIsAuthorOfTheStoryHandler from "./domain/story/support/assertIsAuthorOfTheStoryHandler.js";
 import isAuthorOfTheStory from "./domain/story/support/isAuthorOfTheStory.js";
 import loadConfig from "./environment/config.js";
 import getEnvironment from "./environment/getEnvironment.js";
@@ -63,26 +64,69 @@ export default async function createApp(): Promise<[StartServer, Logger]> {
     ),
   ];
 
-  const assertAuthor = assertAuthorHandler(log, isAuthorOfTheStory(db));
+  const assertIsAuthor = assertIsAuthorHandler(log);
+
+  const assertIsAuthorOfTheStory = assertIsAuthorOfTheStoryHandler(
+    log,
+    isAuthorOfTheStory(db),
+  );
 
   const apiRoutes = [
     routeCreateStory(log, repositoryStory.createStory),
-    routeCreateScene(repositoryScene.createScene),
-    routeGetStory(repositoryStory.getStory, assertAuthor),
-    routeGetStory(repositoryStory.getStory, assertAuthor),
-    routeGetScene(repositoryScene.getScene, assertAuthor),
-    routeUploadSceneImage(log, repositoryScene.saveSceneImage, assertAuthor),
-    routeDeleteSceneImage(log, repositoryScene.deleteSceneImage, assertAuthor),
-    routeUploadSceneAudio(log, repositoryScene.saveSceneAudio, assertAuthor),
-    routeDeleteSceneAudio(repositoryScene.deleteSceneAudio, assertAuthor),
-    routeSaveAuthorName(log, repositoryAuthor.saveAuthorName),
-    routeSaveSceneContent(log, repositoryScene.saveSceneContent, assertAuthor),
-    routeSaveStoryTitle(log, repositoryStory.saveStoryTitle, assertAuthor),
-    routeSaveSceneTitle(log, repositoryScene.saveSceneTitle, assertAuthor),
-    routeDeleteScene(repositoryScene.deleteScene, assertAuthor),
-    routeDeleteStory(log, repositoryStory.deleteStory, assertAuthor),
-    routePublishStory(log, repositoryStory.publishStory, assertAuthor),
-    routeUnpublishStory(log, repositoryStory.unpublishStory, assertAuthor),
+    routeCreateScene(repositoryScene.createScene, assertIsAuthorOfTheStory),
+    routeGetStory(repositoryStory.getStory, assertIsAuthorOfTheStory),
+    routeGetScene(repositoryScene.getScene, assertIsAuthorOfTheStory),
+    routeUploadSceneImage(
+      log,
+      repositoryScene.saveSceneImage,
+      assertIsAuthorOfTheStory,
+    ),
+    routeDeleteSceneImage(
+      log,
+      repositoryScene.deleteSceneImage,
+      assertIsAuthorOfTheStory,
+    ),
+    routeUploadSceneAudio(
+      log,
+      repositoryScene.saveSceneAudio,
+      assertIsAuthorOfTheStory,
+    ),
+    routeDeleteSceneAudio(
+      repositoryScene.deleteSceneAudio,
+      assertIsAuthorOfTheStory,
+    ),
+    routeSaveAuthorName(log, repositoryAuthor.saveAuthorName, assertIsAuthor),
+    routeSaveSceneContent(
+      log,
+      repositoryScene.saveSceneContent,
+      assertIsAuthorOfTheStory,
+    ),
+    routeSaveStoryTitle(
+      log,
+      repositoryStory.saveStoryTitle,
+      assertIsAuthorOfTheStory,
+    ),
+    routeSaveSceneTitle(
+      log,
+      repositoryScene.saveSceneTitle,
+      assertIsAuthorOfTheStory,
+    ),
+    routeDeleteScene(repositoryScene.deleteScene, assertIsAuthorOfTheStory),
+    routeDeleteStory(
+      log,
+      repositoryStory.deleteStory,
+      assertIsAuthorOfTheStory,
+    ),
+    routePublishStory(
+      log,
+      repositoryStory.publishStory,
+      assertIsAuthorOfTheStory,
+    ),
+    routeUnpublishStory(
+      log,
+      repositoryStory.unpublishStory,
+      assertIsAuthorOfTheStory,
+    ),
     routeGetPublishedStories(log, repositoryStory.getPublishedStorySummaries),
   ].reduce((router, route) => {
     router.use("/api", route);

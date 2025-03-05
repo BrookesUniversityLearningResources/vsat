@@ -10,7 +10,6 @@ export default function getAudioByIdInDatabase(log: Logger, db: GetDatabase) {
       .selectFrom("audio")
       .selectAll()
       .where("audio.id", "=", id)
-      .where("audio.isDeleted", "!=", true)
       .executeTakeFirst();
   };
 }

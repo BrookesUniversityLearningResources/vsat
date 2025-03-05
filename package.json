@@ -17,6 +17,7 @@
     "build:server": "npx tsc --project tsconfig.server.json",
     "check": "npx @biomejs/biome check --write ./src",
     "dev": "nodemon --watch src --ext ts,tsx,astro,json,css --exec \"npm run build && npm run start:local\"",
+    "db:import": "node --env-file=.env ./dist/build/database/import/import.js",
     "db:migrate": "node ./dist/build/database/migrate/migrate.js",
     "db:migrate:local": "node --env-file=.env ./dist/build/database/migrate/migrate.js",
     "format": "npx @biomejs/biome format --write ./src",

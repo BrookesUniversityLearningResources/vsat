@@ -76,11 +76,20 @@ const DatabaseLogConfigModel = z.object({
 export type DatabaseLogConfig = z.infer<typeof DatabaseLogConfigModel>;
 
 export const DatabaseConfigModel = z.object({
-  connectionString: z.string().min(1).url(),
+  connectionString: z.string().url(),
   log: DatabaseLogConfigModel.optional().default({
     query: false,
     error: false,
   }),
+  import: z
+    .object({
+      connectionString: z.string().url(),
+      log: DatabaseLogConfigModel.optional().default({
+        query: false,
+        error: false,
+      }),
+    })
+    .optional(),
 });
 
 export type DatabaseConfig = z.infer<typeof DatabaseConfigModel>;

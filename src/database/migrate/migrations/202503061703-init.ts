@@ -1,11 +1,14 @@
-import type { Kysely } from "kysely";
+import { type Kysely, sql } from "kysely";
 
 const TABLE_SCENE = "scene";
 const TABLE_AUTHOR = "author";
 const TABLE_STORY = "story";
 const TABLE_IMAGE = "image";
 const TABLE_AUDIO = "audio";
-const TABLE_AUTHOR_TO_STORY = "author_to_story";
+const TABLE_AUTHOR_TO_STORY = "authorToStory";
+const TABLE_STORY_PUBLISHED = "storyPublished";
+
+const TABLE_SESSION = "session";
 
 export async function up(db: Kysely<unknown>): Promise<void> {
   await db.schema
@@ -16,20 +19,19 @@ export async function up(db: Kysely<unknown>): Promise<void> {
     .execute();
 
   /*
-   * Because we do lookups on the (author) email all the time
+   * We're restarting serial ID sequences at a higher value because we need to
+   * import data from the earlier version of the app. Those earlier data will
+   * have IDs in the rough range of `1-500` so we're restarting the sequences
+   * for this latest version of the app to accommodate those earlier data.
    */
-  await db.schema
-    .createIndex("idx_author_email")
-    .on(TABLE_AUTHOR)
-    .column("email")
-    .execute();
+  await sql`ALTER SEQUENCE author_id_seq RESTART 1000`.execute(db);
 
   await db.schema
     .createTable(TABLE_STORY)
     .addColumn("id", "serial", (col) => col.primaryKey())
     .addColumn("title", "varchar", (col) => col.notNull())
-    .addColumn("publishedOn", "date", (col) => col.defaultTo(null))
     .execute();
+  await sql`ALTER SEQUENCE story_id_seq RESTART 1000`.execute(db);
 
   await db.schema
     .createTable(TABLE_AUTHOR_TO_STORY)
@@ -47,15 +49,15 @@ export async function up(db: Kysely<unknown>): Promise<void> {
     .addColumn("id", "serial", (col) => col.primaryKey())
     .addColumn("url", "varchar", (col) => col.notNull().unique())
     .addColumn("thumbnail_url", "varchar", (col) => col.notNull())
-    .addColumn("is_deleted", "boolean", (col) => col.notNull().defaultTo(false))
     .execute();
+  await sql`ALTER SEQUENCE image_id_seq RESTART 1000`.execute(db);
 
   await db.schema
     .createTable(TABLE_AUDIO)
     .addColumn("id", "serial", (col) => col.primaryKey())
     .addColumn("url", "varchar", (col) => col.notNull().unique())
-    .addColumn("is_deleted", "boolean", (col) => col.notNull().defaultTo(false))
     .execute();
+  await sql`ALTER SEQUENCE audio_id_seq RESTART 1000`.execute(db);
 
   await db.schema
     .createTable(TABLE_SCENE)
@@ -71,6 +73,25 @@ export async function up(db: Kysely<unknown>): Promise<void> {
     .addColumn("image_id", "integer", (col) => col.references("image.id"))
     .addColumn("audio_id", "integer", (col) => col.references("audio.id"))
     .execute();
+  await sql`ALTER SEQUENCE scene_id_seq RESTART 1000`.execute(db);
+
+  await db.schema
+    .createTable(TABLE_STORY_PUBLISHED)
+    .addColumn("id", "integer", (col) =>
+      col.unique().references(`${TABLE_STORY}.id`),
+    )
+    .addColumn("title", "varchar", (col) => col.notNull())
+    .addColumn("content", "json", (col) => col.notNull())
+    .addColumn("imageUrl", "varchar", (col) => col.defaultTo(null))
+    .addColumn("created_at", "timestamp", (col) => col.defaultTo(sql`now()`))
+    .execute();
+
+  await db.schema
+    .createTable(TABLE_SESSION)
+    .addColumn("sid", "varchar", (col) => col.primaryKey())
+    .addColumn("sess", "json", (col) => col.notNull())
+    .addColumn("expire", "timestamp", (col) => col.notNull())
+    .execute();
 }
 
 export async function down(db: Kysely<unknown>): Promise<void> {
@@ -80,4 +101,6 @@ export async function down(db: Kysely<unknown>): Promise<void> {
   await db.schema.dropTable(TABLE_AUDIO).execute();
   await db.schema.dropTable(TABLE_STORY).execute();
   await db.schema.dropTable(TABLE_AUTHOR).execute();
+  await db.schema.dropTable(TABLE_STORY_PUBLISHED).execute();
+  await db.schema.dropTable(TABLE_SESSION).execute();
 }

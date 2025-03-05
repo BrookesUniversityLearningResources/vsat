@@ -1,9 +1,8 @@
 import i18n from "i18next";
-import { CamelCasePlugin, Kysely, PostgresDialect } from "kysely";
 import pg from "pg";
 import { pino } from "pino";
 
-import logUsingPino from "../database/logUsingPino.js";
+import createKysely from "../database/createKysely.js";
 import type { Database } from "../database/schema.js";
 import withTransaction from "../database/transaction/withTransaction.js";
 import deleteAudioFromCloudinary from "../domain/audio/cloudinary/deleteAudioFromCloudinary.js";
@@ -76,13 +75,7 @@ const getEnvironment: App.GetEnvironment = (() => {
     connectionString: config.database.connectionString,
   });
 
-  const db = new Kysely<Database>({
-    log: logUsingPino(logDb, config.database.log),
-    dialect: new PostgresDialect({
-      pool: connectionPool,
-    }),
-    plugins: [new CamelCasePlugin()],
-  });
+  const db = createKysely<Database>(logDb, config.database.log, connectionPool);
 
   const [tx, getDB] = withTransaction(logDb, db);
 

@@ -1,9 +1,10 @@
 ---
+import { ErrorCodes } from "../../domain/error/errorCode";
 import Layout from "../../layouts/AuthoringLayout.astro";
 
 const user = Astro.locals.user;
 if (!user?.id) {
-  return Astro.redirect("/login?err=100");
+  return Astro.redirect(`/login?err=${ErrorCodes.MustBeLoggedIn}`);
 }
 
 const { i18n } = Astro.locals.environment<App.WithI18N>();

@@ -4,7 +4,13 @@ import type { Logger } from "pino";
 import toStoryId from "../toStoryId.js";
 import type { IsAuthorOfTheStory } from "./isAuthorOfTheStory.js";
 
-function assertAuthorHandler(
+/**
+ * Build Express middleware asserting that the current user is the author of the
+ * story.
+ *
+ * Plug this middleware into routes of the form `/story/:storyId/...`
+ */
+export default function assertIsAuthorOfTheStoryHandler(
   log: Logger,
   isAuthorOfTheStory: IsAuthorOfTheStory,
 ): RequestHandler {
@@ -12,16 +18,10 @@ function assertAuthorHandler(
     log.trace({ author: req.user, path: req.path }, "Asserting authorship");
 
     if (!req.user) {
-      log.debug(
-        { req },
-        "The assert author handler requires an authenticated user: no user found on the request",
-      );
-
-      return next(
-        new Error(
-          "The assert author handler requires an authenticated user: no user found on the request",
-        ),
-      );
+      const message =
+        "Asserting story authorship requires an authenticated user: no user found on the request";
+      log.debug({ req }, message);
+      return next(new Error(message));
     }
 
     const storyId = toStoryId(req.params.storyId);
@@ -40,25 +40,16 @@ function assertAuthorHandler(
         if (isAuthor) {
           log.trace(
             { author: req.user, path: req.path },
-            "Asserted authorship",
+            "Asserted story authorship",
           );
 
           return next();
         }
 
-        log.debug(
-          { req },
-          "Declining to continue processing request because the current user is not the author of the story",
-        );
-
-        return next(
-          new Error(
-            `Declining to continue processing request because the current user is not the author of the story with ID "${storyId}"`,
-          ),
-        );
+        const message = `Declining to continue processing request because the current user is not the author of the story with ID "${storyId}"`;
+        log.debug({ req, author: req.user, storyId }, message);
+        return next(new Error(message));
       })
       .catch(next);
   };
 }
-
-export default assertAuthorHandler;

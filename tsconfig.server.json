@@ -36,6 +36,7 @@
     "src/layouts",
     "src/hooks",
     "src/pages",
+    "src/middleware.ts",
     "src/**/client/**/*",
     "tests",
     "dist"

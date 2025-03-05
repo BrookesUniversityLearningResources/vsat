@@ -40,7 +40,7 @@ if (!storyImageUrl) {
 
 <style>
   .story {
-    width: 100%;
+    max-width: 25rem;
   }
 
   img {
@@ -74,13 +74,13 @@ if (!storyImageUrl) {
     text-align: center;
 
     background-color: var(--color-text);
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
 
     .title {
       font-weight: bold;
       font-size: 1.5rem;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
     }
 
     .author {

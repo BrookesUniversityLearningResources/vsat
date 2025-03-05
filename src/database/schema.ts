@@ -52,7 +52,6 @@ export interface TableImage {
   id: Generated<number>;
   url: string;
   thumbnailUrl: string;
-  isDeleted?: boolean;
 }
 
 export type ImageDto = Selectable<TableImage>;
@@ -67,7 +66,6 @@ export type DeleteImageInDatabase = (id: ImageDto["id"]) => Promise<unknown>;
 export interface TableAudio {
   id: Generated<number>;
   url: string;
-  isDeleted?: boolean;
 }
 
 export type AudioDto = Selectable<TableAudio>;

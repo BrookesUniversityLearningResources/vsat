@@ -10,7 +10,6 @@ export default function getImageByIdInDatabase(log: Logger, db: GetDatabase) {
       .selectFrom("image")
       .selectAll()
       .where("image.id", "=", id)
-      .where("image.isDeleted", "!=", true)
       .executeTakeFirst();
   };
 }
