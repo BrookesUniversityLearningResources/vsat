@@ -28,14 +28,6 @@
       },
       "message": "Setting up your writing space…"
     },
-    "author": {
-      "meta": {
-        "title": "Author • VSAT",
-        "description": "Your author page"
-      },
-      "heading": "About {{authorName}}",
-      "your-stories": "Your stories"
-    },
     "stories": {
       "meta": {
         "title": "Stories • VSAT",
@@ -197,7 +189,8 @@
             "17": "Oops, we had an issue unpublishing that story.",
             "18": "We can't find that story so we can't unpublish it.",
             "19": "That story isn't quite ready for publishing yet.",
-            "20": "Oops, we had an issue saving that name."
+            "20": "Oops, we had an issue saving that name.",
+            "21": "You must login to access that part of the site."
           }
         },
         "scene": {
