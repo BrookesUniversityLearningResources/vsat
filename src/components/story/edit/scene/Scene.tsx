@@ -76,7 +76,6 @@ const Scene: FC<SceneProps> = ({
       }),
     onError: feedback.notify.error,
     onSuccess: () => {
-      feedback.notify.info("scene.title.saved");
       refetch();
     },
   });

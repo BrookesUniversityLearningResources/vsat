@@ -28,23 +28,24 @@
       },
       "message": "Setting up your writing space…"
     },
-    "author": {
-      "meta": {
-        "title": "Author • VSAT",
-        "description": "Your author page"
-      },
-      "heading": "About {{authorName}}",
-      "your-stories": "Your stories"
-    },
     "stories": {
       "meta": {
         "title": "Stories • VSAT",
         "description": "Your stories"
       },
-      "heading": "My stories",
+      "heading": "Stories by {{authorName}}",
       "action": {
         "create-story": {
           "label": "New story"
+        }
+      },
+      "author-name": {
+        "field": {
+          "label": "Enter your name"
+        },
+        "action": {
+          "edit-name": "Change your name",
+          "save-name": "Save"
         }
       },
       "summary": {
@@ -59,12 +60,20 @@
             "2": "Oops, something went wrong."
           }
         }
+      },
+      "no-stories": {
+        "heading": "Let's get started",
+        "instruction": "👇"
       }
     },
     "story": {
       "meta": {
         "title": "Story • VSAT",
         "description": "Your story"
+      },
+      "no-scenes": {
+        "heading": "Let's get started",
+        "instruction": "👇"
       },
       "title": {
         "label": "{{title}}",
@@ -116,10 +125,11 @@
         "image": {
           "alt-text": "Thumbnail",
           "preview": "Preview",
-          "placeholder": "Placeholder"
+          "placeholder": "Placeholder",
+          "prompt": "Add image…"
         },
         "audio": {
-          "prompt": "Add sound to the scene…"
+          "prompt": "Add audio…"
         },
         "action": {
           "delete-audio": {
@@ -176,24 +186,21 @@
             "16": "Oops, we had an issue saving that title.",
             "17": "Oops, we had an issue unpublishing that story.",
             "18": "We can't find that story so we can't unpublish it.",
-            "19": "That story isn't quite ready for publishing yet."
-          }
-        },
-        "scene": {
-          "content": {
-            "saved": "Fiction saved"
-          },
-          "title": {
-            "saved": "Scene title saved"
+            "19": "That story isn't quite ready for publishing yet.",
+            "20": "Oops, we had an issue saving that name.",
+            "21": "You must login to access that part of the site."
           }
         },
         "story": {
           "published": "Story published",
-          "unpublished": "Story unpublished",
-          "title": {
-            "saved": "Story title saved"
-          }
+          "unpublished": "Story unpublished"
         }
+      }
+    },
+    "preview": {
+      "meta": {
+        "title": "{{title}} • VSAT",
+        "description": "A story by {{author}}"
       }
     },
     "error": {
@@ -207,12 +214,6 @@
       "content": {
         "admission": "Something's gone wrong on our side, sorry about that.",
         "remediation": "Try refreshing the page: the error might be a blip."
-      }
-    },
-    "site-story": {
-      "meta": {
-        "title": "{{title}} • VSAT",
-        "description": "A story by {{author}}"
       }
     },
     "home": {
@@ -232,7 +233,22 @@
         "read-stories": "Read stories"
       }
     },
-    "preview": {
+    "site-stories": {
+      "meta": {
+        "title": "Published stories • VSAT",
+        "description": "Published stories"
+      },
+      "heading": {
+        "title": "VSAT • Interactive Non-Linear Stories",
+        "strapline": "From Brookes University students & Friends"
+      },
+      "summary": {
+        "image": {
+          "alt-text": "{{title}} • {{author}}"
+        }
+      }
+    },
+    "site-story": {
       "meta": {
         "title": "{{title}} • VSAT",
         "description": "A story by {{author}}"
@@ -242,6 +258,7 @@
   "__common__": {
     "yes": "Yes",
     "no": "No",
+    "close": "Close",
     "loading": {
       "text": "Loading…"
     }

@@ -92,8 +92,6 @@ const StoryEditor: FC<StoryEditorProps> = ({ story: initialStory }) => {
       }),
     onError: feedback.notify.error,
     onSuccess: () => {
-      feedback.notify.info("story.title.saved");
-
       refetchStory();
     },
   });

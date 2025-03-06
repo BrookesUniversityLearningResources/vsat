@@ -1,4 +1,4 @@
-import type { ChangeEventHandler, FC } from "react";
+import { type ChangeEventHandler, type FC, useId } from "react";
 import { useTranslation } from "react-i18next";
 
 import type { NonEmptyArray } from "../../../../../../util/nonEmptyArray";
@@ -20,6 +20,8 @@ type ChooseImageProps = {
 const ChooseImage: FC<ChooseImageProps> = ({ accept, onFileChange }) => {
   const { t } = useTranslation();
 
+  const idImageUpload = useId();
+
   const acceptExtensions = toAcceptExtensions(
     accept ?? ACCEPT_EXTENSIONS_DEFAULT,
   );
@@ -31,12 +33,17 @@ const ChooseImage: FC<ChooseImageProps> = ({ accept, onFileChange }) => {
         alt={t("scene.image.placeholder")}
         title={t("scene.image.placeholder")}
       />
-      <input
-        type="file"
-        accept={acceptExtensions}
-        multiple={false}
-        onChange={onFileChange}
-      />
+      <div className={styles.controls}>
+        <label htmlFor={idImageUpload}>{t("scene.image.prompt")}</label>
+        <input
+          id={idImageUpload}
+          style={{ display: "none" }}
+          type="file"
+          accept={acceptExtensions}
+          multiple={false}
+          onChange={onFileChange}
+        />
+      </div>
     </div>
   );
 };

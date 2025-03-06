@@ -59,9 +59,6 @@
             "1": "Oops, something went wrong.",
             "2": "Oops, something went wrong."
           }
-        },
-        "author-name": {
-          "saved": "Your name was changed"
         }
       },
       "no-stories": {
@@ -128,10 +125,11 @@
         "image": {
           "alt-text": "Thumbnail",
           "preview": "Preview",
-          "placeholder": "Placeholder"
+          "placeholder": "Placeholder",
+          "prompt": "Add image…"
         },
         "audio": {
-          "prompt": "Add sound to the scene…"
+          "prompt": "Add audio…"
         },
         "action": {
           "delete-audio": {
@@ -193,20 +191,9 @@
             "21": "You must login to access that part of the site."
           }
         },
-        "scene": {
-          "content": {
-            "saved": "Fiction saved"
-          },
-          "title": {
-            "saved": "Scene title saved"
-          }
-        },
         "story": {
           "published": "Story published",
-          "unpublished": "Story unpublished",
-          "title": {
-            "saved": "Story title saved"
-          }
+          "unpublished": "Story unpublished"
         }
       }
     },

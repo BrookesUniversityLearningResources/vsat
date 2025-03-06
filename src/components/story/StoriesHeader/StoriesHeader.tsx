@@ -1,5 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
-import { useState, type FC } from "react";
+import { type FC, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import InlineTextInput, {
@@ -50,7 +50,6 @@ const StoriesHeader: FC<StoriesHeaderProps> = ({
       }),
     onError: feedback.notify.error,
     onSuccess: (newName) => {
-      feedback.notify.info("author-name.saved", { name: newName });
       setAuthorName(newName);
     },
   });

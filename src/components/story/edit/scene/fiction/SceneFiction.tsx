@@ -67,8 +67,6 @@ const SceneFiction: FC<SceneFictionProps> = ({
       ),
     onError: feedback.notify.error,
     onSuccess: (content) => {
-      feedback.notify.info("scene.content.saved");
-
       onSceneChanged({
         kind: "contentChanged",
         id: scene.id,
