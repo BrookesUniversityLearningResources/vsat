@@ -1,9 +1,5 @@
 * [Official docs](https://devcenter.heroku.com/articles/heroku-postgres-backups)
 
-## Process
-
-### Export
-
 ```shell
 heroku pg:backups:capture --app vsat
 
@@ -14,6 +10,4 @@ heroku pg:backups:url BACKUP_ID --app vsat
 heroku pg:backups:download --app vsat
 ```
 
-### Import
-
-...
+> See also [importing](../db/import.md).
