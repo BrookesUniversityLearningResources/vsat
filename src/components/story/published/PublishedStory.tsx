@@ -95,8 +95,8 @@ const PublishedStoryApp: FC<PublishedStoryAppProps> = ({
     <I18nextProvider i18n={i18n}>
       <FontFamilyProvider
         roboto={{
-          medium: "/fonts/roboto-regular.json",
-          bold: "/fonts/roboto-bold.json",
+          medium: "/fonts/roboto-regular-msdf.json",
+          bold: "/fonts/roboto-regular-msdf.json",
         }}
       >
         <PublishedStoryView story={story} />

@@ -3,15 +3,11 @@
 Here's an example using [Roboto](https://fonts.google.com/specimen/Roboto).
 
 ```shell
-msdf-bmfont -f json roboto-regular.ttf -i charset.txt -m 256,512 -s 48
-msdf-bmfont -f json roboto-bold.ttf -i charset.txt -m 256,512 -s 48
+npx msdf-bmfont -f json roboto-regular.ttf -i charset.txt -m 256,512 -s 48
+npx msdf-bmfont -f json roboto-bold.ttf -i charset.txt -m 256,512 -s 48
 ```
 
-> Here's the `charset.txt` contents:
->
-> ```
-> !\"#$%&'()*+,-./0123456789:;<=>?@ÄÖÜABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`äöüabcdefghijklmnopqrstuvwxyz{|}~ß§
-> ```
+> There's a sample `charset.txt` in this directory.
 
 1. Copy the files into the [public/fonts](/public/fonts/) folder.
 1. Reference the custom fonts
