@@ -1,10 +1,8 @@
-import { Migrator } from "kysely";
-
 import getEnvironment from "../../environment/getEnvironment.js";
-import ESMFileMigrationProvider from "./ESMFileMigrationProvider.js";
+import { runMigrations } from "./runMigrations.js";
 
 /**
- * Run the database migrations.
+ * A `main` program to run the database migrations.
  *
  * This will exit with a non-zero exit code in the event of errors.
  */
@@ -14,12 +12,7 @@ async function main() {
     database: { db },
   } = getEnvironment<App.WithLog & App.WithDatabase>();
 
-  const migrator = new Migrator({
-    db,
-    provider: new ESMFileMigrationProvider(),
-  });
-
-  const { error, results } = await migrator.migrateToLatest();
+  const { error, results } = await runMigrations(db);
 
   for (const result of results ?? []) {
     if (result.status === "Success") {

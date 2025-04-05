@@ -3,6 +3,14 @@ import path from "node:path";
 
 import type { Migration, MigrationProvider } from "kysely";
 
+export type GetMigrationsDirectory = () => string;
+
+const DIRECTORY_MIGRATIONS = "migrations";
+
+export const defaultGetMigrationsDirectory: GetMigrationsDirectory = () => {
+  return path.resolve(import.meta.dirname, DIRECTORY_MIGRATIONS);
+};
+
 /**
  * @see https://github.com/kysely-org/kysely/issues/277
  */
@@ -12,12 +20,12 @@ export default class ESMFileMigrationProvider implements MigrationProvider {
    *
    * @param relativePath the path _relative to this class_.
    */
-  constructor(private relativePath = "migrations") {}
+  constructor(private getMigrationsDirectory = defaultGetMigrationsDirectory) {}
 
   async getMigrations(): Promise<Record<string, Migration>> {
     const migrations: Record<string, Migration> = Object.create(null);
 
-    const resolvedPath = path.resolve(import.meta.dirname, this.relativePath);
+    const resolvedPath = this.getMigrationsDirectory();
 
     const files = await fs.readdir(resolvedPath);
 
@@ -26,7 +34,7 @@ export default class ESMFileMigrationProvider implements MigrationProvider {
         continue;
       }
 
-      const importPath = `./${this.relativePath}/${fileName}`;
+      const importPath = `./${DIRECTORY_MIGRATIONS}/${fileName}`;
 
       const migration = await import(importPath);
 

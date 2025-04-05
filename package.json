@@ -26,6 +26,8 @@
     "start": "npm run db:migrate && node .",
     "start:local": "npm run db:migrate:local && node --env-file=.env .",
     "test": "cross-env NODE_OPTIONS=--experimental-vm-modules node --import tsx --test tests/**/*.test.ts",
+    "test:unit": "cross-env NODE_OPTIONS=--experimental-vm-modules node --import tsx --test tests/unit/**/*.test.ts",
+    "test:integration": "cross-env NODE_OPTIONS=--experimental-vm-modules node --import tsx --test tests/integration/**/*.test.ts",
     "test:coverage": "cross-env NODE_OPTIONS=--experimental-vm-modules node --import tsx --test --experimental-test-coverage tests/**/*.test.ts"
   },
   "dependencies": {
@@ -70,6 +72,7 @@
   "devDependencies": {
     "@biomejs/biome": "1.9.4",
     "@iconify-json/noto-v1": "^1.2.2",
+    "@testcontainers/postgresql": "^10.24.0",
     "@types/config": "^3.3.5",
     "@types/connect-pg-simple": "^7.0.3",
     "@types/express": "^5.0.0",
@@ -82,6 +85,7 @@
     "@types/react-dom": "^18.3.5",
     "cross-env": "^7.0.3",
     "nodemon": "^3.1.9",
+    "testcontainers": "^10.24.0",
     "tsx": "^4.19.3",
     "typescript": "^5.8.2"
   }
