@@ -1,1 +1,1 @@
-@ÄÖÜABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_-"`äöüabcdefghijklmnopqrstuvwxyz{|}~ß§áâãàçéêíïóôõúüẃý¡¿!?ÁÉÍÑñÓÚ
+@ÄÖÜABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_-"`'äöüabcdefghijklmnopqrstuvwxyz{|}~ß§áâãàçéêíïóôõúüẃý¡¿!?ÁÉÍÑñÓÚ
