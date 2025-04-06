@@ -26,11 +26,16 @@ const stories = await repositoryStory.getPublishedStorySummaries({});
 
 <style>
   body {
-    --margin: 1rem 3rem;
+    text-align: center;
+
+    @media screen and (min-width: 1000px) {
+      max-width: 75%;
+      text-align: unset;
+    }
   }
 
   header {
-    margin: var(--margin);
+    margin: 1rem;
 
     .strapline {
       margin-top: 0.5rem;

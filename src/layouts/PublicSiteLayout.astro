@@ -41,6 +41,13 @@ const { i18n } = Astro.locals.environment<App.WithI18N>();
 
   footer {
     height: var(--footer-height);
-    margin: auto 3rem;
+
+    margin: auto 1rem;
+
+    @media screen and (min-width: 1250px) {
+      max-width: 75%;
+      text-align: unset;
+      margin: auto 1rem;
+    }
   }
 </style>
