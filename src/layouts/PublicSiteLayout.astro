@@ -1,10 +1,13 @@
 ---
 interface Props {
+  pageName: string;
   title?: string;
   description?: string;
 }
 
 const { title, description } = Astro.props;
+
+const { i18n } = Astro.locals.environment<App.WithI18N>();
 ---
 
 <!doctype html>
@@ -23,9 +26,7 @@ const { title, description } = Astro.props;
     <div>
       <slot />
     </div>
-    <footer>
-      Copyright &copy; 2025 Oxford Brookes University &bull; Learning Resources
-    </footer>
+    <footer>{i18n.t("__common__.copyright")}</footer>
   </body>
 </html>
 
