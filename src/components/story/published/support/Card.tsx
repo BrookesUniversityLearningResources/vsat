@@ -6,7 +6,7 @@ import {
 } from "@react-three/uikit";
 import { type FC, type RefAttributes, forwardRef } from "react";
 
-import { Colors } from "./Theme";
+import { Colors } from "./Theme.js";
 
 type CardProps = ContainerProperties & RefAttributes<ContainerRef>;
 
@@ -18,12 +18,10 @@ const Card: FC<CardProps> = forwardRef(({ children, ...props }, ref) => {
       borderColor={Colors.foreground}
       borderOpacity={0}
       borderWidth={4}
-      borderBend={0.3}
-      borderRadius={32}
       ref={ref}
       {...props}
     >
-      <DefaultProperties color={Colors.cardForeground}>
+      <DefaultProperties color={Colors.plaintext}>
         {children}
       </DefaultProperties>
     </Container>

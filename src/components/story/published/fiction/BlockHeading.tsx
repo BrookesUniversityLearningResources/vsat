@@ -3,6 +3,8 @@ import type { FC } from "react";
 
 import type { HeadingBlock } from "@domain/story/publish/types";
 
+import { Colors } from "../support/Theme.js";
+
 type BlockHeadingProps = { block: HeadingBlock };
 
 const BlockHeading: FC<BlockHeadingProps> = ({ block }) => {
@@ -11,9 +13,10 @@ const BlockHeading: FC<BlockHeadingProps> = ({ block }) => {
       flexGrow={1}
       margin={5}
       padding={5}
-      backgroundColor={"whitesmoke"}
+      backgroundOpacity={0}
+      backgroundColor={Colors.background}
     >
-      <Text fontWeight={"bold"} color={"#330000"}>
+      <Text fontWeight={"bold"} color={Colors.plaintext}>
         {block.text}
       </Text>
     </Container>

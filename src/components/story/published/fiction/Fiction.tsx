@@ -43,11 +43,14 @@ const Fiction: FC<FictionProps> = ({ content, followLink }) => {
   return (
     <DefaultProperties fontFamily="roboto">
       <Card
-        borderRadius={8}
-        padding={8}
         gap={2}
+        padding={8}
         flexDirection="column"
-        backgroundOpacity={1}
+        backgroundOpacity={0.85}
+        borderTopLeftRadius={8}
+        borderTopRightRadius={60}
+        borderBottomRightRadius={8}
+        borderBottomLeftRadius={8}
       >
         {...fiction}
       </Card>

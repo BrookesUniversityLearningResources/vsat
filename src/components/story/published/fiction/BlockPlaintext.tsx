@@ -3,12 +3,19 @@ import type { FC } from "react";
 
 import type { PlaintextBlock } from "@domain/story/publish/types";
 
+import { Colors } from "../support/Theme.js";
+
 type BlockPlaintextProps = { block: PlaintextBlock };
 
 const BlockPlaintext: FC<BlockPlaintextProps> = ({ block }) => {
   return (
-    <Container margin={5} padding={5} backgroundColor={"whitesmoke"}>
-      <Text color={"#330000"}>{block.text}</Text>
+    <Container
+      margin={5}
+      padding={5}
+      borderRadius={8}
+      backgroundOpacity={0}
+      backgroundColor={Colors.background}>
+      <Text color={Colors.plaintext}>{block.text}</Text>
     </Container>
   );
 };
