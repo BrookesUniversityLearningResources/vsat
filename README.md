@@ -1,6 +1,5 @@
 # Virtual Storytelling Application Toolkit • VSAT
 
-
 ```shell
 $ git clone https://github.com/BrookesUniversityLearningResources/vsat.git
 $ cd vsat

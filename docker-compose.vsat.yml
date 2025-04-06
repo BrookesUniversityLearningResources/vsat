@@ -1,0 +1,39 @@
+services:
+  vsat-web:
+    build: .
+    env_file:
+      - .env
+    environment:
+      # we explicitly override any value from the .env file
+      - DATABASE_URL=postgres://postgres:postgres@host.docker.internal:5432/vsat
+    command: "npm start"
+    ports:
+      - 3000:3000
+    depends_on:
+      - postgres
+    container_name: VSAT
+
+  postgres:
+    # https://hub.docker.com/_/postgres/
+    image: postgres:17-bookworm
+    restart: unless-stopped
+    volumes:
+      - postgres-vsat:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=vsat
+    ports:
+      - 5432:5432
+    container_name: DB
+
+  dozzle:
+    image: amir20/dozzle:latest
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - 8080:8080
+    container_name: Dozzle
+
+volumes:
+  postgres-vsat:
