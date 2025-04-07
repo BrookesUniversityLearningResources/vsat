@@ -1,4 +1,4 @@
-FROM node:22-slim as build
+FROM node:22-slim AS build
 
 WORKDIR /app
 
@@ -9,6 +9,7 @@ COPY [\
   "tsconfig.json",\
   "tsconfig.server.json",\
   "astro.config.mjs",\
+  "start-app.sh",\
   "./"\
 ]
 
@@ -19,30 +20,20 @@ COPY ./src ./src
 RUN npm ci
 RUN npm run build
 
-FROM node:22-slim as release
+FROM node:22-slim AS release
 
 WORKDIR /app
 
-RUN yarn set version stable
-
-COPY [\
-  ".env",\
-  "package.json",\
-  "package-lock.json",\
-  "tsconfig.json",\
-  "tsconfig.server.json",\
-  "astro.config.mjs",\
-  "./"\
-]
-
-COPY ./config ./config
-COPY ./public ./public
-COPY ./dist ./dist
-COPY ./node_modules ./node_modules
-COPY ./src/i18n ./src/i18n
+COPY --from=build app/package.json .
+COPY --from=build app/start-app.sh .
+COPY --from=build app/config ./config
+COPY --from=build app/public ./public
+COPY --from=build app/dist ./dist
+COPY --from=build app/node_modules ./node_modules
+COPY --from=build app/src/i18n ./src/i18n
 
 ENV APP_NAME="@vsat/web"
 
 EXPOSE 3000
 
-ENTRYPOINT ["npm", "start"]
+ENTRYPOINT ["./start-app.sh"]
