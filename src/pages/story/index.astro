@@ -48,7 +48,18 @@ const stories = await repositoryStory.getPublishedStorySummaries({});
     width: 1000px;
     margin: var(--margin);
     display: grid;
-    grid-template-columns: 25rem 25rem 25rem;
     gap: 2rem;
+  }
+
+  @media screen and (min-width: 500px) {
+    .stories {
+      grid-template-columns: 25rem 25rem;
+    }
+  }
+
+  @media screen and (min-width: 1000px) {
+    .stories {
+      grid-template-columns: 25rem 25rem 25rem;
+    }
   }
 </style>
