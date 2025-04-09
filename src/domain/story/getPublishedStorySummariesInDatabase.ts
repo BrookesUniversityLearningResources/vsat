@@ -23,6 +23,8 @@ export default function getPublishedStorySummariesInDatabase(
         "storyPublished.title as storyTitle",
         "storyPublished.createdAt as storyPublishedOn",
         "storyPublished.imageUrl as storyImageUrl",
+        "storyPublished.featuredActive as storyFeaturedActive",
+        "storyPublished.featuredOn as storyFeaturedOn",
         // author
         "author.id as authorId",
         "author.name as authorName",
@@ -38,6 +40,10 @@ export default function getPublishedStorySummariesInDatabase(
       author: {
         id: row.authorId,
         name: row.authorName,
+      },
+      featured: {
+        active: row.storyFeaturedActive,
+        on: row.storyFeaturedOn,
       },
     }));
 

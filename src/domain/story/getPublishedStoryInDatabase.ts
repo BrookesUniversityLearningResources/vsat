@@ -23,6 +23,9 @@ function getPublishedStoryInDatabase(
         "storyPublished.content as storyContent",
         "storyPublished.imageUrl as storyImageUrl",
         "storyPublished.createdAt",
+        "storyPublished.featuredActive",
+        "storyPublished.featuredOn",
+        "storyPublished.createdAt",
         "author.id as authorId",
         "author.name as authorName",
       ])
@@ -44,6 +47,8 @@ type PublishedStoryAndAuthorRow = {
   storyTitle: string;
   storyContent: Json;
   storyImageUrl: string | null;
+  featuredActive: boolean | null;
+  featuredOn: Date | null;
   createdAt: Date;
   authorId: number;
   authorName: string;
@@ -56,6 +61,10 @@ function mapPublishedStory(row: PublishedStoryAndAuthorRow): PublishedStory {
     author: {
       id: row.authorId,
       name: row.authorName,
+    },
+    featured: {
+      active: row.featuredActive ?? false,
+      on: row.featuredOn,
     },
     createdAt: row.createdAt,
     scenes: row.storyContent as NonEmptyArray<PublishedScene>,

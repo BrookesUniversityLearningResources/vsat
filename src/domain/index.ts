@@ -191,7 +191,10 @@ export type GetStorySummariesByAuthor = (
  * that a reader might peruse: they can then click into the `Story to read the
  * full fat version.
  */
-export type PublishedStorySummary = Pick<PublishedStory, "id" | "title"> & {
+export type PublishedStorySummary = Pick<
+  PublishedStory,
+  "id" | "title" | "featured"
+> & {
   publishedOn: Date;
   author: Omit<AuthorDto, "email">;
   imageUrl: Image["thumbnailUrl"] | null;

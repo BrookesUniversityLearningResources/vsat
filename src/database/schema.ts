@@ -121,6 +121,8 @@ export interface TableStoryPublished {
   content: JSONColumnType<NonEmptyArray<PublishedScene>>;
   createdAt: Date;
   imageUrl: string | null;
+  featuredActive: boolean;
+  featuredOn: Date | null;
 }
 
 export type StoryPublishedDto = Selectable<TableStoryPublished>;

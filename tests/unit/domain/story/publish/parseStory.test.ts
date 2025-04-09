@@ -134,6 +134,10 @@ describe("parseStory", () => {
           },
         },
       ],
+      featured: {
+        active: false,
+        on: null,
+      },
     };
 
     const result = parseStory(story);
@@ -289,6 +293,10 @@ describe("parseStory", () => {
           },
         },
       ],
+      featured: {
+        active: false,
+        on: null,
+      },
     };
 
     const result = parseStory(story);
@@ -538,6 +546,10 @@ describe("parseStory", () => {
           },
         },
       ],
+      featured: {
+        active: false,
+        on: null,
+      },
     };
 
     const expectedResult: ParseStorySuccess = {
@@ -676,6 +688,10 @@ describe("parseStory", () => {
           },
         },
       ],
+      featured: {
+        active: false,
+        on: null,
+      },
     };
 
     const expectedResult: ParseStorySuccess = {
@@ -814,6 +830,10 @@ describe("parseStory", () => {
           },
         },
       ],
+      featured: {
+        active: false,
+        on: null,
+      },
     };
 
     const expectedResult: ParseStorySuccess = {

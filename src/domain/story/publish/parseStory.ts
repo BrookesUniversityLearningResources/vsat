@@ -217,6 +217,10 @@ function parseStory(story: PersistentStory): ParseStoryResult {
     title: story.title,
     author: story.author,
     scenes: publishedScenes,
+    featured: {
+      active: false,
+      on: null,
+    },
   };
 
   return {
