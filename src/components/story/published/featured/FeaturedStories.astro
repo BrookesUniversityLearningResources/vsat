@@ -1,0 +1,22 @@
+---
+import type { FeaturedStorySummary } from "@domain/index";
+import type { NonEmptyArray } from "@util/nonEmptyArray";
+import FeaturedStory from "./FeaturedStory.astro";
+
+interface Props {
+  stories: NonEmptyArray<FeaturedStorySummary>;
+}
+
+const { stories } = Astro.props;
+---
+
+<div class="featured-stories">
+  {stories.map((story) => <FeaturedStory story={story} />)}
+</div>
+
+<style>
+  .featured-stories {
+    display: grid;
+    justify-content: center;
+  }
+</style>

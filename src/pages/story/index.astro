@@ -1,13 +1,18 @@
 ---
 import PublishedStorySummary from "@components/story/published/PublishedStorySummary/PublishedStorySummary.astro";
+import FeaturedStories from "@components/story/published/featured/FeaturedStories.astro";
 
 import Layout from "../../layouts/PublicSiteLayout.astro";
+import { isFeaturedStorySummary } from "@domain/index";
+import { isNonEmptyArray } from "@util/nonEmptyArray";
 
 const { i18n, repositoryStory } = Astro.locals.environment<
   App.WithI18N & App.WithStoryRepository
 >();
 
 const stories = await repositoryStory.getPublishedStorySummaries({});
+
+const featuredStories = stories.filter(isFeaturedStorySummary);
 ---
 
 <Layout
@@ -20,7 +25,15 @@ const stories = await repositoryStory.getPublishedStorySummaries({});
     <div class="strapline">{i18n.t("page.site-stories.heading.strapline")}</div>
   </header>
   <main class="stories">
-    {stories.map((story) => <PublishedStorySummary story={story} />)}
+    {
+      isNonEmptyArray(featuredStories) && (
+        <FeaturedStories stories={featuredStories} />
+      )
+    }
+
+    <div class="published">
+      {stories.map((story) => <PublishedStorySummary story={story} />)}
+    </div>
   </main>
 </Layout>
 
@@ -45,21 +58,29 @@ const stories = await repositoryStory.getPublishedStorySummaries({});
   }
 
   .stories {
-    width: 1000px;
-    margin: var(--margin);
     display: grid;
     gap: 2rem;
-  }
+    justify-content: center;
+    margin-bottom: 1rem;
 
-  @media screen and (min-width: 500px) {
-    .stories {
-      grid-template-columns: 25rem 25rem;
+    .published {
+      width: 1000px;
+      margin: var(--margin);
+      display: grid;
+      gap: 2rem;
+      justify-content: center;
     }
-  }
 
-  @media screen and (min-width: 1000px) {
-    .stories {
-      grid-template-columns: 25rem 25rem 25rem;
+    @media screen and (min-width: 500px) {
+      .published {
+        grid-template-columns: 25rem 25rem;
+      }
+    }
+
+    @media screen and (min-width: 1000px) {
+      .published {
+        grid-template-columns: 25rem 25rem 25rem;
+      }
     }
   }
 </style>

@@ -1,0 +1,19 @@
+---
+import type { FeaturedStorySummary } from "@domain/index";
+
+interface Props {
+  story: FeaturedStorySummary;
+}
+
+const { story } = Astro.props;
+---
+
+<div class="featured-story">
+  ⭐ {story.title}
+</div>
+
+<style>
+  .featured-story {
+    font-weight: bold;
+  }
+</style>

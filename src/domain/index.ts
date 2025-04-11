@@ -200,6 +200,19 @@ export type PublishedStorySummary = Pick<
   imageUrl: Image["thumbnailUrl"] | null;
 };
 
+export type FeaturedStorySummary = Omit<PublishedStorySummary, "featured"> & {
+  featured: {
+    active: true;
+    on: Date;
+  };
+};
+
+export function isFeaturedStorySummary(
+  story: PublishedStorySummary,
+): story is FeaturedStorySummary {
+  return story.featured?.active === true && story.featured.on !== null;
+}
+
 // biome-ignore lint/complexity/noBannedTypes: see inline TODO below
 export type GetPublishedStorySummariesRequest = Readonly<{
   // TODO populate with filtering and pagination fields
