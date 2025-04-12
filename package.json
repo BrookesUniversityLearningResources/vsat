@@ -20,6 +20,7 @@
     "db:import": "node --env-file=.env ./dist/build/database/import/import.js",
     "db:migrate": "node ./dist/build/database/migrate/migrate.js",
     "db:migrate:local": "node --env-file=.env ./dist/build/database/migrate/migrate.js",
+    "db:seed:local": "node --env-file=.env ./dist/build/database/seed/seedDevelopment.js",
     "format": "npx @biomejs/biome format --write ./src",
     "lint": "npx @biomejs/biome lint --write ./src",
     "postinstall": "npm run build",
