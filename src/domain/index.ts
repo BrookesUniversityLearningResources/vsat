@@ -268,6 +268,10 @@ export type UnpublishStory = (
   id: StoryDto["id"],
 ) => Promise<UnpublishStoryResult>;
 
+export type FeaturePublishedStory = (
+  id: PublishedStory["id"],
+) => Promise<unknown>;
+
 export type RepositoryStory = Readonly<{
   saveStory: SaveStory;
   createStory: CreateStory;
@@ -275,6 +279,7 @@ export type RepositoryStory = Readonly<{
   getStory: GetStory;
   publishStory: PublishStory;
   unpublishStory: UnpublishStory;
+  featurePublishedStory: FeaturePublishedStory;
   deleteStory: DeleteStory;
   getPublishedStory: GetPublishedStory;
   getPublishedStorySummaries: GetPublishedStorySummaries;

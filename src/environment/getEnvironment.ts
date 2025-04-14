@@ -43,6 +43,7 @@ import getSceneForStoryInDatabase from "../domain/story/getSceneForStoryInDataba
 import getScenesForStoryInDatabase from "../domain/story/getScenesForStoryInDatabase.js";
 import getStoryInDatabase from "../domain/story/getStoryInDatabase.js";
 import getStorySummariesByAuthorInDatabase from "../domain/story/getStorySummariesByAuthorInDatabase.js";
+import featurePublishedStoryInDatabase from "../domain/story/publish/featurePublishedStoryInDatabase.js";
 import publishStory from "../domain/story/publish/publishStory.js";
 import publishStoryInDatabase from "../domain/story/publish/publishStoryInDatabase.js";
 import unpublishStoryInDatabase from "../domain/story/publish/unpublishStoryInDatabase.js";
@@ -174,6 +175,7 @@ const getEnvironment: App.GetEnvironment = (() => {
       getPublishedStorySummariesInDatabase(log, getDB),
     ),
     saveStoryTitle: tx(saveStoryTitleInDatabase(logDb, getDB, getStory)),
+    featurePublishedStory: tx(featurePublishedStoryInDatabase(logDb, getDB)),
   };
 
   const repositoryAuthor: RepositoryAuthor = {

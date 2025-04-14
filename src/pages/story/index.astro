@@ -1,18 +1,36 @@
 ---
-import PublishedStorySummary from "@components/story/published/PublishedStorySummary/PublishedStorySummary.astro";
+import PublishedStorySummaryView from "@components/story/published/PublishedStorySummary/PublishedStorySummary.astro";
 import FeaturedStories from "@components/story/published/featured/FeaturedStories.astro";
 
-import Layout from "../../layouts/PublicSiteLayout.astro";
-import { isFeaturedStorySummary } from "@domain/index";
+import {
+  type FeaturedStorySummary,
+  type PublishedStorySummary,
+  isFeaturedStorySummary,
+} from "@domain/index";
 import { isNonEmptyArray } from "@util/nonEmptyArray";
+import Layout from "../../layouts/PublicSiteLayout.astro";
 
 const { i18n, repositoryStory } = Astro.locals.environment<
   App.WithI18N & App.WithStoryRepository
 >();
 
-const stories = await repositoryStory.getPublishedStorySummaries({});
+const allStories = await repositoryStory.getPublishedStorySummaries({});
 
-const featuredStories = stories.filter(isFeaturedStorySummary);
+const { featuredStories, otherStories } = allStories.reduce(
+  (all, story) => {
+    if (isFeaturedStorySummary(story)) {
+      all.featuredStories.push(story);
+    } else {
+      all.otherStories.push(story);
+    }
+
+    return all;
+  },
+  { featuredStories: [], otherStories: [] } as {
+    featuredStories: FeaturedStorySummary[];
+    otherStories: PublishedStorySummary[];
+  },
+);
 ---
 
 <Layout
@@ -32,7 +50,7 @@ const featuredStories = stories.filter(isFeaturedStorySummary);
     }
 
     <div class="published">
-      {stories.map((story) => <PublishedStorySummary story={story} />)}
+      {otherStories.map((story) => <PublishedStorySummaryView story={story} />)}
     </div>
   </main>
 </Layout>

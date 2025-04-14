@@ -127,6 +127,10 @@ export interface TableStoryPublished {
 
 export type StoryPublishedDto = Selectable<TableStoryPublished>;
 
+export type FeatureStoryInDatabase = (
+  id: PublishedStory["id"],
+) => Promise<unknown>;
+
 type PublishStoryInDatabaseRequest = {
   story: PublishedStory;
 };
