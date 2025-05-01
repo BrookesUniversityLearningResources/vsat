@@ -87,7 +87,7 @@
     "cross-env": "^7.0.3",
     "nodemon": "^3.1.9",
     "testcontainers": "^10.24.0",
-    "tsx": "^4.19.3",
+    "tsx": "^4.19.4",
     "typescript": "^5.8.3"
   }
 }
