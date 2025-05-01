@@ -64,7 +64,7 @@
     "react-i18next": "^15.4.1",
     "react-spinners": "^0.15.0",
     "slate": "^0.112.0",
-    "slate-history": "^0.110.3",
+    "slate-history": "^0.113.1",
     "slate-react": "^0.112.1",
     "sweetalert2": "^11.17.2",
     "three": "^0.175.0",
