@@ -65,7 +65,7 @@
     "react-spinners": "^0.15.0",
     "slate": "^0.112.0",
     "slate-history": "^0.110.3",
-    "slate-react": "^0.112.1",
+    "slate-react": "^0.114.2",
     "sweetalert2": "^11.17.2",
     "three": "^0.175.0",
     "zod": "^3.24.2"
