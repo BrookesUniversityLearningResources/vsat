@@ -18,6 +18,7 @@ import useI18N from "@i18n/client/useI18N.js";
 import Skybox from "./Skybox/Skybox.js";
 import BackgroundSound from "./audio/BackgroundSound.js";
 import Fiction from "./fiction/Fiction.js";
+import ExitStory from "./support/ExitStory.js";
 import changePage from "./support/changePage.js";
 
 type PublishedStoryViewProps = {
@@ -74,6 +75,9 @@ const PublishedStoryView: FC<PublishedStoryViewProps> = ({ story }) => {
           >
             <Fiction content={currentPage.content} followLink={followLink} />
           </Root>
+        </group>
+        <group position={[5, -2.5, 1]}>
+          <ExitStory />
         </group>
       </Hud>
     </Canvas>

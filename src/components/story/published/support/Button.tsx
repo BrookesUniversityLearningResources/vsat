@@ -94,7 +94,7 @@ const Button: FC<ButtonProps> = forwardRef(
         backgroundColor={Colors.foreground}
         backgroundOpacity={disabled ? 0.1 : selected ? 1 : platter ? 0.15 : 0}
         hover={{
-          backgroundOpacity: disabled ? 0.1 : selected ? 1 : 0.2,
+          backgroundOpacity: disabled ? 0.1 : selected ? 1 : 0.5,
         }}
         ref={ref}
         {...props}
