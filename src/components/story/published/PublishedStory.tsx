@@ -5,6 +5,7 @@ import type { ResourceKey } from "i18next";
 import { type FC, useState } from "react";
 import { I18nextProvider } from "react-i18next";
 
+import { isFirstPageInStory } from "@domain/story/publish/support/isFirstPage.js";
 import openingPageFor from "@domain/story/publish/support/openingPage.js";
 import openingSceneFor from "@domain/story/publish/support/openingScene.js";
 import type {
@@ -79,19 +80,21 @@ const PublishedStoryView: FC<PublishedStoryViewProps> = ({ story }) => {
           <Fiction content={currentPage.content} followLink={followLink} />
         </group>
 
-        <group position={[4.5, -2.5, 1]}>
-          <Root
-            sizeX={1}
-            gapRow={3}
-            flexDirection="column"
-            positionType={"static"}
-            positionTop={0}
-            positionLeft={0}
-          >
-            <GoFullscreen />
-            <ExitStory onExit={onExitStory} />
-          </Root>
-        </group>
+        {isFirstPageInStory(currentPage, currentScene) && (
+          <group position={[4.5, -2.5, 1]}>
+            <Root
+              sizeX={1}
+              gapRow={3}
+              flexDirection="column"
+              positionType={"static"}
+              positionTop={0}
+              positionLeft={0}
+            >
+              <GoFullscreen />
+              <ExitStory onExit={onExitStory} />
+            </Root>
+          </group>
+        )}
       </Hud>
     </Canvas>
   );
