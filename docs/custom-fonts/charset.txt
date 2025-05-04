@@ -1,1 +1,1 @@
-@ÄÖÜABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_-"`'äöüabcdefghijklmnopqrstuvwxyz{|}~ß§áâãàçéêíïóôõúüẃý¡¿!?ÁÉÍÑñÓÚ
+@ÄÖÜABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_-.,0123456789()"`'äöüabcdefghijklmnopqrstuvwxyz{|}~ß§áâãàçéêíïóôõúüẃý¡¿!?ÁÉÍÑñÓÚ

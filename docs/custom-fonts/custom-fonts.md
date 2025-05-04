@@ -1,6 +1,6 @@
 * [Instructions](https://pmndrs.github.io/uikit/docs/tutorials/custom-fonts)
 
-For eithe rof the approaches described below you'll need a file containing the
+For either of the approaches described below you'll need a file containing the
 subset of characters that will be included in the 3D font.
 
 There's a sample `charset.txt` in this directory.
