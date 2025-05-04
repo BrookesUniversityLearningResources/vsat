@@ -256,6 +256,9 @@
       "action": {
         "exit-story": {
           "label": "Exit"
+        },
+        "fullscreen-enter": {
+          "label": "Fullscreen"
         }
       }
     }
