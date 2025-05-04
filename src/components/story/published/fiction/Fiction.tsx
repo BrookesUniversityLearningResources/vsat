@@ -1,4 +1,4 @@
-import { DefaultProperties } from "@react-three/uikit";
+import { DefaultProperties, Root } from "@react-three/uikit";
 import type { FC } from "react";
 
 import type { Block, LinkTarget } from "@domain/story/publish/types";
@@ -41,20 +41,28 @@ const Fiction: FC<FictionProps> = ({ content, followLink }) => {
   }, [] as JSX.Element[]);
 
   return (
-    <DefaultProperties fontFamily="roboto">
-      <Card
-        gap={2}
-        padding={8}
-        flexDirection="column"
-        backgroundOpacity={0.85}
-        borderTopLeftRadius={8}
-        borderTopRightRadius={60}
-        borderBottomRightRadius={8}
-        borderBottomLeftRadius={8}
-      >
-        {...fiction}
-      </Card>
-    </DefaultProperties>
+    <Root
+      sizeX={4}
+      flexDirection="column"
+      positionType={"static"}
+      positionLeft={0}
+      positionTop={0}
+    >
+      <DefaultProperties fontFamily="roboto">
+        <Card
+          gap={2}
+          padding={8}
+          flexDirection="column"
+          backgroundOpacity={0.85}
+          borderTopLeftRadius={8}
+          borderTopRightRadius={60}
+          borderBottomRightRadius={8}
+          borderBottomLeftRadius={8}
+        >
+          {...fiction}
+        </Card>
+      </DefaultProperties>
+    </Root>
   );
 };
 

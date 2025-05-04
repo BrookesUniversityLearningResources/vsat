@@ -1,6 +1,6 @@
 import { Hud, OrbitControls, PerspectiveCamera } from "@react-three/drei";
 import { Canvas } from "@react-three/fiber";
-import { FontFamilyProvider, Root } from "@react-three/uikit";
+import { FontFamilyProvider } from "@react-three/uikit";
 import type { ResourceKey } from "i18next";
 import { type FC, useState } from "react";
 import { I18nextProvider } from "react-i18next";
@@ -66,15 +66,7 @@ const PublishedStoryView: FC<PublishedStoryViewProps> = ({ story }) => {
       <Hud>
         <PerspectiveCamera />
         <group position={[-3, 0, 1]}>
-          <Root
-            sizeX={4}
-            flexDirection="column"
-            positionType={"static"}
-            positionLeft={0}
-            positionTop={0}
-          >
-            <Fiction content={currentPage.content} followLink={followLink} />
-          </Root>
+          <Fiction content={currentPage.content} followLink={followLink} />
         </group>
         <group position={[5, -2.5, 1]}>
           <ExitStory />
