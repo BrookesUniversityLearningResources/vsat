@@ -1,0 +1,34 @@
+---
+import type { Author } from "@domain/index";
+
+type Props = {
+  author: Author;
+};
+
+const { author } = Astro.props;
+
+/*
+ * The first version of this project (VSP) attributed all stories to "You". (As
+ * in, "You are the author.")
+ *
+ * Subsequent versions of the project allowed authors to set/change their own
+ * name.
+ *
+ * In the case of stories imported from that first version, the author name will
+ * be "You" which doesn't look great in a listing of stories.
+ *
+ * So, if the author's name is literally "You"—with apologies to authors who
+ * are named "You"—we simply blank out the name.
+ */
+const authorName =
+  author.name === "You" ? /* a hairspace U+200A */ " " : author.name;
+---
+
+<div class="author">{authorName}</div>
+
+<style>
+  .author {
+    font-size: 1rem;
+    font-style: italic;
+  }
+</style>

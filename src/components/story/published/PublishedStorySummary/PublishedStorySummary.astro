@@ -1,6 +1,8 @@
 ---
 import type { PublishedStorySummary } from "@domain/index";
 
+import Author from "./Author.astro";
+
 interface Props {
   story: PublishedStorySummary;
 }
@@ -33,7 +35,7 @@ if (!storyImageUrl) {
     />
     <div class="frontmatter">
       <div class="title">{story.title}</div>
-      <div class="author">{story.author.name}</div>
+      <Author author={story.author} />
     </div>
   </a>
 </div>
