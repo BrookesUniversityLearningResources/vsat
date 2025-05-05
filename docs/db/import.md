@@ -25,13 +25,41 @@ Open that URL in your browser—or `curl` it—and save the DB backup to your lo
 filesystem:
 
 ```shell
-$ curl https://jqtsj.s3.amazonaws.com/d865195... > ./vsp.backup
+$ curl "https://jqtsj.s3.amazonaws.com/d865195..." > ./vsp.backup
 ```
 
 ## Importing to a local DB
 
 [Restore the backup](https://www.postgresql.org/docs/current/app-pgrestore.html)
 into a locally running instance of Postgres.
+
+Edit the existing [development configuration](/config/development.json) and set
+the `database.import.connectionString` field to the URL of the Postgres instance
+you want to import _from_. (It's almost certainly the DB that you just restored.)
+
+Your development configuration file will probably look something like this:
+
+```json
+{
+  "database": {
+    "import": {
+      "connectionString": "postgres://postgres:postgres@localhost:5432/db7cpi7pai1smn",
+      "log": {
+        "query": true,
+        "error": true
+      }
+    }
+  }
+}
+```
+
+The database that you're importing _into_ does want to be empty of data but the
+structure has to be there. (The tables, sprocs, etc.) So, be sure to run the
+migrations:
+
+```shell
+$ npm run db:migrate:local
+```
 
 At this point you should have two databases locally:
 
