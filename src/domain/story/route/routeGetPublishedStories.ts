@@ -24,7 +24,7 @@ export default function routeGetPublishedStories(
         "Bad request getting published stories",
       );
 
-      res.status(400).json(errorCodedContext(ErrorCodes.Bad_Request));
+      res.status(400).json(errorCodedContext(ErrorCodes.BadRequest));
       return;
     }
 

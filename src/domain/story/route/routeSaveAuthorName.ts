@@ -31,7 +31,7 @@ export default function routeSaveAuthorName(
       if (!parseResult.success) {
         log.warn({ parseResult }, "Bad request when saving author name");
 
-        res.status(400).json(errorCodedContext(ErrorCodes.Bad_Request));
+        res.status(400).json(errorCodedContext(ErrorCodes.BadRequest));
         return;
       }
 
@@ -43,7 +43,7 @@ export default function routeSaveAuthorName(
           "Rejecting attempt to change the name of another author",
         );
 
-        res.status(400).json(errorCodedContext(ErrorCodes.Bad_Request));
+        res.status(400).json(errorCodedContext(ErrorCodes.BadRequest));
         return;
       }
 

@@ -31,7 +31,7 @@ function routeSaveStoryTitle(
       if (!parseResult.success) {
         log.warn({ parseResult }, "Bad request when saving story title");
 
-        res.status(400).json(errorCodedContext(ErrorCodes.Bad_Request));
+        res.status(400).json(errorCodedContext(ErrorCodes.BadRequest));
         return;
       }
 

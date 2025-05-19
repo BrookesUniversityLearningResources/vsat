@@ -19,7 +19,7 @@ export default function routeDeleteStory(
     });
 
     if (!parseResult.success) {
-      res.status(400).json(errorCodedContext(ErrorCodes.Bad_Request));
+      res.status(400).json(errorCodedContext(ErrorCodes.BadRequest));
       return;
     }
 

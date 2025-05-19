@@ -73,7 +73,11 @@ export default async function createApp(): Promise<[StartServer, Logger]> {
 
   const apiRoutes = [
     routeCreateStory(log, repositoryStory.createStory),
-    routeCreateScene(repositoryScene.createScene, assertIsAuthorOfTheStory),
+    routeCreateScene(
+      log,
+      repositoryScene.createScene,
+      assertIsAuthorOfTheStory,
+    ),
     routeGetStory(repositoryStory.getStory, assertIsAuthorOfTheStory),
     routeGetScene(repositoryScene.getScene, assertIsAuthorOfTheStory),
     routeUploadSceneImage(

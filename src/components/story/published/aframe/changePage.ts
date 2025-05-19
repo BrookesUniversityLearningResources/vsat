@@ -3,10 +3,10 @@ import findSceneById from "@domain/story/publish/support/findSceneById.js";
 import isWithinScene from "@domain/story/publish/support/isWithinScene.js";
 import openingPageFor from "@domain/story/publish/support/openingPage.js";
 import type {
-  PublishedScene,
-  PublishedStory,
   LinkTarget,
   Page,
+  PublishedScene,
+  PublishedStory,
 } from "@domain/story/publish/types.js";
 
 export type ChangeToPage = Readonly<{
@@ -20,7 +20,7 @@ export type ChangeToPage = Readonly<{
    * to change to that other scene.
    *
    * If the page being turned _to_ is in the same (current) scene then this'll
-   * be `undefined`. (There's no need to change the scene.)
+   * be `undefined`. (Indicating that there's no change of scene required.)
    */
   toScene?: PublishedScene;
 }>;

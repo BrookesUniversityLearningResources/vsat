@@ -67,3 +67,22 @@ declare namespace App {
     user?: import("./authentication/types.js").User;
   }
 }
+
+interface Window {
+  /**
+   * three.js is available as a global object on the window.
+   *
+   * @see [API](https://aframe.io/docs/1.7.0/introduction/developing-with-threejs.html#accessing-the-three-js-api)
+   */
+  AFRAME: import("aframe").AFrame;
+
+  /**
+   * These _current_ states are used—and only available—in the VR view of a
+   * published story.
+   */
+  current: {
+    story: import("./domain/story/publish/types").PublishedStory;
+    scene: import("./domain/story/publish/types").PublishedScene;
+    page: import("./domain/story/publish/types").Page;
+  };
+}

@@ -1,0 +1,223 @@
+---
+import type { PublishedStory } from "@domain/story/publish/types";
+
+type Props = {
+  story: PublishedStory;
+};
+
+const { story } = Astro.props;
+---
+
+{/* Dump the entire story so that it's available on the client-side */}
+<script set:html={`window.current = { story: ${JSON.stringify(story)}}`} />
+
+<script>
+  import {
+    isHeadingBlock,
+    isLinkBlock,
+    isPlaintextBlock,
+  } from "@domain/story/publish/support/isBlock";
+  import openingPageFor from "@domain/story/publish/support/openingPage";
+  import openingSceneFor from "@domain/story/publish/support/openingScene";
+  import type { LinkTarget } from "@domain/story/publish/types";
+
+  import changePage from "./changePage";
+  import { EVENT_LINK_ACTIVATED } from "./linkActivated";
+  import type { Current } from "./types";
+
+  AFRAME.registerComponent("story", {
+    init: function () {
+      window.current.scene = openingSceneFor(window.current.story);
+      window.current.page = openingPageFor(window.current.scene);
+
+      this.render(window.current);
+    },
+    events: {
+      [EVENT_LINK_ACTIVATED]: function (e: CustomEvent<LinkTarget>) {
+        const link = e.detail;
+
+        const change = changePage(window.current.story)(
+          link,
+          window.current.scene,
+        );
+
+        if (change) {
+          window.current.page = change.toPage;
+
+          if (change.toScene) {
+            window.current.scene = change.toScene;
+          }
+
+          this.render(window.current);
+        }
+      },
+      pointermove: function () {
+        const sound = this.el.components.sound;
+        if (!sound?.isPlaying) {
+          sound.playSound();
+        }
+      },
+    },
+    render: function (current: Current) {
+      const sky = document.querySelector("a-sky");
+      if (sky) {
+        if (current.scene.image) {
+          sky.setAttribute("src", `#image-${current.scene.image.id}`);
+        } else {
+          sky.removeAttribute("src");
+        }
+      }
+
+      const existingSound = this.el.components.sound;
+      if (existingSound?.isPlaying) {
+        existingSound.stopSound();
+      }
+      if (current.scene.audio) {
+        this.el.setAttribute(
+          "sound",
+          `src: #audio-${current.scene.audio.id}; autoplay: false; positional: false`,
+        );
+      } else {
+        this.el.removeAttribute("sound");
+      }
+
+      const fiction = document.getElementById("fiction");
+      if (fiction) {
+        removeAllChildNodes(fiction);
+
+        const heading = (() => {
+          const text = current.page.content.find(isHeadingBlock)?.text;
+
+          const entity = document.createElement("a-text");
+          entity.setAttribute("block-heading", `text: ${text}`);
+          entity.setAttribute("position", "0 3 0.25");
+
+          return entity;
+        })();
+
+        const content = (() => {
+          const text = current.page.content
+            .filter(isPlaintextBlock)
+            .map((block) => block.text)
+            .join("\n\n");
+
+          const entity = document.createElement("a-entity");
+          entity.setAttribute("block-plaintext", `text: ${text}`);
+          entity.setAttribute("position", "0 0.65 0");
+
+          return entity;
+        })();
+
+        const links = (() => {
+          const linkBlocks = current.page.content.filter(isLinkBlock);
+
+          const elements = linkBlocks.map((block, count) => {
+            const entity = document.createElement("a-entity");
+            entity.setAttribute(
+              "block-link",
+              `text: ${block.text}; link: ${block.link}`,
+            );
+            entity.setAttribute("position", `0 ${-(count + 2)} 0.25`);
+
+            return entity;
+          });
+
+          return elements;
+        })();
+
+        fiction.appendChild(heading);
+        fiction.appendChild(content);
+        links.forEach((link) => fiction.appendChild(link));
+      }
+    },
+  });
+
+  AFRAME.registerComponent("block-heading", {
+    schema: {
+      text: { type: "string", default: "" },
+    },
+    init: function () {
+      const theText = document.createElement("a-troika-text");
+      theText.setAttribute("value", this.data.text);
+      theText.setAttribute("font-size", "0.25");
+      theText.setAttribute("anchor", "left");
+      theText.setAttribute("position", "-3 0 0.3");
+
+      const theBackground = document.createElement("a-box");
+      theBackground.setAttribute("class", "clickable");
+      theBackground.setAttribute("color", "#2C3E50");
+      theBackground.setAttribute("width", "7");
+      theBackground.setAttribute("height", "1");
+      theBackground.setAttribute("depth", "0.25");
+
+      this.el.appendChild(theText);
+      this.el.appendChild(theBackground);
+    },
+  });
+
+  AFRAME.registerComponent("block-plaintext", {
+    schema: {
+      text: { type: "string", default: "" },
+    },
+    init: function () {
+      const theText = document.createElement("a-troika-text");
+      theText.setAttribute("value", this.data.text);
+      theText.setAttribute("color", "#2C3E50");
+      theText.setAttribute("anchor", "left");
+      theText.setAttribute("align", "left");
+      theText.setAttribute("max-width", "5.5");
+      theText.setAttribute("line-height", "2");
+      theText.setAttribute("position", "-2.85 0 0.3");
+
+      const numberOfLines = Math.max(Math.trunc(this.data.text.length / 50), 1);
+      const numberOfNewlines = this.data.text.matchAll(/\n/g).toArray().length;
+      const lineCount = numberOfLines + numberOfNewlines;
+      const height = lineCount == 1 ? 1.75 : (lineCount - 1) * 0.85;
+
+      const theBackground = document.createElement("a-box");
+      theBackground.setAttribute("color", "#FBEEE6");
+      theBackground.setAttribute("width", "6.5");
+      theBackground.setAttribute("height", height);
+      theBackground.setAttribute("depth", "0.25");
+
+      this.el.appendChild(theText);
+      this.el.appendChild(theBackground);
+    },
+  });
+
+  AFRAME.registerComponent("block-link", {
+    schema: {
+      text: { type: "string", default: "" },
+      link: { type: "string", default: "" },
+    },
+    init: function () {
+      const theText = document.createElement("a-troika-text");
+      theText.setAttribute("value", this.data.text);
+      theText.setAttribute("data-raycastable", "");
+      theText.setAttribute("color", "#ecf0f1");
+      theText.setAttribute("position", "-2 0 0.3");
+
+      const theButton = document.createElement("a-box");
+      theButton.setAttribute("color", "#2980b9");
+      theButton.setAttribute("width", "7");
+      theButton.setAttribute("height", "0.9");
+      theButton.setAttribute("depth", "0.25");
+      theButton.setAttribute("event-set__mouseenter", "color: #2E8ECE");
+      theButton.setAttribute("event-set__mouseleave", "color: #2980b9");
+
+      this.el.appendChild(theText);
+      this.el.appendChild(theButton);
+    },
+    events: {
+      click: function () {
+        this.el.emit("linkactivated", this.data.link);
+      },
+    },
+  });
+
+  function removeAllChildNodes(parent: Node) {
+    while (parent.firstChild) {
+      parent.removeChild(parent.firstChild);
+    }
+  }
+</script>

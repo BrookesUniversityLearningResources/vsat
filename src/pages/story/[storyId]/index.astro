@@ -1,5 +1,5 @@
 ---
-import PublishedStory from "@components/story/published/PublishedStory";
+import PublishedStory from "@components/story/published/PublishedStory.astro";
 import { ErrorCodes } from "@domain/error/errorCode";
 import toStoryId from "@domain/story/toStoryId";
 
@@ -18,11 +18,6 @@ const story = await repositoryStory.getPublishedStory(storyId);
 if (!story) {
   return Astro.redirect(`/author/story?err=${ErrorCodes.StoryNotFound}`);
 }
-
-const translations = i18n.getTranslationsForPage({
-  locale: Astro.preferredLocale,
-  page: "site-story",
-});
 ---
 
 <!doctype html>
@@ -40,14 +35,20 @@ const translations = i18n.getTranslationsForPage({
       })}
     />
     <link rel="stylesheet" href="/styles/site-public.css" />
+    <script
+      src="https://aframe.io/releases/1.7.0/aframe.min.js"
+      is:inline
+      crossorigin="anonymous"></script>
+    <script
+      src="https://unpkg.com/aframe-event-set-component@5.0.0/dist/aframe-event-set-component.min.js"
+      is:inline
+      crossorigin="anonymous"></script>
+    <script
+      src="https://unpkg.com/aframe-troika-text/dist/aframe-troika-text.min.js"
+      is:inline
+      crossorigin="anonymous"></script>
   </head>
-  <body>
-    <main>
-      <PublishedStory
-        story={story}
-        translations={translations}
-        client:only="react"
-      />
-    </main>
-  </body>
 </html>
+<body>
+  <PublishedStory story={story} />
+</body>

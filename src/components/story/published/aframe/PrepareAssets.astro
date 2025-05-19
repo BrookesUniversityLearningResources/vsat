@@ -1,0 +1,48 @@
+---
+import type {
+  PublishedScene,
+  PublishedStory,
+} from "@domain/story/publish/types";
+
+type Props = {
+  story: PublishedStory;
+  openingScene: PublishedScene;
+};
+
+const { story, openingScene } = Astro.props;
+---
+
+{/* @see https://aframe.io/docs/1.7.0/core/asset-management-system.html */}
+<a-assets>
+  {
+    story.scenes
+      .filter((scene) => scene.audio)
+      .map((scene) => {
+        const audioId = `audio-${scene.audio!.id}`;
+        if (scene.id === openingScene.id) {
+          return (
+            <audio
+              id={audioId}
+              src={scene.audio!.url}
+              autoplay="true"
+              crossorigin="anonymous"
+            />
+          );
+        }
+        return (
+          <audio id={audioId} src={scene.audio!.url} crossorigin="anonymous" />
+        );
+      })
+  }
+  {
+    story.scenes
+      .filter((scene) => scene.image)
+      .map((scene) => (
+        <img
+          id={`image-${scene.image!.id}`}
+          src={scene.image!.url}
+          crossorigin="anonymous"
+        />
+      ))
+  }
+</a-assets>

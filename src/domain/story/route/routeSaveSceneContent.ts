@@ -31,7 +31,7 @@ function routeSaveSceneContent(
       if (!parseResult.success) {
         log.warn({ parseResult }, "Bad request when saving scene content");
 
-        res.status(400).json(errorCodedContext(ErrorCodes.Bad_Request));
+        res.status(400).json(errorCodedContext(ErrorCodes.BadRequest));
         return;
       }
 

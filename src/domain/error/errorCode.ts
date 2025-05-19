@@ -22,7 +22,7 @@ export const ErrorCodes = Object.freeze({
    * To be used when an (API) request receives a bad request and there's no
    * other more suitable error code.
    */
-  Bad_Request: 2,
+  BadRequest: 2,
 
   /**
    * To be used when an (API) request lacks the proper authorization.
