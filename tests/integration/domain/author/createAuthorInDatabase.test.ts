@@ -1,21 +1,18 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 
-import { PostgreSqlContainer } from "@testcontainers/postgresql";
-
 import createAuthorInDatabase from "@domain/author/createAuthorInDatabase.js";
 import {
   type IntegrationTestEnvironment,
   getEnvironment,
 } from "tests/integration/getEnvironment";
+import createPostgreSqlContainer from "tests/integration/support/container";
 
 describe("createAuthorInDatabase", () => {
   let environment: IntegrationTestEnvironment;
 
   before(async () => {
-    const container = await new PostgreSqlContainer(
-      "postgres:13.3-alpine",
-    ).start();
+    const container = await createPostgreSqlContainer().start();
 
     environment = await getEnvironment(container.getConnectionUri());
   });
