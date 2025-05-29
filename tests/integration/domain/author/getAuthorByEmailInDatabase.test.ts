@@ -13,7 +13,9 @@ describe("getAuthorByEmailInDatabase", () => {
   let environment: IntegrationTestEnvironment;
 
   before(async () => {
-    const container = await new PostgreSqlContainer().start();
+    const container = await new PostgreSqlContainer(
+      "postgres:13.3-alpine",
+    ).start();
 
     environment = await getEnvironment(container.getConnectionUri());
   });
