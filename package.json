@@ -50,7 +50,7 @@
     "kysely": "^0.28.2",
     "magic-sdk": "^29.0.6",
     "micromatch": "^4.0.8",
-    "multer": "^1.4.5-lts.2",
+    "multer": "^2.0.0",
     "passport": "^0.7.0",
     "passport-magic": "^1.0.0",
     "pg": "^8.16.0",
