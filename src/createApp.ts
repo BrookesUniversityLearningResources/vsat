@@ -5,6 +5,7 @@ import type { Logger } from "pino";
 import authenticationRequired from "./authentication/authenticationRequired.js";
 import passportWithMagicLogin from "./authentication/passport/passportWithMagicLogin.js";
 import routeAuthenticate from "./authentication/routeAuthenticate.js";
+import routeLogout from "./authentication/routeLogout.js";
 import routeCreateScene from "./domain/story/route/routeCreateScene.js";
 import routeCreateStory from "./domain/story/route/routeCreateStory.js";
 import routeDeleteScene from "./domain/story/route/routeDeleteScene.js";
@@ -140,6 +141,7 @@ export default async function createApp(): Promise<[StartServer, Logger]> {
   const routes = [
     routeHealthcheck(log),
     routeAuthenticate(log, passport.authenticate("magic")),
+    routeLogout(log),
     apiRoutes,
   ];
 

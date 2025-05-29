@@ -3,3 +3,13 @@
   grid-template-columns: 3fr 1fr;
   color: var(--color-text);
 }
+
+.actionBar {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+
+  a {
+    color: var(--color-text);
+  }
+}

@@ -218,65 +218,69 @@ const StoryHeader: FC<StoryHeaderProps> = ({
         <h1>{t("title.label", { title: story.title })}</h1>
       </InlineTextInput>
 
-      <div className={styles.actionBar}>
-        <a href="/author/story/">{t("action.back-to-my-stories.label")}</a>
-        <div className={styles.toolbar}>
-          <button
-            type="button"
-            onClick={onPublishStory}
-            disabled={publishStoryDisabled}
-          >
-            <img
-              src="/images/publish.svg"
-              alt={t("action.publish-story.label")}
-              title={t("action.publish-story.label")}
-            />
-          </button>
-          <button
-            type="button"
-            onClick={onUnpublishStory}
-            disabled={unpublishStoryDisabled}
-          >
-            <img
-              src="/images/unpublish.svg"
-              alt={t("action.unpublish-story.label")}
-              title={t("action.unpublish-story.label")}
-            />
-          </button>
-          <button
-            type="button"
-            onClick={onDeleteStory}
-            disabled={deleteTheStory.isPending}
-          >
-            <img
-              src="/images/delete.svg"
-              alt={t("action.delete-story.label")}
-              title={t("action.delete-story.label")}
-            />
-          </button>
-          <button
-            type="button"
-            onClick={onPreviewStory}
-            disabled={previewStoryDisabled}
-          >
-            <img
-              src="/images/preview-24.svg"
-              alt={t("action.preview-story.label")}
-              title={t("action.preview-story.label")}
-            />
-          </button>
-          <button
-            type="button"
-            onClick={onCreateScene}
-            disabled={createTheScene.isPending}
-          >
-            <img
-              src="/images/add.svg"
-              alt={t("action.create-scene.label")}
-              title={t("action.create-scene.label")}
-            />
-          </button>
+      <div>
+        <div className={styles.actionBar}>
+          <a href="/author/story/">{t("action.back-to-my-stories.label")}</a>
+          <div className={styles.toolbar}>
+            <button
+              type="button"
+              onClick={onPublishStory}
+              disabled={publishStoryDisabled}
+            >
+              <img
+                src="/images/publish.svg"
+                alt={t("action.publish-story.label")}
+                title={t("action.publish-story.label")}
+              />
+            </button>
+            <button
+              type="button"
+              onClick={onUnpublishStory}
+              disabled={unpublishStoryDisabled}
+            >
+              <img
+                src="/images/unpublish.svg"
+                alt={t("action.unpublish-story.label")}
+                title={t("action.unpublish-story.label")}
+              />
+            </button>
+            <button
+              type="button"
+              onClick={onDeleteStory}
+              disabled={deleteTheStory.isPending}
+            >
+              <img
+                src="/images/delete.svg"
+                alt={t("action.delete-story.label")}
+                title={t("action.delete-story.label")}
+              />
+            </button>
+            <button
+              type="button"
+              onClick={onPreviewStory}
+              disabled={previewStoryDisabled}
+            >
+              <img
+                src="/images/preview-24.svg"
+                alt={t("action.preview-story.label")}
+                title={t("action.preview-story.label")}
+              />
+            </button>
+            <button
+              type="button"
+              onClick={onCreateScene}
+              disabled={createTheScene.isPending}
+            >
+              <img
+                src="/images/add.svg"
+                alt={t("action.create-scene.label")}
+                title={t("action.create-scene.label")}
+              />
+            </button>
+          </div>
         </div>
+
+        <a href="/logout">{t("common.logout.label")}</a>
       </div>
     </div>
   );

@@ -80,7 +80,11 @@ const StoriesHeader: FC<StoriesHeaderProps> = ({
         <h1>{t("heading", { authorName })}</h1>
       </InlineTextInput>
 
-      {showCreateStory && <CreateStory />}
+      <div className={styles.actionBar}>
+        {showCreateStory && <CreateStory />}
+
+        <a href="/logout">{t("common.logout.label")}</a>
+      </div>
     </div>
   );
 };

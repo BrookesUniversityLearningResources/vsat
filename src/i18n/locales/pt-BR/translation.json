@@ -261,6 +261,10 @@
     "close": "Close",
     "loading": {
       "text": "Loading…"
-    }
+    },
+    "logout": {
+      "label": "Log out"
+    },
+    "copyright": "Copyright © 2025 Oxford Brookes University • Learning Resources"
   }
 }
