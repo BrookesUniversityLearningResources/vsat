@@ -4,13 +4,13 @@ import { describe, test } from "node:test";
 import countLines from "@domain/story/publish/support/countLines.js";
 
 describe("countLines", () => {
-  test.skip("given a short single line" + " then the line count is 1", () => {
+  test("given a short single line then the line count is 1", () => {
     const lineCount = countLines("Introduction");
 
     assert.equal(lineCount, 1);
   });
 
-  test.skip(
+  test(
     "given a single line that is at the default MAX_CHARS_PER_LINE" +
       " then the line count is 1",
     () => {

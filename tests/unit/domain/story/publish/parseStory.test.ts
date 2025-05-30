@@ -706,6 +706,10 @@ describe("parseStory", () => {
             errorCode: ErrorCodes.MalformedLink,
             reason:
               'Error parsing scene "Introduction" at line #9: "Link doesn\'t have any text"',
+            line: {
+              number: 9,
+              text: "[ ](the erudite colleague)",
+            },
           },
         ],
       };
@@ -847,6 +851,10 @@ describe("parseStory", () => {
             errorCode: ErrorCodes.MalformedLink,
             reason:
               'Error parsing scene "Introduction" at line #9: "Link doesn\'t have a target"',
+            line: {
+              number: 9,
+              text: "[The colleague](  )",
+            },
           },
         ],
       };

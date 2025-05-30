@@ -3,7 +3,7 @@ import { describe, test } from "node:test";
 
 import parseLinkTarget from "@domain/story/publish/parse/parseLinkTarget.js";
 
-describe("parseTarget", () => {
+describe("parseLinkTarget", () => {
   test("given 'introduction' then the target is 'introduction'", () => {
     const input = "introduction";
 

@@ -54,3 +54,5 @@ export type ParseBlock =
   | ParseError;
 
 export type Parse = (text: string, lineNumber: number) => ParseBlock;
+
+export const nothing: Nothing = Object.freeze({ kind: "nothing" });

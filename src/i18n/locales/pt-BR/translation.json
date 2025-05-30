@@ -165,6 +165,42 @@
               "prompt": "Delete this scene?"
             }
           }
+        },
+        "fiction": {
+          "error": {
+            "code": {
+              "6": {
+                "headline": "The link is malformed",
+                "howtofix": "A well-formed link consists of two parts: the text that the reader will see (in square brackets) followed by the name of the thing being linked to (in round brackets).",
+                "example": "[Unlock the chest](unlock-chest)"
+              },
+              "22": {
+                "headline": "The header is missing a name after the pipe",
+                "howtofix": "Add a name for the header after the pipe | character.",
+                "example": "# The treasure chest | chest-01"
+              },
+              "23": {
+                "headline": "The link delimiters are the wrong way around",
+                "howtofix": "Swap the link delimiters: it's [text](name) not (text)[name].",
+                "example": "[Unlock the chest](unlock-chest)"
+              },
+              "24": {
+                "headline": "The link is missing a closing round bracket",
+                "howtofix": "Add a ) at the end of the line to close the link.",
+                "example": "[Unlock the chest](unlock-chest)"
+              },
+              "25": {
+                "headline": "The header is missing",
+                "howtofix": "Add some text after the #",
+                "example": "# In the beginning"
+              },
+              "26": {
+                "headline": "The link is malformed",
+                "howtofix": "Add some text and a name to fix this link.",
+                "example": "[Unlock the chest](unlock-chest)"
+              }
+            }
+          }
         }
       },
       "notify": {
@@ -251,6 +287,14 @@
       "meta": {
         "title": "{{title}} • VSAT",
         "description": "A story by {{author}}"
+      },
+      "action": {
+        "exit-story": {
+          "label": "Exit"
+        },
+        "fullscreen-enter": {
+          "label": "Fullscreen"
+        }
       }
     }
   },

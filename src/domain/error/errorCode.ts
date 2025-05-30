@@ -47,6 +47,11 @@ export const ErrorCodes = Object.freeze({
   UnableToPublishStory: 19,
   ErrorSavingAuthorName: 20,
   MustBeLoggedIn: 21,
+  ParseErrorHeaderNeedsName: 22,
+  ParseErrorLinkDelimetersSwapped: 23,
+  ParseErrorLinkNotClosed: 24,
+  ParseErrorHeaderNeedsText: 25,
+  ParseErrorLinkEmpty: 26,
 } as const);
 
 export const ErrorCodeModel = z.nativeEnum(ErrorCodes);

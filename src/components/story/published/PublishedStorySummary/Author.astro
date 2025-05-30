@@ -1,8 +1,8 @@
 ---
-import type { Author } from "@domain/index";
+import type { PublishedStorySummary } from "@domain/index";
 
 type Props = {
-  author: Author;
+  author: PublishedStorySummary["author"];
 };
 
 const { author } = Astro.props;

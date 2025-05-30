@@ -1,0 +1,5 @@
+.blockLink {
+  color: var(--color-link);
+  text-decoration: underline;
+  margin-top: 0.5rem;
+}
