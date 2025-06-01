@@ -64,7 +64,7 @@
     "slate-history": "^0.113.1",
     "slate-react": "^0.114.2",
     "sweetalert2": "^11.21.0",
-    "zod": "^3.25.36"
+    "zod": "^3.25.45"
   },
   "devDependencies": {
     "@biomejs/biome": "1.9.4",
