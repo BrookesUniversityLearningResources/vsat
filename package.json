@@ -73,7 +73,7 @@
     "@types/aframe": "^1.2.8",
     "@types/config": "^3.3.5",
     "@types/connect-pg-simple": "^7.0.3",
-    "@types/express": "^5.0.2",
+    "@types/express": "^5.0.3",
     "@types/micromatch": "^4.0.9",
     "@types/multer": "^1.4.12",
     "@types/node": "^22.15.24",
