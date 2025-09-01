@@ -38,7 +38,7 @@
     "@fontsource/source-sans-pro": "^5.2.5",
     "@magic-sdk/admin": "^2.4.1",
     "@tanstack/react-query": "^5.85.5",
-    "astro": "^5.13.4",
+    "astro": "^5.13.5",
     "astro-icon": "^1.1.5",
     "cloudinary": "^2.7.0",
     "config": "^4.1.1",
