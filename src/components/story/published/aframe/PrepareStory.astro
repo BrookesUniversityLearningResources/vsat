@@ -162,6 +162,7 @@ const { story } = Astro.props;
       theBackground.setAttribute("width", "7");
       theBackground.setAttribute("height", "1");
       theBackground.setAttribute("depth", "0.25");
+      theBackground.setAttribute("opacity", "0.75");
 
       this.el.appendChild(theBackground);
       this.el.appendChild(theText);
@@ -206,6 +207,7 @@ const { story } = Astro.props;
       const theButton = document.createElement("a-box");
       theButton.setAttribute("width", "7");
       theButton.setAttribute("depth", "0.25");
+      theButton.setAttribute("opacity", "0.75");
       theButton.setAttribute("color", colorButtonNeutral);
       theButton.setAttribute("event-set__mouseenter", "color: #3C5976");
       theButton.setAttribute(
