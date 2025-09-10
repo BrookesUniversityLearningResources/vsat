@@ -4,6 +4,15 @@ import type { Logger } from "pino";
 import type { Image } from "../../index.js";
 import type { UploadImage } from "../types.js";
 
+/**
+ * The width that uploaded images will be scaled to.
+ *
+ * The height will be scaled accordingly to preserve the aspect ratio.
+ *
+ * @see [Scaling](https://cloudinary.com/documentation/resizing_and_cropping#scale)
+ */
+const SCALED_WIDTH = 2500;
+
 const THUMBNAIL_WIDTH = 288;
 const THUMBNAIL_HEIGHT = 192;
 
@@ -21,6 +30,11 @@ export default function uploadImageToCloudinary(log: Logger): UploadImage {
             {
               width: THUMBNAIL_WIDTH,
               height: THUMBNAIL_HEIGHT,
+            },
+            {
+              // paired with the `scaledUrl` function below
+              crop: "scale",
+              width: SCALED_WIDTH,
             },
           ],
         },
@@ -44,7 +58,7 @@ export default function uploadImageToCloudinary(log: Logger): UploadImage {
           const url = result.secure_url;
 
           const image: Image = {
-            url,
+            url: scaledUrl(url),
             thumbnailUrl: thumbnailUrl(url),
           };
 
@@ -54,6 +68,14 @@ export default function uploadImageToCloudinary(log: Logger): UploadImage {
         },
       ).end(data);
     });
+}
+
+/**
+ * Tweak the URL so that Cloudinary will automatically scale it to a reasonable
+ * size when we're displaying the image in the VR scene.
+ */
+function scaledUrl(url: string): string {
+  return url.replace(/image\/upload/, `image/upload/c_scale,w_${SCALED_WIDTH}`);
 }
 
 type ThumbnailDimensions = {

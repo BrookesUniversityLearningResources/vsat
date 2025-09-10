@@ -1,4 +1,5 @@
 import type { Logger } from "pino";
+import sharp from "sharp";
 
 import type {
   GetDatabase,
@@ -24,7 +25,9 @@ export default function saveSceneImage(
 
     const name = imageName(request.storyId, request.sceneId);
 
-    const { url, thumbnailUrl } = await uploadImage(name, request.data);
+    const data = await sharp(request.data).resize({ width: 2500 }).toBuffer();
+
+    const { url, thumbnailUrl } = await uploadImage(name, data);
 
     const image = await saveImage({
       url,
