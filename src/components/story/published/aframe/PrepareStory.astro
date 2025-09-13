@@ -25,6 +25,50 @@ const { story } = Astro.props;
   import { EVENT_LINK_ACTIVATED } from "./linkActivated";
   import type { Current } from "./types";
 
+  /**
+   * The maximum width of the text (fiction) content.
+   */
+  const MAX_WIDTH = 6;
+
+  /**
+   * The y-position where the fiction starts.
+   *
+   * * the heading
+   * * then the (plaintext) content
+   * * then the links (exits), if any
+   *
+   * The `y` value for each of the above is relative to this value.
+   */
+  const FICTION_Y = 5;
+
+  /**
+   * How much the "bump" text forward from a background so that it can be read.
+   *
+   * If the text is flush with a background it introduces odd artifacts when
+   * moving around in the scene.
+   */
+  const FICTION_TEXT_Z = 0.25;
+
+  const OPACITY = 0.75;
+
+  const THEME = Object.freeze({
+    color: {
+      primary: {
+        background: "#2C3E50",
+        text: "white",
+      },
+      fiction: {
+        background: "#FBEEE6",
+        text: "#2C3E50",
+      },
+      link: {
+        background: "#2C3E50",
+        backgroundActive: "#3C5976",
+        text: "white",
+      },
+    },
+  });
+
   AFRAME.registerComponent("story", {
     init: function () {
       window.current.scene = openingSceneFor(window.current.story);
@@ -88,50 +132,43 @@ const { story } = Astro.props;
         const heading = (() => {
           const text = current.page.content.find(isHeadingBlock)?.text;
 
-          const entity = document.createElement("a-text");
+          const entity = document.createElement("a-box");
           entity.setAttribute("block-heading", `text: ${text}`);
-          entity.setAttribute("layout", "type: box; plane: yz; margin: 0.25;");
 
           return entity;
         })();
 
-        const content = (() => {
+        const [content, lineCount] = (() => {
           const text = current.page.content
             .filter(isPlaintextBlock)
             .map((block) => block.text)
             .join("\n\n");
 
+          const lineCount = countLines(text);
+
           const entity = document.createElement("a-entity");
-          entity.setAttribute("block-plaintext", `text: ${text}`);
-          entity.setAttribute("layout", "type: box; plane: yz; margin: 0.25;");
+          entity.setAttribute(
+            "block-plaintext",
+            `text: ${text}; lineCount: ${lineCount}`,
+          );
 
-          /*
-           * We need to calculate the height dynamically, 'cos it might be long
-           * enough to wrap across multiple lines.
-           */
-          const numberOfLines = Math.max(Math.trunc(text.length / 50), 1);
-          const numberOfNewlines = text.matchAll(/\n/g).toArray().length;
-          const lineCount = numberOfLines + numberOfNewlines;
-          const height = lineCount == 1 ? 1.75 : (lineCount - 1) * 0.85;
-
-          entity.setAttribute("height", height);
-
-          return entity;
+          return [entity, lineCount];
         })();
 
         const links = (() => {
           const linkBlocks = current.page.content.filter(isLinkBlock);
 
-          const elements = linkBlocks.map((block) => {
+          const height = lineCount == 1 ? 1 : 1 + lineCount * 0.25;
+
+          const elements = linkBlocks.map((block, index) => {
             const entity = document.createElement("a-entity");
             entity.setAttribute(
               "block-link",
               `text: ${block.text}; link: ${block.link}`,
             );
-            entity.setAttribute(
-              "layout",
-              "type: box; plane: yz; margin: 0.25;",
-            );
+
+            const y = FICTION_Y - height - (index + 1);
+            entity.setAttribute("position", `0 ${y} 0`);
 
             return entity;
           });
@@ -146,25 +183,42 @@ const { story } = Astro.props;
     },
   });
 
+  function countLines(text: string): number {
+    const MAX_CHARS_PER_LINE = 50;
+
+    const wrappedLines = Math.max(
+      Math.trunc(text.length / MAX_CHARS_PER_LINE),
+      1,
+    );
+
+    const newlines = text.matchAll(/\n/g).toArray().length;
+
+    // we add one so that we always have at least 2 lines;
+    // this gives the text content some room to breathe.
+    return wrappedLines + newlines + 1;
+  }
+
   AFRAME.registerComponent("block-heading", {
     schema: {
       text: { type: "string", default: "" },
     },
     init: function () {
+      this.el.setAttribute("class", "clickable");
+      this.el.setAttribute("color", THEME.color.primary.background);
+      this.el.setAttribute("width", MAX_WIDTH + 1);
+      this.el.setAttribute("depth", FICTION_TEXT_Z);
+      this.el.setAttribute("opacity", OPACITY);
+      this.el.setAttribute("position", `0 ${FICTION_Y} 0`);
+
       const theText = document.createElement("a-troika-text");
       theText.setAttribute("value", this.data.text);
       theText.setAttribute("font-size", "0.25");
-      theText.setAttribute("max-width", "6");
+      theText.setAttribute("color", THEME.color.primary.text);
+      theText.setAttribute("max-width", MAX_WIDTH);
+      theText.setAttribute("anchor", "left");
+      theText.setAttribute("baseline", "top");
+      theText.setAttribute("position", `-${MAX_WIDTH / 2} 0 0.5`);
 
-      const theBackground = document.createElement("a-box");
-      theBackground.setAttribute("class", "clickable");
-      theBackground.setAttribute("color", "#2C3E50");
-      theBackground.setAttribute("width", "7");
-      theBackground.setAttribute("height", "1");
-      theBackground.setAttribute("depth", "0.25");
-      theBackground.setAttribute("opacity", "0.75");
-
-      this.el.appendChild(theBackground);
       this.el.appendChild(theText);
     },
   });
@@ -172,19 +226,38 @@ const { story } = Astro.props;
   AFRAME.registerComponent("block-plaintext", {
     schema: {
       text: { type: "string", default: "" },
+      lineCount: { type: "number", default: "1" },
     },
     init: function () {
-      const theText = document.createElement("a-troika-text");
-      theText.setAttribute("value", this.data.text);
-      theText.setAttribute("color", "#2C3E50");
-      theText.setAttribute("max-width", "5.5");
-      theText.setAttribute("line-height", "2");
+      this.el.setAttribute("position", `0 ${FICTION_Y - 1} 0`);
 
-      const theBackground = document.createElement("a-box");
-      theBackground.setAttribute("color", "#FBEEE6");
-      theBackground.setAttribute("width", "7");
-      theBackground.setAttribute("depth", "0.25");
-      theBackground.setAttribute("opacity", "0.75");
+      const height =
+        this.data.lineCount == 1 ? 1 : 1 + this.data.lineCount * 0.25;
+
+      const theText = ((el) => {
+        el.setAttribute("value", this.data.text);
+        el.setAttribute("color", THEME.color.fiction.text);
+        el.setAttribute("max-width", MAX_WIDTH);
+        el.setAttribute("anchor", "left");
+        el.setAttribute("baseline", "top");
+        el.setAttribute("position", `-${MAX_WIDTH / 2} 0 0.5`);
+
+        return el;
+      })(document.createElement("a-troika-text"));
+
+      const theBackground = ((el) => {
+        el.setAttribute("position", `0 -3 0`);
+        el.setAttribute("color", THEME.color.fiction.background);
+        el.setAttribute("width", MAX_WIDTH + 1);
+        el.setAttribute("depth", FICTION_TEXT_Z);
+        el.setAttribute("opacity", OPACITY);
+        el.setAttribute("height", height);
+
+        const y = this.data.lineCount === 1 ? 0 : this.data.lineCount * 0.125;
+        el.setAttribute("position", `0 -${y} 0`);
+
+        return el;
+      })(document.createElement("a-box"));
 
       this.el.appendChild(theBackground);
       this.el.appendChild(theText);
@@ -200,19 +273,24 @@ const { story } = Astro.props;
       const theText = document.createElement("a-troika-text");
       theText.setAttribute("value", this.data.text);
       theText.setAttribute("data-raycastable", "");
-      theText.setAttribute("color", "#ecf0f1");
-
-      const colorButtonNeutral = "#2C3E50";
+      theText.setAttribute("color", THEME.color.link.text);
+      theText.setAttribute("max-width", MAX_WIDTH);
+      theText.setAttribute("anchor", "left");
+      theText.setAttribute("baseline", "top");
+      theText.setAttribute("position", `-${MAX_WIDTH / 2} 0.1 0.5`);
 
       const theButton = document.createElement("a-box");
-      theButton.setAttribute("width", "7");
-      theButton.setAttribute("depth", "0.25");
-      theButton.setAttribute("opacity", "0.75");
-      theButton.setAttribute("color", colorButtonNeutral);
-      theButton.setAttribute("event-set__mouseenter", "color: #3C5976");
+      theButton.setAttribute("width", MAX_WIDTH + 1);
+      theButton.setAttribute("depth", FICTION_TEXT_Z);
+      theButton.setAttribute("opacity", OPACITY);
+      theButton.setAttribute("color", THEME.color.link.background);
+      theButton.setAttribute(
+        "event-set__mouseenter",
+        `color: ${THEME.color.link.backgroundActive}`,
+      );
       theButton.setAttribute(
         "event-set__mouseleave",
-        `color: ${colorButtonNeutral}`,
+        `color: ${THEME.color.link.background}`,
       );
 
       this.el.appendChild(theButton);
