@@ -50,7 +50,7 @@ const createScene: CreateScene = async (storyId) => {
       kind: "sceneCreated",
       scene,
     };
-  } catch (err) {
+  } catch {
     return {
       kind: "error",
       error: {

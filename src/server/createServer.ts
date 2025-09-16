@@ -3,7 +3,7 @@ import type { Server } from "node:http";
 import express, { type RequestHandler } from "express";
 
 import type { ServerConfig } from "../environment/config.js";
-// @ts-ignore See the "outDir" in astro.config.mjs
+// @ts-expect-error See the "outDir" in astro.config.mjs
 import { handler as astroHandler } from "./astro/entry.mjs";
 
 type StartServerResult = {

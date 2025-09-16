@@ -4,16 +4,6 @@
   justify-content: space-between;
 }
 
-div:has(.actionBar) {
-  display: flex;
-  gap: 1rem;
-  align-items: center;
-
-  a {
-    color: var(--color-text);
-  }
-}
-
 .actionBar {
   display: flex;
   align-items: center;
@@ -26,6 +16,16 @@ div:has(.actionBar) {
   }
   a:hover {
     text-decoration: underline;
+  }
+}
+
+div:has(.actionBar) {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+
+  a {
+    color: var(--color-text);
   }
 }
 

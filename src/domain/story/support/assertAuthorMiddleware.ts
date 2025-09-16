@@ -60,7 +60,7 @@ const assertAuthorMiddleware: MiddlewareHandler = async (context, next) => {
       }
 
       return next();
-    } catch (err) {
+    } catch {
       return context.redirect(`/?err=${ErrorCodes.Error}`);
     }
   }

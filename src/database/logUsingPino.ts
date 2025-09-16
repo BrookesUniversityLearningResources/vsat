@@ -1,5 +1,5 @@
 import type { ErrorLogEvent, Logger } from "kysely";
-import pino from "pino";
+import type pino from "pino";
 
 import type { DatabaseLogConfig } from "../environment/config.js";
 

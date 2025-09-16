@@ -3,7 +3,7 @@ import parseLinkTarget from "./parseLinkTarget.js";
 import type { Parse } from "./parseTypes.js";
 
 const parseLink = (): Parse => {
-  const pattern = /^\s*\[(.+)]\s*\(([a-zA-Z \-]+)\)/i;
+  const pattern = /^\s*\[(.+)]\s*\(([a-zA-Z -]+)\)/i;
 
   return (text, lineNumber) => {
     const matches = pattern.exec(text);

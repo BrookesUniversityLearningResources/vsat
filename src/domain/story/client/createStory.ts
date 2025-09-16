@@ -70,7 +70,7 @@ async function createStory(): Promise<CreateStoryResult> {
         kind: "storyCreated",
         url,
       };
-    } catch (err) {
+    } catch {
       console.warn(
         'The "Location" header with the URL of the created story is malformed',
       );

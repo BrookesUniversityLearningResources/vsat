@@ -1,4 +1,4 @@
-import type { FC, FormEventHandler } from "react";
+import { useId, type FC, type FormEventHandler } from "react";
 import { useTranslation } from "react-i18next";
 
 import styles from "./Login.module.css";
@@ -24,16 +24,17 @@ const LoginForm: FC<LoginFormProps> = ({ onLogin, error }) => {
     }
   };
 
+  const idFormHeading = useId();
+
   return (
     <>
-      <h1 id="form-login-heading">{t("heading")}</h1>
+      <h1 id={idFormHeading}>{t("heading")}</h1>
       {error && <div className="error">{t("error")}</div>}
       <form
         method="post"
-        id="form-login"
         className={styles.form}
         onSubmit={onSubmit}
-        aria-labelledby="form-login-heading"
+        aria-labelledby={idFormHeading}
       >
         <label htmlFor="email" className="visually-hidden">
           {t("field.email.label")}
@@ -41,7 +42,6 @@ const LoginForm: FC<LoginFormProps> = ({ onLogin, error }) => {
         <input
           type="email"
           name="email"
-          id="email"
           required
           placeholder={t("field.email.placeholder")}
         />

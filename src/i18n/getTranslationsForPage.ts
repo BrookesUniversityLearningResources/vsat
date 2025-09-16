@@ -31,7 +31,7 @@ export default function getTranslationsForPage(
         locale: fallbackLocale ?? LOCALE_DEFAULT,
         namespace,
       });
-    } catch (err) {
+    } catch {
       // no fallback *shrug*
     }
 
@@ -48,7 +48,7 @@ export default function getTranslationsForPage(
           ? { [fallbackLocale ?? LOCALE_DEFAULT]: fallbackTranslations }
           : {}),
       };
-    } catch (err) {
+    } catch {
       if (!fallbackTranslations) {
         return {};
       }
