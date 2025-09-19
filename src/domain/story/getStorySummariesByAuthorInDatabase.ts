@@ -14,6 +14,7 @@ type Row = {
   authorId: number;
   authorName: string;
   imageThumbnailUrl: string | null;
+  publishedOn: Date | null;
 };
 
 function getStorySummariesByAuthorInDatabase(
@@ -29,12 +30,14 @@ function getStorySummariesByAuthorInDatabase(
       .innerJoin("author", "authorToStory.authorId", "author.id")
       .innerJoin("scene", "scene.storyId", "story.id")
       .leftJoin("image", "scene.imageId", "image.id")
+      .leftJoin("storyPublished", "story.id", "storyPublished.id")
       .select([
         "story.id as storyId",
         "story.title",
         "author.id as authorId",
         "author.name as authorName",
         "image.thumbnailUrl as imageThumbnailUrl",
+        "storyPublished.createdAt as publishedOn",
       ])
       .where("authorToStory.authorId", "=", id)
       .where("scene.isOpeningScene", "=", true)
@@ -82,5 +85,6 @@ function toSummary(row: Row): StorySummary {
     id: row.storyId,
     title: row.title,
     imageUrl: row.imageThumbnailUrl,
+    publishedOn: row.publishedOn,
   };
 }

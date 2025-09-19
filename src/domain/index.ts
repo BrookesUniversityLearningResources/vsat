@@ -166,10 +166,7 @@ export type DeleteSceneAudio = (
   request: DeleteAudioRequest,
 ) => Promise<unknown>;
 
-export type StorySummary = Omit<
-  PersistentStory,
-  "scenes" | "author" | "publishedOn"
-> & {
+export type StorySummary = Omit<PersistentStory, "scenes" | "author"> & {
   imageUrl: Image["thumbnailUrl"] | null;
 };
 

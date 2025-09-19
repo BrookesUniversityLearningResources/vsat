@@ -8,6 +8,7 @@
   display: flex;
   gap: 1rem;
   align-items: center;
+  justify-content: end;
 
   a {
     color: var(--color-text);

@@ -11,18 +11,34 @@ const { stories } = Astro.props;
 ---
 
 <div class="summaries">
-  {
-    stories.map((story) => {
-      return <StorySummary story={story} />;
-    })
-  }
+  <slot name="header">
+    <h3 class="header">Stories</h3>
+  </slot>
+
+  <slot name="blurb" />
+
+  <div class="stories">
+    {stories.map((story) => <StorySummary story={story} />)}
+  </div>
 </div>
 
 <style>
   .summaries {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding-top: 1rem;
+    border-top: 1px dashed var(--color-text);
+  }
+
+  .header,
+  .blurb {
+    color: var(--color-text);
+  }
+
+  .stories {
     display: grid;
     grid-template-columns: 1fr 1fr 1fr;
     gap: 2rem;
-    margin-top: 2rem;
   }
 </style>
