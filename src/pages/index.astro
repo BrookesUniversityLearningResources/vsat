@@ -14,7 +14,6 @@ const { i18n } = Astro.locals.environment<App.WithI18N>();
       <h1>{i18n.t("page.home.heading.label")}</h1>
       <div class="strapline">{i18n.t("page.home.heading.strapline")}</div>
       <div class="cta">
-        <a href="/story/">{i18n.t("page.home.cta.read-stories")}</a>
         <a href="/author/story/">{i18n.t("page.home.cta.start-writing")}</a>
       </div>
     </div>
