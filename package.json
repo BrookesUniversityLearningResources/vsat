@@ -47,7 +47,7 @@
     "express-session": "^1.18.2",
     "i18next": "^25.5.2",
     "i18next-fs-backend": "^2.6.0",
-    "kysely": "^0.28.6",
+    "kysely": "^0.28.7",
     "magic-sdk": "^30.0.0",
     "multer": "^2.0.2",
     "passport": "^0.7.0",
