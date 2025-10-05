@@ -142,6 +142,7 @@ const serializedStory = DOMPurify.sanitize(
       if (fiction) {
         removeAllChildNodes(fiction);
 
+<<<<<<< HEAD
         const heading = (() => {
           const text = current.page.content.find(isHeadingBlock)?.text || "";
 
@@ -172,6 +173,30 @@ const serializedStory = DOMPurify.sanitize(
 
           return [entity, lineCount];
         })();
+=======
+        const heading = (() => {
+          const text = current.page.content.find(isHeadingBlock)?.text ?? "";
+
+          const entity = document.createElement("a-box");
+          entity.setAttribute("block-heading", { text });
+
+          return entity;
+        })();
+
+        const [content, lineCount] = (() => {
+          const text = current.page.content
+            .filter(isPlaintextBlock)
+            .map((block) => block.text)
+            .join("\n\n");
+
+          const lineCount = countLines(text);
+
+          const entity = document.createElement("a-entity");
+          entity.setAttribute("block-plaintext", { text, lineCount });
+
+          return [entity, lineCount];
+        })();
+>>>>>>> 9c1a8ed (Set A-Frame block attributes via objects)
 
         const links = (() => {
           const linkBlocks = current.page.content.filter(isLinkBlock);
@@ -180,10 +205,10 @@ const serializedStory = DOMPurify.sanitize(
 
           const elements = linkBlocks.map((block, index) => {
             const entity = document.createElement("a-entity");
-            entity.setAttribute(
-              "block-link",
-              `text: ${block.text}; link: ${block.link}`,
-            );
+            entity.setAttribute("block-link", {
+              text: block.text,
+              link: block.link,
+            });
 
             const y = FICTION_Y - height - (index + 1);
             entity.setAttribute("position", `0 ${y} 0`);
