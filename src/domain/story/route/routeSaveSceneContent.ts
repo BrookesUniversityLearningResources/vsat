@@ -24,6 +24,7 @@ function routeSaveSceneContent(
       }
 
       const parseResult = SaveSceneContentRequestModel.safeParse({
+        storyId: req.params.storyId,
         sceneId: req.params.sceneId,
         content: req.body,
       });
@@ -35,9 +36,9 @@ function routeSaveSceneContent(
         return;
       }
 
-      const { sceneId, content } = parseResult.data;
+      const { storyId, sceneId, content } = parseResult.data;
 
-      saveSceneContent(sceneId, content)
+      saveSceneContent({ storyId, sceneId, content })
         .then(() => {
           res.status(204).send();
         })
@@ -57,6 +58,7 @@ function routeSaveSceneContent(
 export default routeSaveSceneContent;
 
 export const SaveSceneContentRequestModel = z.object({
+  storyId: z.coerce.number().min(0),
   sceneId: z.coerce.number().min(0),
   content: z.string().trim().min(1),
 });

@@ -15,6 +15,7 @@ function deleteSceneInDatabase(
     return db()
       .deleteFrom("scene")
       .where("scene.id", "=", sceneId)
+      .where("scene.storyId", "=", storyId)
       .returning(["imageId", "audioId"])
       .executeTakeFirstOrThrow();
   };

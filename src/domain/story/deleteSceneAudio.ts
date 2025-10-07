@@ -24,7 +24,7 @@ export default function deleteSceneAudio(
        * "delete this scene (audio)" so that's why we swallow it.
        */
 
-      log.warn({ err, request }, "Failed to delete scene image; swallowing");
+      log.warn({ err, request }, "Failed to delete scene audio; swallowing");
     }
   };
 }

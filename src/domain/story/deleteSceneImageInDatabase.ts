@@ -10,18 +10,19 @@ export default function deleteSceneImageInDatabase(
 ): DeleteSceneImage {
   const deleteImage = deleteImageInDatabase(log, db);
 
-  return async ({ sceneId, imageId }) => {
-    log.debug({ sceneId, imageId }, "Deleting scene's image from DB");
+  return async ({ storyId, sceneId, imageId }) => {
+    log.debug({ storyId, sceneId, imageId }, "Deleting scene's image from DB");
 
     // the scene may already be deleted: we don't care and plough on
     await db()
       .updateTable("scene")
       .set({ imageId: null })
       .where("scene.id", "=", sceneId)
+      .where("scene.storyId", "=", storyId)
       .execute();
 
     await deleteImage(imageId);
 
-    log.debug({ sceneId, imageId }, "Deleted scene's image from DB");
+    log.debug({ storyId, sceneId, imageId }, "Deleted scene's image from DB");
   };
 }

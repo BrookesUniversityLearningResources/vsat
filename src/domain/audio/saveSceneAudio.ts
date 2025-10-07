@@ -36,7 +36,8 @@ export default function saveSceneAudio(
         audioId: audio.id,
       })
       .where("scene.id", "=", request.sceneId)
-      .execute();
+      .where("scene.storyId", "=", request.storyId)
+      .executeTakeFirstOrThrow();
 
     log.debug(
       { storyId: request.storyId, sceneId: request.sceneId, name, audio },

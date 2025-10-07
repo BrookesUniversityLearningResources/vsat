@@ -20,6 +20,7 @@ function saveSceneTitleInDatabase(
         title,
       })
       .where("scene.id", "=", sceneId)
+      .where("scene.storyId", "=", storyId)
       .executeTakeFirstOrThrow();
 
     log.debug({ sceneId, title }, "Saved scene title");

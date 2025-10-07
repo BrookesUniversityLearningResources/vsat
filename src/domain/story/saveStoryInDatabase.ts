@@ -31,17 +31,20 @@ function saveStoryInDatabase(log: Logger, db: GetDatabase): SaveStory {
       .execute();
 
     const scenes = await Promise.all(
-      story.scenes.map((scene) =>
-        db()
+      story.scenes.map((scene) => {
+        const values = {
+          storyId: storyDto.id,
+          title: scene.title,
+          content: scene.content,
+          isOpeningScene: scene.isOpeningScene,
+          imageId: scene.image?.id ?? null,
+          audioId: scene.audio?.id ?? null,
+          ...(scene.id !== undefined ? { id: scene.id } : {}),
+        } as const;
+
+        return db()
           .insertInto("scene")
-          .values({
-            storyId: storyDto.id,
-            title: scene.title,
-            content: scene.content,
-            isOpeningScene: scene.isOpeningScene,
-            imageId: scene.image?.id ?? null,
-            audioId: scene.audio?.id ?? null,
-          })
+          .values(values)
           .onConflict((oc) =>
             oc.column("id").doUpdateSet({
               storyId: storyDto.id,
@@ -53,13 +56,14 @@ function saveStoryInDatabase(log: Logger, db: GetDatabase): SaveStory {
             }),
           )
           .returningAll()
-          .executeTakeFirstOrThrow(),
-      ),
+          .executeTakeFirstOrThrow();
+      }),
     );
 
     const publishedOnResult = await db()
       .selectFrom("storyPublished")
       .select("createdAt as publishedOn")
+      .where("storyPublished.id", "=", storyDto.id)
       .executeTakeFirst();
 
     const savedStory: PersistentStory = {

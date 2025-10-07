@@ -187,9 +187,14 @@ export type CreateSceneInDatabase = (
   request: CreateSceneInDatabaseRequest,
 ) => Promise<SceneDto>;
 
+type SaveSceneContentInDatabaseRequest = {
+  storyId: StoryDto["id"];
+  sceneId: SceneDto["id"];
+  content: SceneDto["content"];
+};
+
 export type SaveSceneContentInDatabase = (
-  sceneId: SceneDto["id"],
-  content: SceneDto["content"],
+  request: SaveSceneContentInDatabaseRequest,
 ) => Promise<unknown>;
 
 // #endregion Scene

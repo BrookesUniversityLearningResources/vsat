@@ -9,8 +9,8 @@ function saveSceneContentInDatabase(
   log: Logger,
   db: GetDatabase,
 ): SaveSceneContentInDatabase {
-  return async (sceneId, content) => {
-    log.debug({ sceneId }, "Saving scene content");
+  return async ({ storyId, sceneId, content }) => {
+    log.debug({ storyId, sceneId }, "Saving scene content");
 
     await db()
       .updateTable("scene")
@@ -18,9 +18,10 @@ function saveSceneContentInDatabase(
         content,
       })
       .where("scene.id", "=", sceneId)
+      .where("scene.storyId", "=", storyId)
       .executeTakeFirstOrThrow();
 
-    log.debug({ sceneId }, "Saved scene content");
+    log.debug({ storyId, sceneId }, "Saved scene content");
   };
 }
 

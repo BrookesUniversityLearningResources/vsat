@@ -1,6 +1,8 @@
 import type { RequestHandler } from "express";
 import type { Logger } from "pino";
 
+import { ErrorCodes } from "../../error/errorCode.js";
+import { errorCodedContext } from "../../error/errorCodedContext.js";
 import toStoryId from "../toStoryId.js";
 import type { IsAuthorOfTheStory } from "./isAuthorOfTheStory.js";
 
@@ -14,14 +16,17 @@ export default function assertIsAuthorOfTheStoryHandler(
   log: Logger,
   isAuthorOfTheStory: IsAuthorOfTheStory,
 ): RequestHandler {
-  return (req, _res, next) => {
+  return (req, res, next) => {
     log.trace({ author: req.user, path: req.path }, "Asserting authorship");
 
     if (!req.user) {
       const message =
         "Asserting story authorship requires an authenticated user: no user found on the request";
       log.debug({ req }, message);
-      return next(new Error(message));
+
+      res.status(401).json(errorCodedContext(ErrorCodes.Unauthorized));
+
+      return;
     }
 
     const storyId = toStoryId(req.params.storyId);
@@ -48,7 +53,12 @@ export default function assertIsAuthorOfTheStoryHandler(
 
         const message = `Declining to continue processing request because the current user is not the author of the story with ID "${storyId}"`;
         log.debug({ req, author: req.user, storyId }, message);
-        return next(new Error(message));
+
+        res
+          .status(403)
+          .json(errorCodedContext(ErrorCodes.Unauthorized, { storyId }));
+
+        return;
       })
       .catch(next);
   };
