@@ -42,10 +42,11 @@ const { story } = Astro.props;
   const FICTION_Y = 5;
 
   /**
-   * How much the "bump" text forward from a background so that it can be read.
+   * How much to "bump" text forward off the background box so that it can be
+   * read.
    *
-   * If the text is flush with a background it introduces odd artifacts when
-   * moving around in the scene.
+   * If the text is flush with the background it introduces odd artifacts when
+   * moving around in the scene so we bump (lift) it a little.
    */
   const FICTION_TEXT_Z = 0.25;
 
@@ -147,7 +148,9 @@ const { story } = Astro.props;
             .map((block) => block.text)
             .join("\n\n");
 
-          const lineCount = countLines(text);
+          // we add one so that we always have at least 2 lines;
+          // this gives the fiction some room to breathe.
+          const lineCount = countLines(text) + 1;
 
           const entity = document.createElement("a-entity");
           entity.setAttribute(
@@ -190,15 +193,13 @@ const { story } = Astro.props;
     const MAX_CHARS_PER_LINE = 50;
 
     const wrappedLines = Math.max(
-      Math.trunc(text.length / MAX_CHARS_PER_LINE),
+      Math.ceil(text.length / MAX_CHARS_PER_LINE),
       1,
     );
 
-    const newlines = text.matchAll(/\n/g).toArray().length;
+    const newLines = text.trim().split("\n").length;
 
-    // we add one so that we always have at least 2 lines;
-    // this gives the text content some room to breathe.
-    return wrappedLines + newlines + 1;
+    return wrappedLines + (newLines - 1);
   }
 
   AFRAME.registerComponent("block-heading", {
