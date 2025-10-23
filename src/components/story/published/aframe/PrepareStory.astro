@@ -12,6 +12,7 @@ const { story } = Astro.props;
 <script set:html={`window.current = { story: ${JSON.stringify(story)}}`} />
 
 <script>
+  import countLines from "@domain/story/publish/support/countLines";
   import {
     isHeadingBlock,
     isLinkBlock,
@@ -188,19 +189,6 @@ const { story } = Astro.props;
       }
     },
   });
-
-  function countLines(text: string): number {
-    const MAX_CHARS_PER_LINE = 50;
-
-    const wrappedLines = Math.max(
-      Math.ceil(text.length / MAX_CHARS_PER_LINE),
-      1,
-    );
-
-    const newLines = text.trim().split("\n").length;
-
-    return wrappedLines + (newLines - 1);
-  }
 
   AFRAME.registerComponent("block-heading", {
     schema: {
