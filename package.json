@@ -48,7 +48,7 @@
     "i18next": "^25.6.0",
     "i18next-fs-backend": "^2.6.0",
     "kysely": "^0.28.8",
-    "magic-sdk": "^30.0.0",
+    "magic-sdk": "^31.1.0",
     "multer": "^2.0.2",
     "passport": "^0.7.0",
     "passport-magic": "^1.0.0",
