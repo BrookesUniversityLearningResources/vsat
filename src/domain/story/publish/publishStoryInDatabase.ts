@@ -22,8 +22,6 @@ export default function publishStoryInDatabase(
         content,
         imageUrl: story.imageUrl,
         createdAt: story.createdAt,
-        featuredActive: false,
-        featuredOn: null,
       })
       .onConflict((oc) =>
         oc.column("id").doUpdateSet({

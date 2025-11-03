@@ -64,7 +64,6 @@ async function main() {
     });
 
     await repositoryStory.publishStory(secondStory.id);
-    await repositoryStory.featurePublishedStory(secondStory.id);
 
     const thirdStory = await repositoryStory.saveStory({
       title: "De Fato",
@@ -84,7 +83,6 @@ async function main() {
     });
 
     await repositoryStory.publishStory(thirdStory.id);
-    await repositoryStory.featurePublishedStory(thirdStory.id);
 
     log.info("Seeded database");
     process.exit(1);

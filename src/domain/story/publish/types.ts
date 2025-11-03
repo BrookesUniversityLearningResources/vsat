@@ -8,25 +8,12 @@ import type {
   PersistentStory,
 } from "../../index.js";
 
-export type IsFeatured = {
-  /**
-   * `true` iff the story currently is featured.
-   */
-  active: boolean;
-
-  /**
-   * The date the story was featured.
-   */
-  on: Date | null;
-};
-
 export type PublishedStory = Readonly<
   Prettify<
     Omit<PersistentStory, "scenes" | "publishedOn"> & {
       createdAt: Date;
       scenes: NonEmptyArray<PublishedScene>;
       imageUrl: string | null;
-      featured: IsFeatured | null;
     }
   >
 >;

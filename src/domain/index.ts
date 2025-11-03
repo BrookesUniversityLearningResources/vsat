@@ -188,27 +188,11 @@ export type GetStorySummariesByAuthor = (
  * that a reader might peruse: they can then click into the `Story to read the
  * full fat version.
  */
-export type PublishedStorySummary = Pick<
-  PublishedStory,
-  "id" | "title" | "featured"
-> & {
+export type PublishedStorySummary = Pick<PublishedStory, "id" | "title"> & {
   publishedOn: Date;
   author: Omit<AuthorDto, "email">;
   imageUrl: Image["thumbnailUrl"] | null;
 };
-
-export type FeaturedStorySummary = Omit<PublishedStorySummary, "featured"> & {
-  featured: {
-    active: true;
-    on: Date;
-  };
-};
-
-export function isFeaturedStorySummary(
-  story: PublishedStorySummary,
-): story is FeaturedStorySummary {
-  return story.featured?.active === true && story.featured.on !== null;
-}
 
 // biome-ignore lint/complexity/noBannedTypes: see inline TODO below
 export type GetPublishedStorySummariesRequest = Readonly<{
@@ -265,10 +249,6 @@ export type UnpublishStory = (
   id: StoryDto["id"],
 ) => Promise<UnpublishStoryResult>;
 
-export type FeaturePublishedStory = (
-  id: PublishedStory["id"],
-) => Promise<unknown>;
-
 export type RepositoryStory = Readonly<{
   saveStory: SaveStory;
   createStory: CreateStory;
@@ -276,7 +256,6 @@ export type RepositoryStory = Readonly<{
   getStory: GetStory;
   publishStory: PublishStory;
   unpublishStory: UnpublishStory;
-  featurePublishedStory: FeaturePublishedStory;
   deleteStory: DeleteStory;
   getPublishedStory: GetPublishedStory;
   getPublishedStorySummaries: GetPublishedStorySummaries;
