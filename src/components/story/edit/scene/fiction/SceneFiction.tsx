@@ -7,15 +7,16 @@ import {
   useState,
 } from "react";
 import { useTranslation } from "react-i18next";
-import { createEditor, Editor, Node, Transforms } from "slate";
+import { createEditor, Editor, next, Node, Transforms } from "slate";
 import { withHistory } from "slate-history";
 import { Editable, Slate, withReact } from "slate-react";
 
-import { ErrorCodedError } from "@domain/error/ErrorCodedError";
 import { ErrorCodes } from "@domain/error/errorCode";
+import { ErrorCodedError } from "@domain/error/ErrorCodedError";
 import type { PersistentScene, PersistentStory } from "@domain/index";
 import unsupported from "@domain/story/client/unsupportedResult";
 import parse from "@domain/story/publish/parse/parse";
+import debounce from "@util/function/debounce";
 
 import {
   type WithDeleteScene,
@@ -122,46 +123,48 @@ const SceneFiction: FC<SceneFictionProps> = ({
 
   const renderBlock = useCallback(Block, []);
 
-  const onKeyDown: KeyboardEventHandler = (e) => {
-    if (e.key === "Enter" && editor.selection) {
-      // grab the current line
-      const currentNode = Editor.node(editor, editor.selection, { depth: 1 });
+  const onKeyDown: KeyboardEventHandler = debounce((e) => {
+    if (!editor.selection) {
+      return next(editor);
+    }
 
-      // and grab that line's text
-      const text = Node.string(currentNode[0]).trim();
+    // grab the current line
+    const currentNode = Editor.node(editor, editor.selection, { depth: 1 });
 
-      if (text.length > 0) {
-        // parse the line to see what kind of line it is
-        const result = parse(text, 1);
+    // and grab that line's text
+    const text = Node.string(currentNode[0]).trim();
 
-        switch (result.kind) {
-          case "link": {
-            Transforms.setNodes(editor, { type: "blockLink" });
-            break;
-          }
+    if (text.length > 0) {
+      // parse the line to see what kind of line it is
+      const result = parse(text, 1);
 
-          case "headerNamed":
-          case "headerAnonymous": {
-            Transforms.setNodes(editor, { type: "blockHeading" });
-            break;
-          }
-
-          case "error": {
-            Transforms.setNodes(editor, {
-              type: "blockError",
-              error: {
-                code: result.errorCode || ErrorCodes.Error,
-                message: result.message,
-              },
-            });
-            break;
-          }
+      switch (result.kind) {
+        case "link": {
+          Transforms.setNodes(editor, { type: "blockLink" });
+          break;
+        }
+        case "headerNamed":
+        case "headerAnonymous": {
+          Transforms.setNodes(editor, { type: "blockHeading" });
+          break;
+        }
+        case "error": {
+          Transforms.setNodes(editor, {
+            type: "blockError",
+            error: {
+              code: result.errorCode || ErrorCodes.Error,
+              message: result.message,
+            },
+          });
+          break;
         }
       }
+    }
 
+    if (e.key === "Enter") {
       e.preventDefault();
 
-      // the user pressed <ENTER> so add an empty block for the new line
+      // add an empty block for the new line
       Transforms.insertNodes(editor, emptyBlock(), {
         at: editor.selection,
       });
@@ -171,7 +174,9 @@ const SceneFiction: FC<SceneFictionProps> = ({
         unit: "word",
       });
     }
-  };
+
+    return next(editor);
+  });
 
   return (
     <div className={styles.sceneFiction}>
