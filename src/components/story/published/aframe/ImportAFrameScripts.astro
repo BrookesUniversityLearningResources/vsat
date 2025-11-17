@@ -1,0 +1,22 @@
+{
+  /*
+   * All this does is add <script/> tags for all of the A-Frame dependencies.
+   *
+   * It's a distinct component because we use these scripts in more than one
+   * place in the codebase and we don't want to have to update n+1 places when
+   * we're making 1 logical change (to update the A-Frame dependencies).
+   */
+}
+
+<script
+  src="/scripts/aframe/aframe-1.7.0.min.js"
+  is:inline
+  crossorigin="anonymous"></script>
+<script
+  src="/scripts/aframe/aframe-event-set-component.min.js"
+  is:inline
+  crossorigin="anonymous"></script>
+<script
+  src="/scripts/aframe/aframe-troika-text.min.js"
+  is:inline
+  crossorigin="anonymous"></script>

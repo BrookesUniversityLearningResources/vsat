@@ -1,4 +1,5 @@
 ---
+import ImportAFrameScripts from "@components/story/published/aframe/ImportAFrameScripts.astro";
 import PublishedStory from "@components/story/published/PublishedStory.astro";
 import { ErrorCodes } from "@domain/error/errorCode";
 import imageUrlFor from "@domain/story/publish/imageUrlFor";
@@ -50,18 +51,7 @@ const publishedStory = {
         author: story.author.name,
       })}
     />
-    <script
-      src="/scripts/aframe/aframe-1.7.0.min.js"
-      is:inline
-      crossorigin="anonymous"></script>
-    <script
-      src="/scripts/aframe/aframe-event-set-component.min.js"
-      is:inline
-      crossorigin="anonymous"></script>
-    <script
-      src="/scripts/aframe/aframe-troika-text.min.js"
-      is:inline
-      crossorigin="anonymous"></script>
+    <ImportAFrameScripts />
   </head>
 </html>
 <body>
