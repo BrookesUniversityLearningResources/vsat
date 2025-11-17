@@ -28,6 +28,7 @@ pnpm-debug.log*
 
 *.js
 !astro.config.mjs
+!public/scripts/**/*.js
 
 # Heroku Postgres dumps
 *.dump
