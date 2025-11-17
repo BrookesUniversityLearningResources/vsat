@@ -1,4 +1,6 @@
 ---
+import DOMPurify from "isomorphic-dompurify";
+
 import type { PublishedStory } from "@domain/story/publish/types";
 
 type Props = {
@@ -9,7 +11,9 @@ const { story } = Astro.props;
 ---
 
 {/* Dump the entire story so that it's available on the client-side */}
-<script set:html={`window.current = { story: ${JSON.stringify(story)}}`} />
+<script
+  set:html={`window.current = { story: ${DOMPurify.sanitize(JSON.stringify(story))}}`}
+/>
 
 <script>
   import countLines from "@domain/story/publish/support/countLines";
