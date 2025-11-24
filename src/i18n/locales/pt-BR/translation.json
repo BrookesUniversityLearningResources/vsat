@@ -17,7 +17,7 @@
       },
       "message": {
         "heading": "Check your email",
-        "description": "Complete your log in using the magic link we just sent."
+        "description": "Complete your login using the magic link we just sent."
       },
       "error": "There's been an error"
     },
