@@ -16,5 +16,13 @@
   },
   "authentication": {
     "pathsRequiringAuthentication": ["/api/*", "/author/*"]
+  },
+  "uploads": {
+    "image": {
+      "maxBytes": 25000000
+    },
+    "audio": {
+      "maxBytes": 50000000
+    }
   }
 }

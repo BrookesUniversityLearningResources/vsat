@@ -7,6 +7,7 @@ type Props = {
   story: PublishedStory;
 };
 
+
 const { story } = Astro.props;
 ---
 
@@ -15,13 +16,13 @@ const { story } = Astro.props;
 const serializedStory = (() => {
   const json = JSON.stringify({ story });
 
-  return json
-    .replace(/</g, "\\u003C")
-    .replace(/>/g, "\\u003E")
-    .replace(/&/g, "\\u0026")
-    .replace(/\u2028/g, "\\u2028")
-    .replace(/\u2029/g, "\\u2029");
-})();
+const serializedStory = JSON.stringify({ story })
+  .replace(/</g, "\\u003C")
+  .replace(/>/g, "\\u003E")
+  .replace(/&/g, "\\u0026")
+  .replace(/\u2028/g, "\\u2028")
+  .replace(/\u2029/g, "\\u2029");
+---
 
 <script set:html={`window.current = ${serializedStory}`} />
 
@@ -146,38 +147,7 @@ const serializedStory = (() => {
       if (fiction) {
         removeAllChildNodes(fiction);
 
-<<<<<<< HEAD
-        const heading = (() => {
-          const text = current.page.content.find(isHeadingBlock)?.text || "";
 
-          const entity = document.createElement("a-entity");
-          entity.setAttribute(
-            "block-heading",
-            `text: ${text}; lineCount: ${countLines(text)}`,
-          );
-
-          return entity;
-        })();
-
-        const [content, lineCount] = (() => {
-          const text = current.page.content
-            .filter(isPlaintextBlock)
-            .map((block) => block.text)
-            .join("\n\n");
-
-          // we add one so that we always have at least 2 lines;
-          // this gives the fiction some room to breathe.
-          const lineCount = countLines(text) + 1;
-
-          const entity = document.createElement("a-entity");
-          entity.setAttribute(
-            "block-plaintext",
-            `text: ${text}; lineCount: ${lineCount}`,
-          );
-
-          return [entity, lineCount];
-        })();
-=======
         const heading = (() => {
           const text = current.page.content.find(isHeadingBlock)?.text ?? "";
 
@@ -200,7 +170,6 @@ const serializedStory = (() => {
 
           return [entity, lineCount];
         })();
->>>>>>> 9c1a8ed (Set A-Frame block attributes via objects)
 
         const links = (() => {
           const linkBlocks = current.page.content.filter(isLinkBlock);
