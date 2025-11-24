@@ -128,6 +128,28 @@ const SceneFiction: FC<SceneFictionProps> = ({
       return next(editor);
     }
 
+    if (e.key === "Enter") {
+      e.preventDefault();
+
+      // add an empty block for the new line
+      Transforms.insertNodes(editor, emptyBlock(), {
+        at: editor.selection,
+      });
+      // and move the cursor to that new line
+      Transforms.move(editor, {
+        distance: 1,
+        unit: "word",
+      });
+    }
+
+    return next(editor);
+  });
+
+  const onKeyUp: KeyboardEventHandler = debounce(() => {
+    if (!editor.selection) {
+      return next(editor);
+    }
+
     // grab the current line
     const currentNode = Editor.node(editor, editor.selection, { depth: 1 });
 
@@ -159,20 +181,6 @@ const SceneFiction: FC<SceneFictionProps> = ({
           break;
         }
       }
-    }
-
-    if (e.key === "Enter") {
-      e.preventDefault();
-
-      // add an empty block for the new line
-      Transforms.insertNodes(editor, emptyBlock(), {
-        at: editor.selection,
-      });
-      // and move the cursor to that new line
-      Transforms.move(editor, {
-        distance: 1,
-        unit: "word",
-      });
     }
 
     return next(editor);
@@ -207,6 +215,7 @@ const SceneFiction: FC<SceneFictionProps> = ({
         </Toolbar>
         <Editable
           onKeyDown={onKeyDown}
+          onKeyUp={onKeyUp}
           className={styles.editor}
           renderElement={renderBlock}
           readOnly={saveTheSceneContent.isPending}
