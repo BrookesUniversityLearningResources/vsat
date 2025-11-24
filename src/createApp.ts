@@ -84,6 +84,7 @@ export default async function createApp(): Promise<[StartServer, Logger]> {
     routeUploadSceneImage(
       log,
       repositoryScene.saveSceneImage,
+      config.uploads.image,
       assertIsAuthorOfTheStory,
     ),
     routeDeleteSceneImage(
@@ -94,6 +95,7 @@ export default async function createApp(): Promise<[StartServer, Logger]> {
     routeUploadSceneAudio(
       log,
       repositoryScene.saveSceneAudio,
+      config.uploads.audio,
       assertIsAuthorOfTheStory,
     ),
     routeDeleteSceneAudio(

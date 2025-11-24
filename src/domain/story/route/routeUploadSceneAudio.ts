@@ -7,9 +7,14 @@ import { ErrorCodes } from "../../error/errorCode.js";
 import { errorCodedContext } from "../../error/errorCodedContext.js";
 import type { SaveSceneAudio } from "../../index.js";
 
+type UploadLimit = {
+  maxBytes: number;
+};
+
 function routeUploadSceneAudio(
   log: Logger,
   saveSceneAudio: SaveSceneAudio,
+  limit: UploadLimit,
   ...otherHandlers: RequestHandler[]
 ): Router {
   const router = Router();
@@ -17,7 +22,19 @@ function routeUploadSceneAudio(
   router.post(
     "/story/:storyId/scene/:sceneId/audio",
     ...(otherHandlers ?? []),
-    multer().single("scene-audio"),
+    multer({
+      limits: {
+        fileSize: limit.maxBytes,
+      },
+      fileFilter: (_req, file, cb) => {
+        if (file.mimetype.startsWith("audio/")) {
+          cb(null, true);
+          return;
+        }
+
+        cb(new multer.MulterError("LIMIT_UNEXPECTED_FILE", file.fieldname));
+      },
+    }).single("scene-audio"),
     (req, res) => {
       const parseResult = UploadSceneAudioRequestModel.safeParse({
         storyId: req.params.storyId,
