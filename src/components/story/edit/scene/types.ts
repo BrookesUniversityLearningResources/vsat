@@ -31,6 +31,7 @@ export type SceneCreated = Readonly<{
 
 export type SceneTitleChanged = Readonly<{
   kind: "sceneTitleChanged";
+  sceneId: PersistentScene["id"];
   title: PersistentScene["title"];
 }>;
 

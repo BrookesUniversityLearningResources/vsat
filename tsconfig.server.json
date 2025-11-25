@@ -39,6 +39,7 @@
     "src/middleware.ts",
     "src/**/client/**/*",
     "tests",
-    "dist"
+    "dist",
+    "story-overview"
   ]
 }
