@@ -7,13 +7,20 @@ type Props = {
   story: PublishedStory;
 };
 
-const { story } = Astro.props;
+const { story } = Astro.props as Props;
+
+const serializedStory = DOMPurify.sanitize(
+  JSON.stringify({ story })
+    .replace(/</g, "\\u003C")
+    .replace(/>/g, "\\u003E")
+    .replace(/&/g, "\\u0026")
+    .replace(/\u2028/g, "\\u2028")
+    .replace(/\u2029/g, "\\u2029"),
+);
+
 ---
 
-{/* Dump the entire story so that it's available on the client-side */}
-<script
-  set:html={`window.current = { story: ${DOMPurify.sanitize(JSON.stringify(story))}}`}
-/>
+<script set:html={`window.current = ${serializedStory}`} />
 
 <script>
   import countLines from "@domain/story/publish/support/countLines";
@@ -135,14 +142,12 @@ const { story } = Astro.props;
       if (fiction) {
         removeAllChildNodes(fiction);
 
-        const heading = (() => {
-          const text = current.page.content.find(isHeadingBlock)?.text || "";
 
-          const entity = document.createElement("a-entity");
-          entity.setAttribute(
-            "block-heading",
-            `text: ${text}; lineCount: ${countLines(text)}`,
-          );
+        const heading = (() => {
+          const text = current.page.content.find(isHeadingBlock)?.text ?? "";
+
+          const entity = document.createElement("a-box");
+          entity.setAttribute("block-heading", { text });
 
           return entity;
         })();
@@ -153,15 +158,10 @@ const { story } = Astro.props;
             .map((block) => block.text)
             .join("\n\n");
 
-          // we add one so that we always have at least 2 lines;
-          // this gives the fiction some room to breathe.
-          const lineCount = countLines(text) + 1;
+          const lineCount = countLines(text);
 
           const entity = document.createElement("a-entity");
-          entity.setAttribute(
-            "block-plaintext",
-            `text: ${text}; lineCount: ${lineCount}`,
-          );
+          entity.setAttribute("block-plaintext", { text, lineCount });
 
           return [entity, lineCount];
         })();
@@ -173,10 +173,10 @@ const { story } = Astro.props;
 
           const elements = linkBlocks.map((block, index) => {
             const entity = document.createElement("a-entity");
-            entity.setAttribute(
-              "block-link",
-              `text: ${block.text}; link: ${block.link}`,
-            );
+            entity.setAttribute("block-link", {
+              text: block.text,
+              link: block.link,
+            });
 
             const y = FICTION_Y - height - (index + 1);
             entity.setAttribute("position", `0 ${y} 0`);

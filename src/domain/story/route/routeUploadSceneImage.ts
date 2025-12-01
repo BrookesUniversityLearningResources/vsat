@@ -7,9 +7,14 @@ import { ErrorCodes } from "../../error/errorCode.js";
 import { errorCodedContext } from "../../error/errorCodedContext.js";
 import type { SaveSceneImage } from "../../index.js";
 
+type UploadLimit = {
+  maxBytes: number;
+};
+
 function routeUploadSceneImage(
   log: Logger,
   saveSceneImage: SaveSceneImage,
+  limit: UploadLimit,
   ...otherHandlers: RequestHandler[]
 ): Router {
   const router = Router();
@@ -17,7 +22,19 @@ function routeUploadSceneImage(
   router.post(
     "/story/:storyId/scene/:sceneId/image",
     ...(otherHandlers ?? []),
-    multer().single("scene-image"),
+    multer({
+      limits: {
+        fileSize: limit.maxBytes,
+      },
+      fileFilter: (_req, file, cb) => {
+        if (file.mimetype.startsWith("image/")) {
+          cb(null, true);
+          return;
+        }
+
+        cb(new multer.MulterError("LIMIT_UNEXPECTED_FILE", file.fieldname));
+      },
+    }).single("scene-image"),
     (req, res) => {
       const parseResult = UploadSceneImageRequestModel.safeParse({
         storyId: req.params.storyId,
