@@ -63,8 +63,8 @@ const Scene: FC<SceneProps> = ({
     Error,
     SceneTitleChanged
   >({
-    mutationFn: ({ title }) =>
-      saveSceneTitle(storyId, scene.id, title).then((result) => {
+    mutationFn: ({ title, sceneId }) =>
+      saveSceneTitle(storyId, sceneId, title).then((result) => {
         switch (result.kind) {
           case "sceneTitleSaved":
             return result.scene;
@@ -75,8 +75,13 @@ const Scene: FC<SceneProps> = ({
         }
       }),
     onError: feedback.notify.error,
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       refetch();
+      onSceneChanged({
+        kind: "sceneTitleChanged",
+        sceneId: variables.sceneId,
+        title: variables.title,
+      });
     },
   });
 
@@ -88,6 +93,14 @@ const Scene: FC<SceneProps> = ({
       }
 
       case "sceneDeleted": {
+        onSceneChanged(e);
+        break;
+      }
+
+      case "contentChanged":
+      case "imageChanged":
+      case "audioChanged": {
+        refetch();
         onSceneChanged(e);
         break;
       }
@@ -108,6 +121,7 @@ const Scene: FC<SceneProps> = ({
         onTitleChanged={(title) => {
           internalOnSceneChanged({
             kind: "sceneTitleChanged",
+            sceneId: scene.id,
             title,
           });
         }}
