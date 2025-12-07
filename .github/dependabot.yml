@@ -4,10 +4,12 @@ updates:
     directory: "/"
     schedule:
       interval: "monthly"
+    cooldown:
+      default-days: 14
     ignore:
       # stick with latest even-numbered version of Node for now
       - dependency-name: "@types/node"
-        versions: [ ">22" ]
+        versions: [ ">24" ]
       # stick with React 18 until third-party dependencies update
       - dependency-name: "@types/react"
         versions: [ ">18" ]
