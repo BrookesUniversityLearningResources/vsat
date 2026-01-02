@@ -7,13 +7,20 @@ type Props = {
   story: PublishedStory;
 };
 
-const { story } = Astro.props;
+const { story } = Astro.props as Props;
+
+const serializedStory = DOMPurify.sanitize(
+  JSON.stringify({ story })
+    .replace(/</g, "\\u003C")
+    .replace(/>/g, "\\u003E")
+    .replace(/&/g, "\\u0026")
+    .replace(/\u2028/g, "\\u2028")
+    .replace(/\u2029/g, "\\u2029"),
+);
 ---
 
 {/* Dump the entire story so that it's available on the client-side */}
-<script
-  set:html={`window.current = { story: ${DOMPurify.sanitize(JSON.stringify(story))}}`}
-/>
+<script set:html={`window.current = ${serializedStory}`} />
 
 <script>
   import countLines from "@domain/story/publish/support/countLines";
