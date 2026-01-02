@@ -2,7 +2,7 @@ import type { i18n } from "i18next";
 import SweetAlert from "sweetalert2";
 
 import { ErrorCodedError } from "@domain/error/ErrorCodedError";
-import { ErrorCodes } from "@domain/error/errorCode";
+import { ErrorCodes, isErrorCodedWithContext } from "@domain/error/errorCode";
 import isRecord from "@util/isRecord";
 
 const Toast = SweetAlert.mixin({
@@ -30,7 +30,14 @@ export function notifyUsingSweetAlert(i18n: i18n): Notify {
 
         Toast.fire({
           icon: "error",
-          text: i18n.t(`notify.error.code.${err.errorCode}`, context),
+          text: i18n.t(`notify.error.code.${err.errorCode}`, context) ?? "😨",
+        });
+      } else if (isErrorCodedWithContext(err)) {
+        const context = isRecord(err.context) ? err.context : {};
+
+        Toast.fire({
+          icon: "error",
+          text: i18n.t(`notify.error.code.${err.errorCode}`, context) ?? "😨",
         });
       } else {
         Toast.fire({

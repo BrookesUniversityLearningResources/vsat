@@ -52,6 +52,8 @@ export const ErrorCodes = Object.freeze({
   ParseErrorLinkNotClosed: 24,
   ParseErrorHeaderNeedsText: 25,
   ParseErrorLinkEmpty: 26,
+  ErrorUploadingAudioExceedsSizeLimit: 27,
+  ErrorUploadingImageExceedsSizeLimit: 28,
 } as const);
 
 export const ErrorCodeModel = z.nativeEnum(ErrorCodes);
@@ -65,3 +67,13 @@ export interface ErrorCoded {
 export type ErrorCodedContext<T = unknown> = ErrorCoded & {
   context?: T | undefined;
 };
+
+export function isErrorCodedWithContext(
+  err: unknown,
+): err is ErrorCodedContext {
+  if (!err) {
+    return false;
+  }
+
+  return !!(err as ErrorCodedContext).errorCode;
+}

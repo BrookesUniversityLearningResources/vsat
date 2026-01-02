@@ -17,6 +17,19 @@ export const NetworkPortModel = z.coerce.number().int().min(1024).max(65535);
 
 export type NetworkPort = z.infer<typeof NetworkPortModel>;
 
+const UploadLimitModel = z.object({
+  maxBytes: z.number().int().positive(),
+});
+
+export type UploadLimitConfig = z.infer<typeof UploadLimitModel>;
+
+const UploadsConfigModel = z.object({
+  image: UploadLimitModel,
+  audio: UploadLimitModel,
+});
+
+export type UploadsConfig = z.infer<typeof UploadsConfigModel>;
+
 const LogConfigModel = z.object({
   level: z.union([
     z.literal("fatal"),
@@ -101,6 +114,7 @@ export const AppConfigModel = z
     database: DatabaseConfigModel,
     cloudinary: CloudinaryConfigModel,
     authentication: AuthenticationConfigModel,
+    uploads: UploadsConfigModel,
     log: LogConfigModel.optional(),
   })
   .strict();
