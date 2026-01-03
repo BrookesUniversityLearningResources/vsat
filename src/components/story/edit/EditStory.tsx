@@ -24,6 +24,7 @@ import {
   isNonEmptyArray,
 } from "../../../util/nonEmptyArray.js";
 import htmlIdForStory from "../htmlIdForStory.js";
+import StoryOverview from "../overview/StoryOverview.js";
 import {
   ClientContext,
   type WithCreateScene,
@@ -34,7 +35,6 @@ import {
   useEnvironment,
 } from "./context/ClientContext.js";
 import StoryHeader from "./header/StoryHeader.js";
-import StoryOverview from "../overview/StoryOverview.js";
 import Scene from "./scene/Scene.js";
 import htmlIdForScene from "./scene/htmlIdForScene.js";
 import type { OnSceneChanged } from "./scene/types.js";
@@ -159,12 +159,12 @@ const StoryEditor: FC<StoryEditorProps> = ({ story: initialStory }) => {
 
   return (
     <main className={styles.story} id={htmlIdForStory(story.id)}>
-      <StoryOverview story={story} />
       <StoryHeader
         story={story}
         onSceneChanged={onSceneChanged}
         onStoryChanged={onStoryChanged}
       />
+      <StoryOverview story={story} />
       {isNonEmptyArray(story.scenes) ? (
         <Scenes
           storyId={story.id}
