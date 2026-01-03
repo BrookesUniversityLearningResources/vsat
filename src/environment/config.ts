@@ -72,19 +72,6 @@ const AuthenticationConfigModel = z.object({
 
 export type AuthenticationConfig = z.infer<typeof AuthenticationConfigModel>;
 
-const UploadLimitModel = z.object({
-  maxBytes: z.number().int().positive(),
-});
-
-export type UploadLimitConfig = z.infer<typeof UploadLimitModel>;
-
-const UploadsConfigModel = z.object({
-  image: UploadLimitModel,
-  audio: UploadLimitModel,
-});
-
-export type UploadsConfig = z.infer<typeof UploadsConfigModel>;
-
 const CloudinaryConfigModel = z.object({
   url: z.string().url(),
 });
