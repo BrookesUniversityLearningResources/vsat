@@ -143,10 +143,13 @@ const serializedStory = DOMPurify.sanitize(
         removeAllChildNodes(fiction);
 
         const heading = (() => {
-          const text = current.page.content.find(isHeadingBlock)?.text ?? "";
+          const text = current.page.content.find(isHeadingBlock)?.text || "";
 
-          const entity = document.createElement("a-box");
-          entity.setAttribute("block-heading", { text });
+          const entity = document.createElement("a-entity");
+          entity.setAttribute(
+            "block-heading",
+            `text: ${text}; lineCount: ${countLines(text)}`,
+          );
 
           return entity;
         })();
@@ -157,10 +160,15 @@ const serializedStory = DOMPurify.sanitize(
             .map((block) => block.text)
             .join("\n\n");
 
-          const lineCount = countLines(text);
+          // we add one so that we always have at least 2 lines;
+          // this gives the fiction some room to breathe.
+          const lineCount = countLines(text) + 1;
 
           const entity = document.createElement("a-entity");
-          entity.setAttribute("block-plaintext", { text, lineCount });
+          entity.setAttribute(
+            "block-plaintext",
+            `text: ${text}; lineCount: ${lineCount}`,
+          );
 
           return [entity, lineCount];
         })();
@@ -172,10 +180,10 @@ const serializedStory = DOMPurify.sanitize(
 
           const elements = linkBlocks.map((block, index) => {
             const entity = document.createElement("a-entity");
-            entity.setAttribute("block-link", {
-              text: block.text,
-              link: block.link,
-            });
+            entity.setAttribute(
+              "block-link",
+              `text: ${block.text}; link: ${block.link}`,
+            );
 
             const y = FICTION_Y - height - (index + 1);
             entity.setAttribute("position", `0 ${y} 0`);
