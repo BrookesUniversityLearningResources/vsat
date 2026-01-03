@@ -1,25 +1,17 @@
-import { useMemo, useState, type FC } from "react";
+import { useState, type FC } from "react";
 
 import type { PersistentStory } from "@domain/index";
 import parseStory, {
   isParseStorySuccess,
+  type ParseStoryResult,
 } from "@domain/story/publish/parseStory";
-import type {
-  Block,
-  Page,
-  PublishedScene,
-} from "@domain/story/publish/types";
+import type { Page, PublishedScene } from "@domain/story/publish/types";
 
 import "./StoryOverview.css";
 
 type StoryOverviewProps = {
   story: PersistentStory;
 };
-
-const dateFormatter = new Intl.DateTimeFormat(undefined, {
-  dateStyle: "medium",
-  timeStyle: "short",
-});
 
 type SceneWithPages = {
   scene: PublishedScene;
@@ -53,7 +45,8 @@ type DiagramArc = {
 };
 
 const StoryOverview: FC<StoryOverviewProps> = ({ story }) => {
-  let parseResult;
+  let parseResult: ParseStoryResult;
+
   try {
     parseResult = parseStory(story);
   } catch (error) {
@@ -85,10 +78,6 @@ const StoryOverview: FC<StoryOverviewProps> = ({ story }) => {
 
   const [isArcCollapsed, setIsArcCollapsed] = useState(false);
 
-  const coverImageUrl =
-    story.scenes.find((scene) => scene.image)?.image?.url ?? null;
-  const createdAt = story.publishedOn ?? new Date();
-
   return (
     <article className="story-overview">
       <StoryArcDiagram
@@ -96,92 +85,6 @@ const StoryOverview: FC<StoryOverviewProps> = ({ story }) => {
         collapsed={isArcCollapsed}
         onToggle={() => setIsArcCollapsed((value) => !value)}
       />
-      <header className="story-overview__header">
-        <div>
-          <p className="story-overview__kicker">Story overview</p>
-          <h1 className="story-overview__title">{story.title}</h1>
-          <p className="story-overview__meta">
-            by {story.author.name} · {dateFormatter.format(createdAt)}
-          </p>
-          {coverImageUrl && (
-            <p className="story-overview__meta">
-              Cover image:
-              <a href={coverImageUrl} target="_blank" rel="noreferrer">
-                {coverImageUrl}
-              </a>
-            </p>
-          )}
-        </div>
-        {coverImageUrl ? (
-          <img
-            className="story-overview__cover"
-            src={coverImageUrl}
-            alt="Cover"
-          />
-        ) : (
-          <div className="story-overview__cover story-overview__cover--placeholder">
-            No cover artwork
-          </div>
-        )}
-      </header>
-      <section aria-label="Scenes" className="story-overview__scene-section">
-        <h2 className="story-overview__section-title">
-          Scenes ({publishedScenes.length})
-        </h2>
-        <div className="story-overview__scenes">
-          {scenesWithPages.map(({ scene, pages }) => (
-            <article
-              key={scene.id}
-              className="story-overview__scene"
-              id={scene.link ?? undefined}
-            >
-              <header className="story-overview__scene-header">
-                <div className="story-overview__scene-title-row">
-                  <h3 className="story-overview__scene-title">{scene.title}</h3>
-                  {scene.isOpeningScene && (
-                    <span className="story-overview__badge">Opening scene</span>
-                  )}
-                </div>
-                <p className="story-overview__scene-meta">
-                  {pages.length} page{pages.length === 1 ? "" : "s"}
-                  {scene.link && (
-                    <>
-                      {pages.length ? " · " : ""}link target {" "}
-                      <code>{scene.link}</code>
-                    </>
-                  )}
-                </p>
-              </header>
-              <div className="story-overview__pages">
-                {pages.map((page) => (
-                  <article
-                    key={page.link}
-                    className="story-overview__page"
-                    id={page.link}
-                  >
-                    <header className="story-overview__page-header">
-                      <p className="story-overview__page-number">
-                        Page {page.number + 1}
-                      </p>
-                      <code className="story-overview__page-anchor">
-                        #{page.link}
-                      </code>
-                    </header>
-                    <div className="story-overview__page-content">
-                      {page.content.map((block, index) => (
-                        <BlockPreview
-                          key={`${page.link}-${block.kind}-${index}`}
-                          block={block}
-                        />
-                      ))}
-                    </div>
-                  </article>
-                ))}
-              </div>
-            </article>
-          ))}
-        </div>
-      </section>
     </article>
   );
 };
@@ -192,8 +95,14 @@ type StoryArcDiagramProps = {
   onToggle: () => void;
 };
 
-const StoryArcDiagram: FC<StoryArcDiagramProps> = ({ scenes, collapsed, onToggle }) => {
-  const [activeSceneId, setActiveSceneId] = useState<PublishedScene["id"] | null>(null);
+const StoryArcDiagram: FC<StoryArcDiagramProps> = ({
+  scenes,
+  collapsed,
+  onToggle,
+}) => {
+  const [activeSceneId, setActiveSceneId] = useState<
+    PublishedScene["id"] | null
+  >(null);
 
   if (scenes.length === 0) {
     return null;
@@ -265,19 +174,24 @@ const StoryArcDiagram: FC<StoryArcDiagramProps> = ({ scenes, collapsed, onToggle
     });
   });
 
-  const ghostNodes: DiagramNode[] = unresolvedTargetOrder.map((link, ghostIndex) => ({
-    id: `missing-${link}`,
-    title: `Missing: ${link}`,
-    anchor: null,
-    index: realNodes.length + ghostIndex,
-    hasMultiplePages: false,
-    isGhost: true,
-    ghostLinkId: link,
-    ghostLinkLabel: linkTargetToLabel.get(link) ?? undefined,
-  }));
+  const ghostNodes: DiagramNode[] = unresolvedTargetOrder.map(
+    (link, ghostIndex) => ({
+      id: `missing-${link}`,
+      title: `Missing: ${link}`,
+      anchor: null,
+      index: realNodes.length + ghostIndex,
+      hasMultiplePages: false,
+      isGhost: true,
+      ghostLinkId: link,
+      ghostLinkLabel: linkTargetToLabel.get(link) ?? "",
+    }),
+  );
 
   const ghostTargetToIndex = new Map<string, number>(
-    unresolvedTargetOrder.map((link, ghostIndex) => [link, realNodes.length + ghostIndex]),
+    unresolvedTargetOrder.map((link, ghostIndex) => [
+      link,
+      realNodes.length + ghostIndex,
+    ]),
   );
 
   const visualNodes = [...realNodes, ...ghostNodes];
@@ -301,7 +215,9 @@ const StoryArcDiagram: FC<StoryArcDiagramProps> = ({ scenes, collapsed, onToggle
     }
 
     const keyTarget =
-      target.kind === "scene" ? `scene:${target.sceneId}` : `ghost:${target.link}`;
+      target.kind === "scene"
+        ? `scene:${target.sceneId}`
+        : `ghost:${target.link}`;
     const key = `${sourceIndex}->${keyTarget}`;
     if (arcPairs.has(key)) {
       return;
@@ -351,11 +267,6 @@ const StoryArcDiagram: FC<StoryArcDiagramProps> = ({ scenes, collapsed, onToggle
   );
   const height = Math.max(baselineY + nodeRadius + bottomPadding, minHeight);
 
-  const activeScene =
-    scenes.find(({ scene }) => scene.id === activeSceneId) ?? null;
-  const overlayScene =
-    activeScene && activeScene.pages.length > 1 ? activeScene : null;
-
   const pathForArc = (
     startX: number,
     endX: number,
@@ -385,7 +296,11 @@ const StoryArcDiagram: FC<StoryArcDiagramProps> = ({ scenes, collapsed, onToggle
         onMouseLeave={() => setActiveSceneId(null)}
         hidden={collapsed}
       >
-        <svg viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Story flow overview">
+        <svg
+          viewBox={`0 0 ${width} ${height}`}
+          role="img"
+          aria-label="Story flow overview"
+        >
           <title>Story flow overview</title>
           <g className="story-overview__arc-paths">
             {arcs.map((arc, index) => {
@@ -401,7 +316,9 @@ const StoryArcDiagram: FC<StoryArcDiagramProps> = ({ scenes, collapsed, onToggle
               return (
                 <path
                   key={`${arc.sourceIndex}-${arc.targetIndex}-${index}`}
-                  d={pathForArc(startX, endX, { endIsGhost: endNode?.isGhost ?? false })}
+                  d={pathForArc(startX, endX, {
+                    endIsGhost: endNode?.isGhost ?? false,
+                  })}
                   className={`story-overview__arc-path${
                     arc.isGhost ? " story-overview__arc-path--ghost" : ""
                   }`}
@@ -434,7 +351,9 @@ const StoryArcDiagram: FC<StoryArcDiagramProps> = ({ scenes, collapsed, onToggle
                   cy={baselineY}
                   r={16}
                   className={`story-overview__arc-node${
-                    node.anchor && !node.isGhost ? " story-overview__arc-node--interactive" : ""
+                    node.anchor && !node.isGhost
+                      ? " story-overview__arc-node--interactive"
+                      : ""
                   }${
                     node.hasMultiplePages && !node.isGhost
                       ? " story-overview__arc-node--multi"
@@ -463,8 +382,10 @@ const StoryArcDiagram: FC<StoryArcDiagramProps> = ({ scenes, collapsed, onToggle
               const interactiveProps = node.isGhost
                 ? {}
                 : {
-                    onMouseEnter: () => setActiveSceneId(node.id as PublishedScene["id"]),
-                    onFocus: () => setActiveSceneId(node.id as PublishedScene["id"]),
+                    onMouseEnter: () =>
+                      setActiveSceneId(node.id as PublishedScene["id"]),
+                    onFocus: () =>
+                      setActiveSceneId(node.id as PublishedScene["id"]),
                   };
 
               if (node.anchor && !node.isGhost) {
@@ -492,214 +413,12 @@ const StoryArcDiagram: FC<StoryArcDiagramProps> = ({ scenes, collapsed, onToggle
             })}
           </g>
         </svg>
-        {overlayScene && (
-          <div className="story-overview__pages-overlay">
-            <ScenePagesMap
-              sceneWithPages={overlayScene}
-              width={width}
-              height={height}
-              paddingX={paddingX}
-            />
-          </div>
-        )}
       </div>
     </div>
   );
 };
 
-type ScenePagesMapProps = {
-  sceneWithPages: SceneWithPages;
-  width: number;
-  height: number;
-  paddingX: number;
-};
-
-const ScenePagesMap: FC<ScenePagesMapProps> = ({
-  sceneWithPages,
-  width,
-  height,
-  paddingX,
-}) => {
-  const { scene, pages } = sceneWithPages;
-  const sceneAnchor = scene.link ?? pages[0]?.link ?? null;
-
-  if (pages.length === 0) {
-    return null;
-  }
-
-  const overlayPaddingX = paddingX + 48;
-  const availableWidth = Math.max(width - overlayPaddingX * 2, 0);
-  const baselineY = height / 2;
-  const positionedPages = pages.map((page, index) => {
-    const x =
-      pages.length === 1
-        ? width / 2
-        : overlayPaddingX + (index / (pages.length - 1)) * availableWidth;
-    const label = labelForPage(page, index);
-    return {
-      page,
-      x,
-      label,
-    };
-  });
-
-  return (
-    <div className="story-overview__pages-map">
-      <p className="story-overview__pages-map-title">Pages in {scene.title}</p>
-      <svg viewBox={`0 0 ${width} ${height}`} aria-hidden="true" role="presentation">
-        <g className="story-overview__pages-map-connectors">
-          {positionedPages.slice(1).map((position, index) => {
-            const previous = positionedPages[index];
-            const connectorHeight = 18;
-            const x = Math.min(previous.x, position.x);
-            const widthBetween = Math.abs(position.x - previous.x);
-            const rect = (
-              <rect
-                x={x}
-                y={baselineY - connectorHeight / 2}
-                width={widthBetween}
-                height={connectorHeight}
-                rx={connectorHeight / 2}
-                className="story-overview__pages-map-connector"
-              />
-            );
-
-            if (!sceneAnchor) {
-              return <g key={`${previous.page.link}-${position.page.link}`}>{rect}</g>;
-            }
-
-            return (
-              <a
-                key={`${previous.page.link}-${position.page.link}`}
-                href={`#${sceneAnchor}`}
-                className="story-overview__pages-map-connector-link"
-                aria-label={`Jump to ${scene.title}`}
-              >
-                <title>{`Jump to ${scene.title}`}</title>
-                {rect}
-              </a>
-            );
-          })}
-        </g>
-        <g className="story-overview__pages-map-nodes">
-          {positionedPages.map((position) => {
-            const circle = (
-              <circle
-                cx={position.x}
-                cy={baselineY}
-                r={14}
-                className="story-overview__pages-map-node"
-              />
-            );
-
-            const label = (
-              <text
-                className="story-overview__pages-map-node-label"
-                x={position.x}
-                y={baselineY + 28}
-                textAnchor="middle"
-              >
-                {position.label.lines.map((line, lineIndex) => (
-                  <tspan
-                    key={`${position.page.link}-line-${lineIndex}`}
-                    x={position.x}
-                    dy={lineIndex === 0 ? 0 : 14}
-                  >
-                    {line}
-                  </tspan>
-                ))}
-              </text>
-            );
-
-            return (
-              <a
-                key={position.page.link}
-                href={`#${position.page.link}`}
-                className="story-overview__pages-map-node-link"
-                aria-label={`Jump to ${position.label.full}`}
-              >
-                <title>{`Jump to ${position.label.full}`}</title>
-                {circle}
-                {label}
-              </a>
-            );
-          })}
-        </g>
-      </svg>
-    </div>
-  );
-};
-
-type PageLabel = {
-  full: string;
-  lines: string[];
-};
-
-const labelForPage = (page: Page, indexInScene: number): PageLabel => {
-  const headingBlock = page.content.find(
-    (block): block is Extract<Block, { kind: "blockHeading" }> =>
-      block.kind === "blockHeading",
-  );
-
-  const label = headingBlock ? headingBlock.text : `Page ${indexInScene + 1}`;
-  return {
-    full: label,
-    lines: wrapLabel(label, 16),
-  };
-};
-
-const wrapLabel = (text: string, maxCharsPerLine: number) => {
-  const words = text.split(/\s+/);
-  const lines: string[] = [];
-  let currentLine = "";
-
-  for (const word of words) {
-    const candidate = currentLine ? `${currentLine} ${word}` : word;
-    if (candidate.length <= maxCharsPerLine || !currentLine) {
-      currentLine = candidate;
-    } else {
-      lines.push(currentLine);
-      currentLine = word;
-    }
-  }
-
-  if (currentLine) {
-    lines.push(currentLine);
-  }
-
-  return lines;
-};
-
 const sortPages = (scene: PublishedScene): Page[] =>
   Object.values(scene.pages).sort((a, b) => a.number - b.number);
-
-type BlockPreviewProps = {
-  block: Block;
-};
-
-const BlockPreview: FC<BlockPreviewProps> = ({ block }) => {
-  switch (block.kind) {
-    case "blockHeading": {
-      return (
-        <h4 className="story-overview__block-heading" id={block.link}>
-          {block.text}
-        </h4>
-      );
-    }
-    case "blockPlaintext": {
-      return <p className="story-overview__block-plaintext">{block.text}</p>;
-    }
-    case "blockLink": {
-      return (
-        <a className="story-overview__block-link" href={`#${block.link}`}>
-          → {block.text}
-        </a>
-      );
-    }
-    default: {
-      return null;
-    }
-  }
-};
 
 export default StoryOverview;
