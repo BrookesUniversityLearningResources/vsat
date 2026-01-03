@@ -40,6 +40,5 @@
     "src/**/client/**/*",
     "tests",
     "dist",
-    "story-overview"
   ]
 }

@@ -5,13 +5,28 @@
     "jsxImportSource": "react",
     "baseUrl": ".",
     "paths": {
-      "@components/*": ["src/components/*"],
-      "@domain/*": ["src/domain/*"],
-      "@i18n/*": ["src/i18n/*"],
-      "@layouts/*": ["src/layouts/*"],
-      "@util/*": ["src/util/*"],
+      "@components/*": [
+        "src/components/*"
+      ],
+      "@domain/*": [
+        "src/domain/*"
+      ],
+      "@i18n/*": [
+        "src/i18n/*"
+      ],
+      "@layouts/*": [
+        "src/layouts/*"
+      ],
+      "@util/*": [
+        "src/util/*"
+      ],
     }
   },
-  "include": [".astro/types.d.ts", "**/*"],
-  "exclude": ["dist", "story-overview"]
+  "include": [
+    ".astro/types.d.ts",
+    "**/*"
+  ],
+  "exclude": [
+    "dist"
+  ]
 }
