@@ -5,6 +5,7 @@ import parseStory, {
   isParseStorySuccess,
   type ParseStoryResult,
 } from "@domain/story/publish/parseStory";
+import sortPages from "@domain/story/publish/support/sortPages";
 import type { Page, PublishedScene } from "@domain/story/publish/types";
 
 import "./StoryOverview.css";
@@ -73,7 +74,7 @@ const StoryOverview: FC<StoryOverviewProps> = ({ story }) => {
   const publishedScenes = parseResult.story.scenes;
   const scenesWithPages: SceneWithPages[] = publishedScenes.map((scene) => ({
     scene,
-    pages: sortPages(scene),
+    pages: sortPages(scene.pages),
   }));
 
   const [isArcCollapsed, setIsArcCollapsed] = useState(false);
@@ -417,8 +418,5 @@ const StoryArcDiagram: FC<StoryArcDiagramProps> = ({
     </div>
   );
 };
-
-const sortPages = (scene: PublishedScene): Page[] =>
-  Object.values(scene.pages).sort((a, b) => a.number - b.number);
 
 export default StoryOverview;
