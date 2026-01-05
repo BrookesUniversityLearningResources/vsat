@@ -1,7 +1,7 @@
-import { useState, type FC } from "react";
+import type { FC } from "react";
 import { useTranslation } from "react-i18next";
 
-import type { PersistentStory } from "@domain/index";
+import type { PersistentScene, PersistentStory } from "@domain/index";
 import parseStory, {
   isParseStorySuccess,
   type ParseStoryResult,
@@ -11,8 +11,11 @@ import type { Page, PublishedScene } from "@domain/story/publish/types";
 
 import "./StoryOverview.css";
 
+type OnSceneSelected = (id: PersistentScene["id"]) => void;
+
 type StoryOverviewProps = {
   story: Readonly<PersistentStory>;
+  onSceneSelected: OnSceneSelected;
 };
 
 type SceneWithPages = {
@@ -46,7 +49,7 @@ type DiagramArc = {
   isGhost: boolean;
 };
 
-const StoryOverview: FC<StoryOverviewProps> = ({ story }) => {
+const StoryOverview: FC<StoryOverviewProps> = ({ story, onSceneSelected }) => {
   const { t } = useTranslation();
 
   let parseResult: ParseStoryResult;
@@ -84,7 +87,10 @@ const StoryOverview: FC<StoryOverviewProps> = ({ story }) => {
     <section className="story-overview">
       <details>
         <summary>{t("overview.heading")}</summary>
-        <StoryArcDiagram scenes={scenesWithPages} />
+        <StoryArcDiagram
+          scenes={scenesWithPages}
+          onSceneSelected={onSceneSelected}
+        />
       </details>
     </section>
   );
@@ -92,14 +98,14 @@ const StoryOverview: FC<StoryOverviewProps> = ({ story }) => {
 
 type StoryArcDiagramProps = {
   scenes: SceneWithPages[];
+  onSceneSelected: OnSceneSelected;
 };
 
-const StoryArcDiagram: FC<StoryArcDiagramProps> = ({ scenes }) => {
+const StoryArcDiagram: FC<StoryArcDiagramProps> = ({
+  scenes,
+  onSceneSelected,
+}) => {
   const { t } = useTranslation();
-
-  const [activeSceneId, setActiveSceneId] = useState<
-    PublishedScene["id"] | null
-  >(null);
 
   if (scenes.length === 0) {
     return null;
@@ -361,15 +367,6 @@ const StoryArcDiagram: FC<StoryArcDiagramProps> = ({ scenes }) => {
                 </text>
               );
 
-              const interactiveProps = node.isGhost
-                ? {}
-                : {
-                    onMouseEnter: () =>
-                      setActiveSceneId(node.id as PublishedScene["id"]),
-                    onFocus: () =>
-                      setActiveSceneId(node.id as PublishedScene["id"]),
-                  };
-
               if (node.anchor && !node.isGhost) {
                 const labelNavigateTo = t("overview.link.navigate-to.label", {
                   link: node.title,
@@ -381,7 +378,11 @@ const StoryArcDiagram: FC<StoryArcDiagramProps> = ({ scenes }) => {
                     className="story-overview__arc-node-link"
                     href={`#${node.anchor}`}
                     aria-label={labelNavigateTo}
-                    {...interactiveProps}
+                    onClick={() => {
+                      if (typeof node.id === "number") {
+                        onSceneSelected(node.id);
+                      }
+                    }}
                   >
                     <title>{labelNavigateTo}</title>
                     {circle}
@@ -391,7 +392,7 @@ const StoryArcDiagram: FC<StoryArcDiagramProps> = ({ scenes }) => {
               }
 
               return (
-                <g key={node.id} {...interactiveProps}>
+                <g key={node.id}>
                   {circle}
                   {label}
                 </g>
