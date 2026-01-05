@@ -64,7 +64,7 @@ const StoryOverview: FC<StoryOverviewProps> = ({ story }) => {
   if (!isParseStorySuccess(parseResult)) {
     return (
       <section className="story-overview story-overview--unavailable">
-        <p className="story-overview__notice">
+        <p>
           {t("overview.unavailable.with-reason", {
             reason: parseResult.reason,
           })}
