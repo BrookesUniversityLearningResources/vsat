@@ -296,7 +296,7 @@ const StoryArcDiagram: FC<StoryArcDiagramProps> = ({
           role="img"
           aria-label={t("overview.label")}
         >
-          <title>Story flow overview</title>
+          <title>{t("overview.label")}</title>
           <g className="story-overview__arc-paths">
             {arcs.map((arc, index) => {
               const startNode = positionedNodes[arc.sourceIndex];
