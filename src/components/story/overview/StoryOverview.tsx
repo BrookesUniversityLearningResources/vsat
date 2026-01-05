@@ -1,4 +1,5 @@
 import { useState, type FC } from "react";
+import { useTranslation } from "react-i18next";
 
 import type { PersistentStory } from "@domain/index";
 import parseStory, {
@@ -11,7 +12,7 @@ import type { Page, PublishedScene } from "@domain/story/publish/types";
 import "./StoryOverview.css";
 
 type StoryOverviewProps = {
-  story: PersistentStory;
+  story: Readonly<PersistentStory>;
 };
 
 type SceneWithPages = {
@@ -46,61 +47,54 @@ type DiagramArc = {
 };
 
 const StoryOverview: FC<StoryOverviewProps> = ({ story }) => {
+  const { t } = useTranslation();
+
   let parseResult: ParseStoryResult;
 
   try {
     parseResult = parseStory(story);
-  } catch (error) {
-    console.error("story-overview: failed to parse story", error);
+  } catch {
     return (
-      <article className="story-overview story-overview--unavailable">
-        <p className="story-overview__notice">
-          Unable to render the story overview yet.
-        </p>
-      </article>
+      <section className="story-overview story-overview--unavailable">
+        <p>{t("overview.unavailable.no-reason")}</p>
+      </section>
     );
   }
 
   if (!isParseStorySuccess(parseResult)) {
     return (
-      <article className="story-overview story-overview--unavailable">
+      <section className="story-overview story-overview--unavailable">
         <p className="story-overview__notice">
-          Unable to render the story overview yet: {parseResult.reason}
+          {t("overview.unavailable.with-reason", {
+            reason: parseResult.reason,
+          })}
         </p>
-      </article>
+      </section>
     );
   }
 
-  const publishedScenes = parseResult.story.scenes;
-  const scenesWithPages: SceneWithPages[] = publishedScenes.map((scene) => ({
-    scene,
-    pages: sortPages(scene.pages),
-  }));
-
-  const [isArcCollapsed, setIsArcCollapsed] = useState(false);
+  const scenesWithPages: SceneWithPages[] = parseResult.story.scenes.map(
+    (scene) => ({
+      scene,
+      pages: sortPages(scene.pages),
+    }),
+  );
 
   return (
-    <article className="story-overview">
-      <StoryArcDiagram
-        scenes={scenesWithPages}
-        collapsed={isArcCollapsed}
-        onToggle={() => setIsArcCollapsed((value) => !value)}
-      />
-    </article>
+    <section className="story-overview">
+      <details>
+        <summary>{t("overview.heading")}</summary>
+        <StoryArcDiagram scenes={scenesWithPages} />
+      </details>
+    </section>
   );
 };
 
 type StoryArcDiagramProps = {
   scenes: SceneWithPages[];
-  collapsed: boolean;
-  onToggle: () => void;
 };
 
-const StoryArcDiagram: FC<StoryArcDiagramProps> = ({
-  scenes,
-  collapsed,
-  onToggle,
-}) => {
+const StoryArcDiagram: FC<StoryArcDiagramProps> = ({ scenes }) => {
   const [activeSceneId, setActiveSceneId] = useState<
     PublishedScene["id"] | null
   >(null);
@@ -178,7 +172,7 @@ const StoryArcDiagram: FC<StoryArcDiagramProps> = ({
   const ghostNodes: DiagramNode[] = unresolvedTargetOrder.map(
     (link, ghostIndex) => ({
       id: `missing-${link}`,
-      title: `Missing: ${link}`,
+      title: `Missing: ${link}`, // TODO: I18N
       anchor: null,
       index: realNodes.length + ghostIndex,
       hasMultiplePages: false,
@@ -281,26 +275,11 @@ const StoryArcDiagram: FC<StoryArcDiagramProps> = ({
 
   return (
     <div className="story-overview__arc-diagram">
-      <button
-        type="button"
-        className="story-overview__arc-toggle story-overview__arc-toggle--floating"
-        onClick={onToggle}
-        aria-expanded={!collapsed}
-        aria-label={collapsed ? "Show overview" : "Hide overview"}
-      >
-        <span aria-hidden="true" className="story-overview__arc-toggle-line" />
-      </button>
-      <div
-        className={`story-overview__arc-content${
-          collapsed ? " story-overview__arc-content--collapsed" : ""
-        }`}
-        onMouseLeave={() => setActiveSceneId(null)}
-        hidden={collapsed}
-      >
+      <div className="story-overview__arc-content">
         <svg
           viewBox={`0 0 ${width} ${height}`}
           role="img"
-          aria-label="Story flow overview"
+          aria-label="Story flow overview" // TODO: I18N
         >
           <title>Story flow overview</title>
           <g className="story-overview__arc-paths">
@@ -398,7 +377,7 @@ const StoryArcDiagram: FC<StoryArcDiagramProps> = ({
                     aria-label={`Jump to ${node.title}`}
                     {...interactiveProps}
                   >
-                    <title>{`Jump to ${node.title}`}</title>
+                    <title>{`Jump to ${node.title}` /* TODO: I18N */}</title>
                     {circle}
                     {label}
                   </a>

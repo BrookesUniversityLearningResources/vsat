@@ -3,21 +3,31 @@
   max-width: 960px;
   font-family:
     "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-  color: #111;
+  color: black;
   line-height: 1.5;
+
+  summary {
+    color: #e9e9ed;
+    font-weight: bold;
+    font-size: 1.5rem;
+  }
+
+  summary::marker {
+    color: #e9e9ed;
+    font-size: 2rem;
+  }
 }
 
 .story-overview--unavailable {
-  background: #fff5f5;
-  border: 1px solid #fecaca;
-  border-radius: 12px;
+  background: #e9e9ed;
+  border: 1px solid black;
+  border-radius: var(--border-radius-medium);
   padding: 1rem;
-  color: #991b1b;
-}
+  min-width: 100%;
 
-.story-overview__notice {
-  margin: 0;
-  font-size: 0.95rem;
+  p {
+    color: black;
+  }
 }
 
 .story-overview__arc-diagram {
@@ -54,11 +64,6 @@
   transition: opacity 1.2s ease;
   opacity: 1;
   visibility: visible;
-}
-
-.story-overview__arc-content--collapsed {
-  opacity: 0;
-  visibility: hidden;
 }
 
 .story-overview__arc-diagram svg {
