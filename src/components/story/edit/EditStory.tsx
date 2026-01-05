@@ -163,11 +163,13 @@ const StoryEditor: FC<StoryEditorProps> = ({ story: initialStory }) => {
         story={story}
         onSceneChanged={onSceneChanged}
         onStoryChanged={onStoryChanged}
-      />
-      <StoryOverview
-        story={story}
-        onSceneSelected={(sceneId) => scrollTo(htmlIdForScene(sceneId))}
-      />
+      >
+        <StoryOverview
+          story={story}
+          onSceneSelected={(sceneId) => scrollTo(htmlIdForScene(sceneId))}
+        />
+      </StoryHeader>
+
       {isNonEmptyArray(story.scenes) ? (
         <Scenes
           storyId={story.id}
