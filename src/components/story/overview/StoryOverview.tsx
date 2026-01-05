@@ -1,4 +1,4 @@
-import type { FC } from "react";
+import { useRef, type FC } from "react";
 import { useTranslation } from "react-i18next";
 
 import type { PersistentScene, PersistentStory } from "@domain/index";
@@ -52,6 +52,8 @@ type DiagramArc = {
 const StoryOverview: FC<StoryOverviewProps> = ({ story, onSceneSelected }) => {
   const { t } = useTranslation();
 
+  const refDetails = useRef<HTMLDetailsElement | null>(null);
+
   let parseResult: ParseStoryResult;
 
   try {
@@ -85,11 +87,16 @@ const StoryOverview: FC<StoryOverviewProps> = ({ story, onSceneSelected }) => {
 
   return (
     <section className="story-overview">
-      <details>
+      <details ref={refDetails}>
         <summary>{t("overview.heading")}</summary>
         <StoryArcDiagram
           scenes={scenesWithPages}
-          onSceneSelected={onSceneSelected}
+          onSceneSelected={(sceneId) => {
+            if (refDetails.current) {
+              refDetails.current.open = false;
+            }
+            onSceneSelected(sceneId);
+          }}
         />
       </details>
     </section>
