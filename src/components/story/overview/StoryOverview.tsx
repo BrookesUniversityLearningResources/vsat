@@ -95,6 +95,8 @@ type StoryArcDiagramProps = {
 };
 
 const StoryArcDiagram: FC<StoryArcDiagramProps> = ({ scenes }) => {
+  const { t } = useTranslation();
+
   const [activeSceneId, setActiveSceneId] = useState<
     PublishedScene["id"] | null
   >(null);
@@ -172,7 +174,7 @@ const StoryArcDiagram: FC<StoryArcDiagramProps> = ({ scenes }) => {
   const ghostNodes: DiagramNode[] = unresolvedTargetOrder.map(
     (link, ghostIndex) => ({
       id: `missing-${link}`,
-      title: `Missing: ${link}`, // TODO: I18N
+      title: t("overview.link.missing.title", { link }),
       anchor: null,
       index: realNodes.length + ghostIndex,
       hasMultiplePages: false,
@@ -279,7 +281,7 @@ const StoryArcDiagram: FC<StoryArcDiagramProps> = ({ scenes }) => {
         <svg
           viewBox={`0 0 ${width} ${height}`}
           role="img"
-          aria-label="Story flow overview" // TODO: I18N
+          aria-label={t("overview.label")}
         >
           <title>Story flow overview</title>
           <g className="story-overview__arc-paths">
@@ -369,15 +371,19 @@ const StoryArcDiagram: FC<StoryArcDiagramProps> = ({ scenes }) => {
                   };
 
               if (node.anchor && !node.isGhost) {
+                const labelNavigateTo = t("overview.link.navigate-to.label", {
+                  link: node.title,
+                });
+
                 return (
                   <a
                     key={node.id}
                     className="story-overview__arc-node-link"
                     href={`#${node.anchor}`}
-                    aria-label={`Jump to ${node.title}`}
+                    aria-label={labelNavigateTo}
                     {...interactiveProps}
                   >
-                    <title>{`Jump to ${node.title}` /* TODO: I18N */}</title>
+                    <title>{labelNavigateTo}</title>
                     {circle}
                     {label}
                   </a>
