@@ -1,7 +1,13 @@
 .scene {
   margin-top: 0.5rem;
-  padding-top: 0.5rem;
-  border-top: 1px dashed var(--color-text);
+  padding-block: 0.5rem;
+  border-bottom: 1px dashed var(--color-text);
+
+  /* this scroll margin value exists to accommodate the fixed (sticky) header;
+   * when the user navigates to a scene via the (story) overview we need to take
+   * into account the height of that header.
+   */
+  scroll-margin-top: 120px;
 }
 
 .sceneMedia {

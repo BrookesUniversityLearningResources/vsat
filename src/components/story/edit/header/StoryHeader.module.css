@@ -1,12 +1,32 @@
 .header {
+  background-color: var(--color-bg);
   color: var(--color-text);
   display: flex;
+  flex-direction: column;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  border-bottom: 1px dashed var(--color-text);
+}
+
+.contentMain {
+  display: flex;
+  flex-direction: column;
+}
+
+.contentMain div:first-child {
+  display: flex;
+  flex-direction: row;
   justify-content: space-between;
+
+  a {
+    color: var(--color-text);
+  }
 }
 
 .actionBar {
   display: flex;
-  align-items: center;
+  justify-content: flex-end;
   gap: 1rem;
 
   a,
@@ -16,16 +36,6 @@
   }
   a:hover {
     text-decoration: underline;
-  }
-}
-
-div:has(.actionBar) {
-  display: flex;
-  gap: 1rem;
-  align-items: center;
-
-  a {
-    color: var(--color-text);
   }
 }
 

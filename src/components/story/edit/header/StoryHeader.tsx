@@ -1,5 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
-import type { FC } from "react";
+import type { FC, PropsWithChildren } from "react";
 import { useTranslation } from "react-i18next";
 
 import styles from "./StoryHeader.module.css";
@@ -26,16 +26,17 @@ import {
 import type { OnSceneChanged } from "../scene/types.js";
 import type { OnStoryChanged } from "../types.js";
 
-export type StoryHeaderProps = {
+export type StoryHeaderProps = PropsWithChildren<{
   story: PersistentStory;
   onSceneChanged: OnSceneChanged;
   onStoryChanged: OnStoryChanged;
-};
+}>;
 
 const StoryHeader: FC<StoryHeaderProps> = ({
   story,
   onSceneChanged,
   onStoryChanged,
+  children,
 }) => {
   const { t } = useTranslation();
 
@@ -198,27 +199,30 @@ const StoryHeader: FC<StoryHeaderProps> = ({
 
   return (
     <div className={styles.header}>
-      <InlineTextInput
-        onChanged={onSceneTitleChanged}
-        initialValue={story.title}
-        i18n={{
-          editing: {
-            labelName: t("title.field.label"),
-            labelSave: t("title.action.save-title"),
-            labelClose: t("common.close"),
-          },
-          notEditing: { labelEdit: t("title.action.edit-title") },
-        }}
-        inputAttributes={{
-          required: true,
-          minLength: 3,
-          maxLength: 50,
-        }}
-      >
-        <h1>{t("title.label", { title: story.title })}</h1>
-      </InlineTextInput>
+      <div className={styles.contentMain}>
+        <div>
+          <InlineTextInput
+            onChanged={onSceneTitleChanged}
+            initialValue={story.title}
+            i18n={{
+              editing: {
+                labelName: t("title.field.label"),
+                labelSave: t("title.action.save-title"),
+                labelClose: t("common.close"),
+              },
+              notEditing: { labelEdit: t("title.action.edit-title") },
+            }}
+            inputAttributes={{
+              required: true,
+              minLength: 3,
+              maxLength: 50,
+            }}
+          >
+            <h1>{t("title.label", { title: story.title })}</h1>
+          </InlineTextInput>
+          <a href="/logout">{t("common.logout.label")}</a>
+        </div>
 
-      <div>
         <div className={styles.actionBar}>
           <a href="/author/story/">{t("action.back-to-my-stories.label")}</a>
           <div className={styles.toolbar}>
@@ -279,9 +283,9 @@ const StoryHeader: FC<StoryHeaderProps> = ({
             </button>
           </div>
         </div>
-
-        <a href="/logout">{t("common.logout.label")}</a>
       </div>
+
+      {children}
     </div>
   );
 };

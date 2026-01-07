@@ -85,6 +85,22 @@
           "save-title": "Save"
         }
       },
+      "overview": {
+        "unavailable": {
+          "no-reason": "Unable to render the story overview yet 🥲",
+          "with-reason": "Unable to render the story overview yet 🥲 \"{{reason}}\""
+        },
+        "heading": "Overview",
+        "label": "Story flow overview",
+        "link": {
+          "missing": {
+            "title": "Missing: {{link}}"
+          },
+          "navigate-to": {
+            "label": "Jump to {{link}}"
+          }
+        }
+      },
       "action": {
         "publish-story": {
           "label": "Publish story"
