@@ -370,7 +370,12 @@ const StoryArcDiagram: FC<StoryArcDiagramProps> = ({
                   y={baselineY + 34}
                   textAnchor={labelAnchor}
                 >
-                  {node.title}
+                  {
+                    /* truncate the title so that longish titles don't overlap */
+                    node.title.length > 12
+                      ? `${node.title.substring(0, 12)}…`
+                      : node.title
+                  }
                 </text>
               );
 
