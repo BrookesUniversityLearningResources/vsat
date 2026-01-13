@@ -31,6 +31,7 @@ import getEnvironment from "./environment/getEnvironment.js";
 import createServer, { type StartServer } from "./server/createServer.js";
 import httpSession from "./server/httpSessionMiddleware.js";
 import routeHealthcheck from "./server/routeHealthcheck.js";
+import { withHeadersToEnableSharedArrayBufferUsage } from "./server/staticHeadersMiddleware.js";
 
 export default async function createApp(): Promise<[StartServer, Logger]> {
   const config = loadConfig();
@@ -63,6 +64,7 @@ export default async function createApp(): Promise<[StartServer, Logger]> {
       log,
       config.authentication.pathsRequiringAuthentication,
     ),
+    withHeadersToEnableSharedArrayBufferUsage(),
   ];
 
   const assertIsAuthor = assertIsAuthorHandler(log);
