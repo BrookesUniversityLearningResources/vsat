@@ -23,7 +23,6 @@ import routeSaveStoryTitle from "./domain/story/route/routeSaveStoryTitle.js";
 import routeUnpublishStory from "./domain/story/route/routeUnpublishStory.js";
 import routeUploadSceneAudio from "./domain/story/route/routeUploadSceneAudio.js";
 import routeUploadSceneImage from "./domain/story/route/routeUploadSceneImage.js";
-import assertIsAuthorHandler from "./domain/story/support/assertIsAuthorHandler.js";
 import assertIsAuthorOfTheStoryHandler from "./domain/story/support/assertIsAuthorOfTheStoryHandler.js";
 import isAuthorOfTheStory from "./domain/story/support/isAuthorOfTheStory.js";
 import loadConfig from "./environment/config.js";
@@ -67,8 +66,6 @@ export default async function createApp(): Promise<[StartServer, Logger]> {
     withHeadersToEnableSharedArrayBufferUsage(),
   ];
 
-  const assertIsAuthor = assertIsAuthorHandler(log);
-
   const assertIsAuthorOfTheStory = assertIsAuthorOfTheStoryHandler(
     log,
     isAuthorOfTheStory(db),
@@ -104,7 +101,11 @@ export default async function createApp(): Promise<[StartServer, Logger]> {
       repositoryScene.deleteSceneAudio,
       assertIsAuthorOfTheStory,
     ),
-    routeSaveAuthorName(log, repositoryAuthor.saveAuthorName, assertIsAuthor),
+    routeSaveAuthorName(
+      log,
+      repositoryAuthor.saveAuthorName,
+      assertIsAuthorOfTheStory,
+    ),
     routeSaveSceneContent(
       log,
       repositoryScene.saveSceneContent,
