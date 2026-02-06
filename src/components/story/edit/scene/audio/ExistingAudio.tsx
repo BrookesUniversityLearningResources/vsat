@@ -62,7 +62,12 @@ const ExistingAudio: FC<ExistingAudioProps> = ({
 
   return (
     <div className={styles.existingAudio}>
-      <audio src={audio.url} controls controlsList="nodownload">
+      <audio
+        src={audio.url}
+        controls
+        controlsList="nodownload"
+        crossOrigin="anonymous"
+      >
         <div>{audio.id}</div>
       </audio>
 

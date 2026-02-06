@@ -25,6 +25,7 @@ const PreviewAudio: FC<PreviewAudioProps> = ({
         src={URL.createObjectURL(audio)}
         controls
         controlsList="nodownload"
+        crossOrigin="anonymous"
       >
         <div>{audio.name}</div>
       </audio>
