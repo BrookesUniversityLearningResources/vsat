@@ -21,7 +21,11 @@ const PreviewImage: FC<PreviewImageProps> = ({
 
   return (
     <div className={styles.previewImageContainer}>
-      <img src={URL.createObjectURL(image)} alt={t("scene.image.preview")} />
+      <img
+        src={URL.createObjectURL(image)}
+        alt={t("scene.image.preview")}
+        crossOrigin="anonymous"
+      />
 
       <div className={styles.actionBar}>
         {!isUploading && (

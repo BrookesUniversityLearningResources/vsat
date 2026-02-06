@@ -62,7 +62,11 @@ const ExistingImage: FC<ExistingImageProps> = ({
 
   return (
     <div className={styles.existingImage}>
-      <img src={image.thumbnailUrl} alt={t("scene.image.alt-text")} />
+      <img
+        src={image.thumbnailUrl}
+        alt={t("scene.image.alt-text")}
+        crossOrigin="anonymous"
+      />
 
       <div className={styles.actionBar}>
         <div className={styles.loadingContainer}>
