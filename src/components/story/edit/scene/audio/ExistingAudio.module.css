@@ -5,6 +5,7 @@
 }
 
 .existingAudio audio {
+  max-width: 100%;
   border-radius: var(--border-radius-medium) var(--border-radius-medium) 0 0;
 }
 
