@@ -4,7 +4,7 @@ import { nothing, type Parse } from "./parseTypes.js";
 import { parseUsing } from "./parseUsing.js";
 
 const parseLinkWithSwappedDelimiters = ((): Parse => {
-  const pattern = /^\s*\((.+)\)\s*\[([a-zA-Z -]+)\]/i;
+  const pattern = /^\s*\((.+)\)\s*\[([a-zA-Z0-9 -]+)\]/i;
 
   return (text, lineNumber) => {
     const matches = pattern.exec(text);
@@ -26,7 +26,7 @@ const parseLinkWithSwappedDelimiters = ((): Parse => {
 })();
 
 const parseUnclosedLink = ((): Parse => {
-  const pattern = /^\s*\[(.+)]\s*\(([a-zA-Z -]+)/i;
+  const pattern = /^\s*\[(.+)]\s*\(([a-zA-Z0-9 -]+)/i;
 
   return (text, lineNumber) => {
     const matches = pattern.exec(text);
@@ -71,7 +71,7 @@ const parseLinkMissingTextAndTarget = ((): Parse => {
 })();
 
 const parseLink = (): Parse => {
-  const pattern = /^\s*\[(.+)]\s*\(([a-zA-Z -]*)\)/i;
+  const pattern = /^\s*\[(.+)]\s*\(([a-zA-Z0-9 -]*)\)/i;
 
   const parsePotentiallyMalformedLinks = parseUsing([
     parseUnclosedLink,

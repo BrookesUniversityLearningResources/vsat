@@ -22,7 +22,7 @@ export default function toSlateModel(scene: PersistentScene): Descendant[] {
           for (const block of page.content) {
             switch (block.kind) {
               case "blockHeading": {
-                model.push(headingBlock(block.text));
+                model.push(headingBlock(block.text, block.link));
                 break;
               }
               case "blockPlaintext": {
@@ -87,7 +87,10 @@ export default function toSlateModel(scene: PersistentScene): Descendant[] {
             model.push(linkBlock(lineResult.text, lineResult.link));
             break;
           }
-          case "headerNamed":
+          case "headerNamed": {
+            model.push(headingBlock(lineResult.text, lineResult.name));
+            break;
+          }
           case "headerAnonymous": {
             model.push(headingBlock(lineResult.text));
             break;
@@ -133,7 +136,14 @@ export function plaintextBlock(text: string): Element {
   };
 }
 
-export function headingBlock(text: string): Element {
+export function headingBlock(text: string, link?: string): Element {
+  if (link) {
+    return {
+      type: "blockHeading",
+      children: [{ text: `# ${text} | ${link}` }],
+    };
+  }
+
   return {
     type: "blockHeading",
     children: [{ text: `# ${text}` }],

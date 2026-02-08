@@ -49,6 +49,7 @@ export function createI18N(
       interpolation: {
         escapeValue: false,
       },
+      showSupportNotice: false,
     },
     (err) => {
       if (err) {
