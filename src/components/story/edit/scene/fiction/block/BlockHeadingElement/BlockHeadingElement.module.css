@@ -1,3 +1,7 @@
 .blockHeading {
   font-weight: bold;
 }
+
+.blockHeading:not(:first-child) {
+  margin-top: 1rem;
+}

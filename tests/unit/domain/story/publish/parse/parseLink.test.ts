@@ -171,4 +171,14 @@ describe("parseLink", () => {
       });
     },
   );
+
+  test("given '[Stomp](the-2nd-link)' then the text is parsed successfully as a link", () => {
+    const input = "[Stomp](the-2nd-link)";
+
+    const result = parseLink()(input, 1);
+
+    assert.equal(result.kind, "link");
+    assert.equal(result.text, "Stomp");
+    assert.equal(result.link, "the-2nd-link");
+  });
 });
