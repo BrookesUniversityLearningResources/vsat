@@ -214,6 +214,11 @@
                 "headline": "The link is malformed",
                 "howtofix": "Add some text and a name to fix this link.",
                 "example": "[Unlock the chest](unlock-chest)"
+              },
+              "29": {
+                "headline": "The link name is not unique",
+                "howtofix": "Edit the link's name to be unique.",
+                "example": "# Exit | exit-the-building-unique-001"
               }
             }
           }
@@ -242,7 +247,8 @@
             "20": "Oops, we had an issue saving that name.",
             "21": "You must login to access that part of the site.",
             "27": "The audio file is too big to upload.",
-            "28": "The image file is too big to upload."
+            "28": "The image file is too big to upload.",
+            "29": "Link names must be unique."
           }
         },
         "story": {

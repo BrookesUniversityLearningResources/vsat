@@ -9,6 +9,7 @@ import type {
 } from "../../index.js";
 import parse from "./parse/parse.js";
 import parseLinkTarget from "./parse/parseLinkTarget.js";
+import deriveLinkTarget from "./support/deriveLinkTarget.js";
 import type { Page, PublishedScene, PublishedStory } from "./types.js";
 import validateLinks from "./validate/links/validateLinks.js";
 
@@ -95,7 +96,7 @@ export function parseScene(scene: PersistentScene): ParseSceneResult {
         const targetResult = parseLinkTarget(
           result.kind === "headerNamed"
             ? result.name
-            : result.text.toLowerCase().replace(/[^a-z0-9 ]+/gi, ""),
+            : deriveLinkTarget(result),
         );
 
         if (targetResult.kind === "failure") {
