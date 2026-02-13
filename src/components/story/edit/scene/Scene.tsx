@@ -27,13 +27,13 @@ export type SceneTitleChangeEvent = {
 };
 
 export type SceneProps = {
+  story: PersistentStory;
   scene: PersistentScene;
-  storyId: PersistentStory["id"];
   onSceneChanged: OnSceneChanged;
 };
 
 const Scene: FC<SceneProps> = ({
-  storyId,
+  story,
   scene: initialScene,
   onSceneChanged,
 }) => {
@@ -46,7 +46,7 @@ const Scene: FC<SceneProps> = ({
     queryKey: [`scene-${initialScene.id}`],
     initialData: initialScene,
     queryFn: () =>
-      getScene(storyId, initialScene.id).then((result) => {
+      getScene(story.id, initialScene.id).then((result) => {
         switch (result.kind) {
           case "gotScene":
             return result.scene;
@@ -64,7 +64,7 @@ const Scene: FC<SceneProps> = ({
     SceneTitleChanged
   >({
     mutationFn: ({ title, sceneId }) =>
-      saveSceneTitle(storyId, sceneId, title).then((result) => {
+      saveSceneTitle(story.id, sceneId, title).then((result) => {
         switch (result.kind) {
           case "sceneTitleSaved":
             return result.scene;
@@ -131,17 +131,17 @@ const Scene: FC<SceneProps> = ({
         <div className={styles.sceneMedia}>
           <SceneImage
             scene={scene}
-            storyId={storyId}
+            storyId={story.id}
             onSceneChanged={internalOnSceneChanged}
           />
           <SceneAudio
             scene={scene}
-            storyId={storyId}
+            storyId={story.id}
             onSceneChanged={internalOnSceneChanged}
           />
         </div>
         <SceneFiction
-          storyId={storyId}
+          story={story}
           scene={scene}
           onSceneChanged={internalOnSceneChanged}
         />

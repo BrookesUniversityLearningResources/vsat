@@ -54,6 +54,7 @@ export const ErrorCodes = Object.freeze({
   ParseErrorLinkEmpty: 26,
   ErrorUploadingAudioExceedsSizeLimit: 27,
   ErrorUploadingImageExceedsSizeLimit: 28,
+  LinkNamesMustBeUnique: 29,
 } as const);
 
 export const ErrorCodeModel = z.nativeEnum(ErrorCodes);

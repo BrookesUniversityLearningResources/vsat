@@ -172,7 +172,7 @@ const StoryEditor: FC<StoryEditorProps> = ({ story: initialStory }) => {
 
       {isNonEmptyArray(story.scenes) ? (
         <Scenes
-          storyId={story.id}
+          story={story}
           scenes={story.scenes}
           onSceneChanged={onSceneChanged}
         />
@@ -184,19 +184,19 @@ const StoryEditor: FC<StoryEditorProps> = ({ story: initialStory }) => {
 };
 
 type ScenesProps = {
-  storyId: PersistentStory["id"];
+  story: PersistentStory;
   scenes: NonEmptyArray<PersistentScene>;
   onSceneChanged: OnSceneChanged;
 };
 
-const Scenes: FC<ScenesProps> = ({ storyId, scenes, onSceneChanged }) => {
+const Scenes: FC<ScenesProps> = ({ story, scenes, onSceneChanged }) => {
   return (
     <div className="scenes">
       {scenes.map((scene) => (
         <Scene
+          story={story}
           scene={scene}
           key={scene.id}
-          storyId={storyId}
           onSceneChanged={onSceneChanged}
         />
       ))}

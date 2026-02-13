@@ -4,6 +4,7 @@ import {
   type FC,
   type KeyboardEventHandler,
   useCallback,
+  useMemo,
   useState,
 } from "react";
 import { useTranslation } from "react-i18next";
@@ -16,6 +17,8 @@ import { ErrorCodedError } from "@domain/error/ErrorCodedError";
 import type { PersistentScene, PersistentStory } from "@domain/index";
 import unsupported from "@domain/story/client/unsupportedResult";
 import parse from "@domain/story/publish/parse/parse";
+import parseStory, { type ParsedStory } from "@domain/story/publish/parseStory";
+import validateHeader from "@domain/story/publish/validate/links/validateHeader";
 import debounce from "@util/function/debounce";
 
 import {
@@ -27,18 +30,19 @@ import {
 import type { OnSceneChanged } from "../types";
 import Block from "./block/Block";
 import getContent from "./getContent";
-import styles from "./SceneFiction.module.css";
 import Toolbar from "./Toolbar";
 import toSlateModel, { emptyBlock } from "./toSlateModel";
 
+import styles from "./SceneFiction.module.css";
+
 type SceneFictionProps = {
-  storyId: PersistentStory["id"];
+  story: PersistentStory;
   scene: PersistentScene;
   onSceneChanged: OnSceneChanged;
 };
 
 const SceneFiction: FC<SceneFictionProps> = ({
-  storyId,
+  story,
   scene,
   onSceneChanged,
 }) => {
@@ -52,9 +56,17 @@ const SceneFiction: FC<SceneFictionProps> = ({
 
   const [editorState] = useState(toSlateModel(scene));
 
+  const parsedStory = useMemo<ParsedStory | undefined>(() => {
+    const psr = parseStory(story);
+    if (psr.kind === "storyFailedToParse") {
+      return undefined;
+    }
+    return psr.story;
+  }, [story]);
+
   const saveTheSceneContent = useMutation<string, Error, string>({
     mutationFn: (content) =>
-      saveSceneContent({ storyId, sceneId: scene.id, content }).then(
+      saveSceneContent({ storyId: story.id, sceneId: scene.id, content }).then(
         (result) => {
           switch (result.kind) {
             case "sceneContentSaved": {
@@ -93,7 +105,7 @@ const SceneFiction: FC<SceneFictionProps> = ({
 
   const deleteTheScene = useMutation<unknown, Error, PersistentScene["id"]>({
     mutationFn: (sceneId) =>
-      deleteScene({ storyId, sceneId }).then((result) => {
+      deleteScene({ storyId: story.id, sceneId }).then((result) => {
         switch (result.kind) {
           case "sceneDeleted":
             return;
@@ -158,15 +170,31 @@ const SceneFiction: FC<SceneFictionProps> = ({
 
     if (text.length > 0) {
       // parse the line to see what kind of line it is
-      const result = parse(text, 1);
+      const parseResult = parse(text, 1);
 
-      switch (result.kind) {
+      switch (parseResult.kind) {
         case "link": {
           Transforms.setNodes(editor, { type: "blockLink" });
           break;
         }
         case "headerNamed":
         case "headerAnonymous": {
+          if (parsedStory) {
+            // the header parses syntactically but it may be semantically
+            // "wrong" such as being a non-unique link target
+            const validation = validateHeader(parsedStory)(parseResult);
+            if (validation.kind === "invalid") {
+              Transforms.setNodes(editor, {
+                type: "blockError",
+                error: {
+                  code: validation.errorCode || ErrorCodes.Error,
+                  message: validation.message,
+                },
+              });
+              break;
+            }
+          }
+
           Transforms.setNodes(editor, { type: "blockHeading" });
           break;
         }
@@ -174,10 +202,17 @@ const SceneFiction: FC<SceneFictionProps> = ({
           Transforms.setNodes(editor, {
             type: "blockError",
             error: {
-              code: result.errorCode || ErrorCodes.Error,
-              message: result.message,
+              code: parseResult.errorCode || ErrorCodes.Error,
+              message: parseResult.message,
             },
           });
+          break;
+        }
+
+        case "nothing":
+        case "emptyLine":
+        case "plaintext": {
+          // nothing to do for these cases
           break;
         }
       }
