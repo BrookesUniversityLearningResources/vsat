@@ -39,12 +39,10 @@ export default function authenticationRequired(
   };
 }
 
-type RequiresAuthentication = (path: string) => boolean;
-
-export function requiresAuthentication(
+function requiresAuthentication(
   paths: AuthenticationConfig["pathsRequiringAuthentication"],
-): RequiresAuthentication {
+) {
   const patterns = paths.map((path) => new URLPattern({ pathname: path }));
 
-  return (path) => !!patterns.find((pattern) => pattern.test(path));
+  return (path: string) => !!patterns.find((pattern) => pattern.test(path));
 }
