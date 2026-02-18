@@ -29,17 +29,24 @@ if (!storyImageUrl) {
     />
     <div>{story.title}</div>
   </a>
+  {
+    story.publishedOn && (
+      <a href={`/story/${story.id}`} class="published" target="_blank">
+        {i18n.t("page.stories.summary.action.view-published-story")}
+      </a>
+    )
+  }
 </div>
 
 <style>
   .summary {
     width: 100%;
+    text-align: center;
 
     div {
       border: 1px solid black;
       border-radius: 0 0 var(--border-radius-medium) var(--border-radius-medium);
       padding: 0.5rem 1rem;
-      text-align: center;
       font-size: 1.5rem;
       background-color: var(--color-text);
       overflow: hidden;
@@ -58,7 +65,7 @@ if (!storyImageUrl) {
   }
 
   summary:hover {
-    box-shadow: 0rem 0rem 1rem 0.125rem #32393c;
+    box-shadow: 0 0 1rem 0.125rem #32393c;
     border-radius: var(--border-radius-medium);
   }
 
@@ -66,5 +73,13 @@ if (!storyImageUrl) {
   a:visited {
     text-decoration: none;
     color: black;
+  }
+
+  a.published,
+  a.published:visited {
+    display: inline-block;
+    text-decoration: underline;
+    color: var(--color-text);
+    padding-top: 0.25rem;
   }
 </style>
