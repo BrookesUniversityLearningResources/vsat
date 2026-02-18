@@ -51,6 +51,9 @@
       "summary": {
         "image": {
           "alt-text": "Background image for '{{title}}'"
+        },
+        "action": {
+          "view-published-story": "View published story"
         }
       },
       "notify": {
