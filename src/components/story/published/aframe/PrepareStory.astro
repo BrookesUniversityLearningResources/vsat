@@ -84,8 +84,37 @@ const serializedStory = DOMPurify.sanitize(
 
   AFRAME.registerComponent("story", {
     init: function () {
-      window.current.scene = openingSceneFor(window.current.story);
-      window.current.page = openingPageFor(window.current.scene);
+      const openingScene = openingSceneFor(window.current.story);
+      const openingPage = openingPageFor(openingScene);
+
+      window.current.page = {
+        number: 0,
+        link: "__openingTitleCard__",
+        withinScene: openingScene.id,
+        content: [
+          {
+            kind: "blockHeading",
+            link: "__openingTitleCard__",
+            text: window.current.story.title,
+          },
+          {
+            kind: "blockPlaintext",
+            text: " ",
+          },
+          { kind: "blockLink", text: "Start", link: openingPage.link },
+        ],
+      };
+
+      window.current.scene = {
+        id: 0,
+        title: "__openingTitleCard__",
+        image: openingScene.image,
+        link: "__openingTitleCard__",
+        isOpeningScene: false,
+        pages: {
+          __openingTitleCard__: window.current.page,
+        },
+      };
 
       this.render(window.current);
     },
@@ -108,12 +137,6 @@ const serializedStory = DOMPurify.sanitize(
           this.render(window.current);
         }
       },
-      pointermove: function () {
-        const sound = this.el.components.sound;
-        if (!sound?.isPlaying) {
-          sound.playSound();
-        }
-      },
     },
     render: function (current: Current) {
       const sky = document.querySelector("a-sky");
@@ -132,7 +155,7 @@ const serializedStory = DOMPurify.sanitize(
       if (current.scene.audio) {
         this.el.setAttribute(
           "sound",
-          `src: #audio-${current.scene.audio.id}; autoplay: false; positional: false`,
+          `src: #audio-${current.scene.audio.id}; autoplay: true; positional: false`,
         );
       } else {
         this.el.removeAttribute("sound");
@@ -204,7 +227,7 @@ const serializedStory = DOMPurify.sanitize(
   AFRAME.registerComponent("block-heading", {
     schema: {
       text: { type: "string", default: "" },
-      lineCount: { type: "number", default: "1" },
+      lineCount: { type: "number", default: 1 },
     },
     init: function () {
       const y =
@@ -250,7 +273,7 @@ const serializedStory = DOMPurify.sanitize(
   AFRAME.registerComponent("block-plaintext", {
     schema: {
       text: { type: "string", default: "" },
-      lineCount: { type: "number", default: "1" },
+      lineCount: { type: "number", default: 1 },
     },
     init: function () {
       this.el.setAttribute("position", `0 ${FICTION_Y - 1} 0`);

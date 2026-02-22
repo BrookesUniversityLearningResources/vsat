@@ -24,7 +24,7 @@ const { story, openingScene } = Astro.props;
             <audio
               id={audioId}
               src={scene.audio!.url}
-              autoplay="true"
+              preload="auto"
               crossorigin="anonymous"
             />
           );
