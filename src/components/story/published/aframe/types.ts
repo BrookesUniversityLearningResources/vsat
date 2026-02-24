@@ -18,3 +18,10 @@ export type Current = {
   scene: PublishedScene;
   story: PublishedStory;
 };
+
+export type RenderOptions = {
+  /**
+   * `true` iff the `Scene` has also changed when changing `Page`.
+   */
+  isSceneChange: boolean;
+};

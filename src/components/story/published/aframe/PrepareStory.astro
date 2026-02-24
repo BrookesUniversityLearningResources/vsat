@@ -35,7 +35,8 @@ const serializedStory = DOMPurify.sanitize(
 
   import changePage from "./changePage";
   import { EVENT_LINK_ACTIVATED } from "./linkActivated";
-  import type { Current } from "./types";
+  import { isTitleCardScene, titleCardSceneFor } from "./titleCardSceneFor";
+  import type { Current, RenderOptions } from "./types";
 
   /**
    * The maximum width of the text (fiction) content.
@@ -87,36 +88,20 @@ const serializedStory = DOMPurify.sanitize(
       const openingScene = openingSceneFor(window.current.story);
       const openingPage = openingPageFor(openingScene);
 
-      window.current.page = {
-        number: 0,
-        link: "__openingTitleCard__",
-        withinScene: openingScene.id,
-        content: [
-          {
-            kind: "blockHeading",
-            link: "__openingTitleCard__",
-            text: window.current.story.title,
-          },
-          {
-            kind: "blockPlaintext",
-            text: " ",
-          },
-          { kind: "blockLink", text: "Start", link: openingPage.link },
-        ],
-      };
+      if (!!openingScene.audio) {
+        const [titleCardScene, titleCardPage] = titleCardSceneFor(
+          window.current.story.title,
+          openingScene,
+          openingPage.link,
+        );
+        window.current.scene = titleCardScene;
+        window.current.page = titleCardPage;
+      } else {
+        window.current.scene = openingScene;
+        window.current.page = openingPage;
+      }
 
-      window.current.scene = {
-        id: 0,
-        title: "__openingTitleCard__",
-        image: openingScene.image,
-        link: "__openingTitleCard__",
-        isOpeningScene: false,
-        pages: {
-          __openingTitleCard__: window.current.page,
-        },
-      };
-
-      this.render(window.current);
+      this.render(window.current, { isSceneChange: false });
     },
     events: {
       [EVENT_LINK_ACTIVATED]: function (e: CustomEvent<LinkTarget>) {
@@ -134,11 +119,11 @@ const serializedStory = DOMPurify.sanitize(
             window.current.scene = change.toScene;
           }
 
-          this.render(window.current);
+          this.render(window.current, { isSceneChange: !!change.toScene });
         }
       },
     },
-    render: function (current: Current) {
+    render: function (current: Current, options: RenderOptions) {
       const sky = document.querySelector("a-sky");
       if (sky) {
         if (current.scene.image) {
@@ -148,78 +133,96 @@ const serializedStory = DOMPurify.sanitize(
         }
       }
 
-      const existingSound = this.el.components.sound;
-      if (existingSound?.isPlaying) {
-        existingSound.stopSound();
-      }
-      if (current.scene.audio) {
-        this.el.setAttribute(
-          "sound",
-          `src: #audio-${current.scene.audio.id}; autoplay: true; positional: false`,
-        );
-      } else {
-        this.el.removeAttribute("sound");
+      if (options.isSceneChange) {
+        const existingSound = this.el.components.sound;
+
+        if (existingSound?.isPlaying) {
+          existingSound.stopSound();
+        }
+
+        if (current.scene.audio) {
+          this.el.setAttribute(
+            "sound",
+            `src: #audio-${current.scene.audio.id}; autoplay: true; positional: false`,
+          );
+        } else {
+          this.el.removeAttribute("sound");
+        }
       }
 
       const fiction = document.getElementById("fiction");
       if (fiction) {
         removeAllChildNodes(fiction);
 
-        const heading = (() => {
-          const text = current.page.content.find(isHeadingBlock)?.text || "";
+        if (isTitleCardScene(current.scene)) {
+          const linkToOpeningPage =
+            current.page.content.find(isLinkBlock)?.link || "";
 
-          const entity = document.createElement("a-entity");
-          entity.setAttribute(
-            "block-heading",
-            `text: ${text}; lineCount: ${countLines(text)}`,
+          const titleCard = document.createElement("a-entity");
+          titleCard.setAttribute(
+            "title-card",
+            `title: ${window.current.story.title}; link: ${linkToOpeningPage}`,
           );
+          titleCard.setAttribute("position", `0 ${0.5} 0`);
 
-          return entity;
-        })();
+          fiction.appendChild(titleCard);
+        } else {
+          const heading = (() => {
+            const text = current.page.content.find(isHeadingBlock)?.text || "";
 
-        const [content, lineCount] = (() => {
-          const text = current.page.content
-            .filter(isPlaintextBlock)
-            .map((block) => block.text)
-            .join("\n\n");
-
-          // we add one so that we always have at least 2 lines;
-          // this gives the fiction some room to breathe.
-          const lineCount = countLines(text) + 1;
-
-          const entity = document.createElement("a-entity");
-          entity.setAttribute(
-            "block-plaintext",
-            `text: ${text}; lineCount: ${lineCount}`,
-          );
-
-          return [entity, lineCount];
-        })();
-
-        const links = (() => {
-          const linkBlocks = current.page.content.filter(isLinkBlock);
-
-          const height = lineCount == 1 ? 1 : 1 + lineCount * 0.25;
-
-          const elements = linkBlocks.map((block, index) => {
             const entity = document.createElement("a-entity");
             entity.setAttribute(
-              "block-link",
-              `text: ${block.text}; link: ${block.link}`,
+              "block-heading",
+              `text: ${text}; lineCount: ${countLines(text)}`,
             );
 
-            const y = FICTION_Y - height - (index + 1);
-            entity.setAttribute("position", `0 ${y} 0`);
-
             return entity;
-          });
+          })();
 
-          return elements;
-        })();
+          const [content, lineCount] = (() => {
+            const text = current.page.content
+              .filter(isPlaintextBlock)
+              .map((block) => block.text)
+              .join("\n\n");
 
-        links.forEach((link) => fiction.appendChild(link));
-        fiction.appendChild(content);
-        fiction.appendChild(heading);
+            // we add one so that we always have at least 2 lines;
+            // this gives the fiction some room to breathe.
+            const lineCount = countLines(text) + 1;
+
+            const entity = document.createElement("a-entity");
+            entity.setAttribute(
+              "block-plaintext",
+              `text: ${text}; lineCount: ${lineCount}`,
+            );
+
+            return [entity, lineCount];
+          })();
+
+          const links = (() => {
+            const linkBlocks = current.page.content.filter(isLinkBlock);
+
+            const height = lineCount == 1 ? 1 : 1 + lineCount * 0.25;
+
+            const elements = linkBlocks.map((block, index) => {
+              const entity = document.createElement("a-entity");
+              entity.setAttribute(
+                "block-link",
+                `text: ${block.text}; link: ${block.link}`,
+              );
+
+              const y = FICTION_Y - height - (index + 1);
+              entity.setAttribute("position", `0 ${y} 0`);
+
+              return entity;
+            });
+
+            return elements;
+          })();
+
+          links.forEach((link) => fiction.appendChild(link));
+          fiction.appendChild(content);
+          fiction.appendChild(heading);
+        }
       }
     },
   });
@@ -228,6 +231,7 @@ const serializedStory = DOMPurify.sanitize(
     schema: {
       text: { type: "string", default: "" },
       lineCount: { type: "number", default: 1 },
+      fontSize: { type: "number", default: 0.25 },
     },
     init: function () {
       const y =
@@ -238,7 +242,7 @@ const serializedStory = DOMPurify.sanitize(
 
       const theText = ((el) => {
         el.setAttribute("value", this.data.text);
-        el.setAttribute("font-size", "0.25");
+        el.setAttribute("font-size", this.data.fontSize);
         el.setAttribute("color", THEME.color.primary.text);
         el.setAttribute("max-width", MAX_WIDTH);
         el.setAttribute("anchor", "left");
@@ -252,7 +256,6 @@ const serializedStory = DOMPurify.sanitize(
       })(document.createElement("a-troika-text"));
 
       const theBackground = ((el) => {
-        el.setAttribute("class", "clickable");
         el.setAttribute("color", THEME.color.primary.background);
         el.setAttribute("width", MAX_WIDTH + 1);
         el.setAttribute("depth", FICTION_TEXT_Z);
@@ -342,6 +345,46 @@ const serializedStory = DOMPurify.sanitize(
 
       this.el.appendChild(theButton);
       this.el.appendChild(theText);
+    },
+    events: {
+      click: function () {
+        this.el.emit(EVENT_LINK_ACTIVATED, this.data.link);
+      },
+    },
+  });
+
+  AFRAME.registerComponent("title-card", {
+    schema: {
+      title: { type: "string" },
+      link: { type: "string" },
+    },
+    init: function () {
+      const theHeading = (() => {
+        const entity = document.createElement("a-entity");
+        entity.setAttribute(
+          "block-heading",
+          `text: ${this.data.title}; fontSize: 0.35;`,
+        );
+
+        return entity;
+      })();
+
+      const theButtonText = (() => {
+        const entity = document.createElement("a-troika-text");
+        entity.setAttribute("value", "▶️");
+        entity.setAttribute("data-raycastable", "");
+        entity.setAttribute("color", THEME.color.link.text);
+        entity.setAttribute("max-width", MAX_WIDTH);
+        entity.setAttribute("anchor", "left");
+        entity.setAttribute("baseline", "top");
+        entity.setAttribute("font-size", 1.5);
+        entity.setAttribute("position", `-1 1 0.5`);
+
+        return entity;
+      })();
+
+      this.el.appendChild(theHeading);
+      this.el.appendChild(theButtonText);
     },
     events: {
       click: function () {
