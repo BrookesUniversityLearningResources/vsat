@@ -69,7 +69,7 @@ const serializedStory = DOMPurify.sanitize(
     color: {
       primary: {
         background: "#2C3E50",
-        text: "white",
+        text: "#ECF0F1",
       },
       fiction: {
         background: "#E0E0E0",
@@ -78,7 +78,7 @@ const serializedStory = DOMPurify.sanitize(
       link: {
         background: "#2C3E50",
         backgroundActive: "#3C5976",
-        text: "white",
+        text: "#ECF0F1",
       },
     },
   });
@@ -163,7 +163,7 @@ const serializedStory = DOMPurify.sanitize(
             "title-card",
             `title: ${window.current.story.title}; link: ${linkToOpeningPage}`,
           );
-          titleCard.setAttribute("position", `0 ${0.5} 0`);
+          titleCard.setAttribute("position", "0 1 0");
 
           fiction.appendChild(titleCard);
         } else {
@@ -360,31 +360,33 @@ const serializedStory = DOMPurify.sanitize(
     },
     init: function () {
       const theHeading = (() => {
-        const entity = document.createElement("a-entity");
-        entity.setAttribute(
+        const el = document.createElement("a-entity");
+        el.setAttribute(
           "block-heading",
           `text: ${this.data.title}; fontSize: 0.35;`,
         );
-
-        return entity;
+        return el;
       })();
 
-      const theButtonText = (() => {
-        const entity = document.createElement("a-troika-text");
-        entity.setAttribute("value", "▶️");
-        entity.setAttribute("data-raycastable", "");
-        entity.setAttribute("color", THEME.color.link.text);
-        entity.setAttribute("max-width", MAX_WIDTH);
-        entity.setAttribute("anchor", "left");
-        entity.setAttribute("baseline", "top");
-        entity.setAttribute("font-size", 1.5);
-        entity.setAttribute("position", `-1 1 0.5`);
+      const theButton = ((el) => {
+        el.setAttribute("value", "▶️");
+        el.setAttribute("data-raycastable", "");
+        el.setAttribute("color", THEME.color.primary.background);
+        el.setAttribute("max-width", MAX_WIDTH);
+        el.setAttribute("anchor", "left");
+        el.setAttribute("baseline", "top");
+        el.setAttribute("font-size", 1.5);
+        el.setAttribute("position", "-0.95 0.95 0.5");
+        el.setAttribute(
+          "animation",
+          `property: color; from: ${THEME.color.primary.background}; to: #079C0F; easing: easeInOutSine; dir: alternate; loop: true; delay: 1000;`,
+        );
 
-        return entity;
-      })();
+        return el;
+      })(document.createElement("a-troika-text"));
 
       this.el.appendChild(theHeading);
-      this.el.appendChild(theButtonText);
+      this.el.appendChild(theButton);
     },
     events: {
       click: function () {
