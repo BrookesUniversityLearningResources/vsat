@@ -1,4 +1,4 @@
-FROM node:24-alpine AS build
+FROM node:25-alpine AS build
 
 WORKDIR /app
 
@@ -21,7 +21,7 @@ RUN npm ci --ignore-scripts && \
     npm run build && \
     npm prune --production
 
-FROM node:24-alpine AS release
+FROM node:25-alpine AS release
 
 WORKDIR /app
 
