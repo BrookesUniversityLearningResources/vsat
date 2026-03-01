@@ -41,7 +41,7 @@
     "astro": "^5.17.1",
     "astro-icon": "^1.1.5",
     "cloudinary": "^2.9.0",
-    "config": "^4.2.0",
+    "config": "^4.3.0",
     "connect-pg-simple": "^10.0.0",
     "express": "^5.2.1",
     "express-session": "^1.19.0",
