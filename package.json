@@ -45,7 +45,7 @@
     "connect-pg-simple": "^10.0.0",
     "express": "^5.2.1",
     "express-session": "^1.19.0",
-    "i18next": "^25.8.4",
+    "i18next": "^25.8.7",
     "i18next-fs-backend": "^2.6.1",
     "isomorphic-dompurify": "^2.35.0",
     "kysely": "^0.28.11",
