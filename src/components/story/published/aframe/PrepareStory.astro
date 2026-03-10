@@ -365,22 +365,31 @@ const serializedStory = DOMPurify.sanitize(
         return el;
       })();
 
-      const theButton = ((el) => {
-        el.setAttribute("value", "▶️");
-        el.setAttribute("data-raycastable", "");
-        el.setAttribute("color", THEME.color.primary.background);
-        el.setAttribute("max-width", MAX_WIDTH);
-        el.setAttribute("anchor", "left");
-        el.setAttribute("baseline", "top");
-        el.setAttribute("font-size", 1.5);
-        el.setAttribute("position", "-0.95 0.95 0.5");
-        el.setAttribute(
+      const theButton = (() => {
+        const box = document.createElement("a-box");
+        box.setAttribute("color", "#079C0F");
+        box.setAttribute("width", 1.8);
+        box.setAttribute("height", 1.5);
+        box.setAttribute("depth", 0.3);
+        box.setAttribute("data-raycastable", "");
+        box.setAttribute("opacity", OPACITY);
+        box.setAttribute(
           "animation",
-          `property: color; from: ${THEME.color.primary.background}; to: #079C0F; easing: easeInOutSine; dir: alternate; loop: true; delay: 1000;`,
+          "property: color; from: #079C0F; to: #0DC414; easing: easeInOutSine; dir: alternate; loop: true; delay: 1000;",
         );
 
-        return el;
-      })(document.createElement("a-troika-text"));
+        const triangle = document.createElement("a-triangle");
+        triangle.setAttribute("color", "#FFFFFF");
+        triangle.setAttribute("rotation", "0 0 -90");
+        triangle.setAttribute("position", "0.1 0 0.2");
+
+        const container = document.createElement("a-entity");
+        container.setAttribute("position", "-0.25 0.75 0.5");
+        container.appendChild(box);
+        container.appendChild(triangle);
+
+        return container;
+      })();
 
       this.el.appendChild(theHeading);
       this.el.appendChild(theButton);
