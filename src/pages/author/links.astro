@@ -254,4 +254,50 @@ const isSteward = isStewardUser(
     background: #ffecec;
     color: #7a1f1f;
   }
+
+  /* Status-colored card backgrounds */
+  .link-card--accepted {
+    background: #f0f7ff;
+  }
+
+  .link-card--rejected {
+    background: #fff5f5;
+  }
+
+  .link-card--proposed {
+    background: #fffef0;
+  }
+
+  /* Card hover effect */
+  .link-card {
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .link-card:hover {
+    border-color: #1f4d7a;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  }
+
+  /* Button hover states */
+  .link-action {
+    transition: background 0.2s ease;
+  }
+
+  .link-action:hover:not(:disabled) {
+    background: #cce3ff;
+  }
+
+  .link-action--retire:hover:not(:disabled) {
+    background: #ffd6d6;
+  }
+
+  /* Button focus-visible outlines */
+  .link-action:focus-visible {
+    outline: 2px solid #1f4d7a;
+    outline-offset: 2px;
+  }
+
+  .link-action--retire:focus-visible {
+    outline-color: #7a1f1f;
+  }
 </style>

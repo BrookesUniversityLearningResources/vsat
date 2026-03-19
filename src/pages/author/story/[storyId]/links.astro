@@ -424,4 +424,94 @@ const contextPageNumber = Astro.url.searchParams.get("contextPageNumber");
   .link-form__status {
     font-size: 0.9rem;
   }
+
+  /* Status-colored card backgrounds */
+  .link-card--accepted {
+    background: #f0f7ff;
+  }
+
+  .link-card--rejected {
+    background: #fff5f5;
+  }
+
+  .link-card--proposed {
+    background: #fffef0;
+  }
+
+  /* Card hover effects */
+  .link-card {
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .link-card:hover {
+    border-color: #1f4d7a;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  }
+
+  /* Button hover states */
+  .link-action {
+    transition: background 0.2s ease;
+  }
+
+  .link-action:hover:not(:disabled) {
+    background: #cce3ff;
+  }
+
+  .link-action--retire:hover:not(:disabled) {
+    background: #ffd6d6;
+  }
+
+  /* Button focus-visible outlines */
+  .link-action:focus-visible {
+    outline: 2px solid #1f4d7a;
+    outline-offset: 2px;
+  }
+
+  .link-action--retire:focus-visible {
+    outline-color: #7a1f1f;
+  }
+
+  /* Form container styling */
+  .link-form {
+    background: #f9f9f9;
+    padding: 1.5rem;
+    border: 1px solid #ddd;
+    border-radius: 0.75rem;
+  }
+
+  /* Label font-weight */
+  .link-form label {
+    font-weight: 600;
+  }
+
+  /* Input/select/textarea focus states */
+  .link-form input:focus,
+  .link-form select:focus,
+  .link-form textarea:focus {
+    outline: 2px solid #1f4d7a;
+    outline-offset: 1px;
+    border-color: #1f4d7a;
+  }
+
+  /* Submit button as primary pill */
+  .link-form button[type="submit"] {
+    background: #e7f2ff;
+    color: #1f4d7a;
+    border: 1px solid #1f4d7a;
+    border-radius: 999px;
+    padding: 0.5rem 1.25rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s ease;
+  }
+
+  .link-form button[type="submit"]:hover {
+    background: #cce3ff;
+  }
+
+  .link-form button[type="submit"]:focus-visible {
+    outline: 2px solid #1f4d7a;
+    outline-offset: 2px;
+  }
 </style>

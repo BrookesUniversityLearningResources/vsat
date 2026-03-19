@@ -163,4 +163,71 @@ const pilots = await repositoryPilot.getPilots();
   .pilot-form__status {
     font-size: 0.9rem;
   }
+
+  /* Form container styling */
+  .pilot-form {
+    background: #f9f9f9;
+    padding: 1.5rem;
+    border: 1px solid #ddd;
+    border-radius: 0.75rem;
+  }
+
+  /* Label font-weight */
+  .pilot-form label {
+    font-weight: 600;
+  }
+
+  /* Input/select/textarea focus states */
+  .pilot-form input:focus,
+  .pilot-form select:focus,
+  .pilot-form textarea:focus {
+    outline: 2px solid #1f4d7a;
+    outline-offset: 1px;
+    border-color: #1f4d7a;
+  }
+
+  /* Submit button styled as primary pill */
+  .pilot-form button[type="submit"] {
+    background: #e7f2ff;
+    color: #1f4d7a;
+    border: 1px solid #1f4d7a;
+    border-radius: 999px;
+    padding: 0.5rem 1.25rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s ease;
+  }
+
+  .pilot-form button[type="submit"]:hover {
+    background: #cce3ff;
+  }
+
+  .pilot-form button[type="submit"]:focus-visible {
+    outline: 2px solid #1f4d7a;
+    outline-offset: 2px;
+  }
+
+  /* Pilot card hover effects */
+  .pilot-card {
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .pilot-card:hover {
+    border-color: #1f4d7a;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  }
+
+  /* Status badge as inline pill */
+  .pilot-meta span {
+    display: inline-block;
+    background: #e7f2ff;
+    color: #1f4d7a;
+    border: 1px solid #1f4d7a;
+    border-radius: 999px;
+    padding: 0.15rem 0.55rem;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
 </style>

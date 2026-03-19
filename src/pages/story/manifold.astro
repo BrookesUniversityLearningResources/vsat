@@ -206,6 +206,9 @@ const selectedPilot =
     gap: 1rem;
     flex-wrap: wrap;
     font-size: 0.9rem;
+    background: #f5f5f5;
+    padding: 0.5rem 0.85rem;
+    border-radius: 0.5rem;
   }
 
   .filter-pilot {
@@ -229,6 +232,12 @@ const selectedPilot =
     border-radius: 0.75rem;
     padding: 1rem;
     background: #fff;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .story-card:hover {
+    border-color: #1f4d7a;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   }
 
   .story-card h2 {
@@ -245,8 +254,23 @@ const selectedPilot =
     display: inline-block;
     margin-top: 0.75rem;
     text-decoration: none;
-    color: inherit;
+    color: #1f4d7a;
     font-weight: 600;
+    background: #e7f2ff;
+    border: 1px solid #1f4d7a;
+    border-radius: 999px;
+    padding: 0.3rem 0.85rem;
+    font-size: 0.9rem;
+    transition: background 0.2s ease;
+  }
+
+  .story-link:hover {
+    background: #cce3ff;
+  }
+
+  .story-link:focus-visible {
+    outline: 2px solid #1f4d7a;
+    outline-offset: 2px;
   }
 
   .manifold-links {
@@ -270,10 +294,24 @@ const selectedPilot =
     grid-template-columns: auto auto 1fr auto 1fr;
     gap: 0.5rem;
     align-items: center;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+  }
+
+  .link-row:hover {
+    border-color: #1f4d7a;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   }
 
   .link-row--accepted {
     background: #eef6ff;
+  }
+
+  .link-row--proposed {
+    background: #fffef0;
+  }
+
+  .link-row--rejected {
+    opacity: 0.5;
   }
 
   .link-row--retired {
@@ -307,6 +345,11 @@ const selectedPilot =
   .empty-state {
     font-style: italic;
     opacity: 0.7;
+    border: 2px dashed #ccc;
+    border-radius: 0.75rem;
+    padding: 2rem;
+    text-align: center;
+    background: #fafafa;
   }
 
   @media screen and (max-width: 720px) {

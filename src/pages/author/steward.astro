@@ -180,5 +180,43 @@ const stewardToggleEnabled =
     padding: 0.25rem 0.6rem;
     border-radius: 999px;
     cursor: pointer;
+    transition: background 0.2s ease;
+  }
+
+  /* Retire button hover state */
+  .steward-action:hover {
+    background: #ffd6d6;
+  }
+
+  /* Retire button focus-visible outline */
+  .steward-action:focus-visible {
+    outline: 2px solid #7a1f1f;
+    outline-offset: 2px;
+  }
+
+  /* Table row hover */
+  .steward-table tbody tr {
+    transition: background 0.2s ease;
+  }
+
+  .steward-table tbody tr:hover {
+    background: #f0f7ff;
+  }
+
+  /* Alternating row colors */
+  .steward-table tbody tr:nth-child(even) {
+    background: #fafafa;
+  }
+
+  .steward-table tbody tr:nth-child(even):hover {
+    background: #f0f7ff;
+  }
+
+  /* Code element styling */
+  code {
+    background: #f0f0f0;
+    padding: 0.15rem 0.4rem;
+    border-radius: 3px;
+    font-size: 0.9em;
   }
 </style>
