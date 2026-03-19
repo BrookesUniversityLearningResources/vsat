@@ -843,6 +843,39 @@ const clientData = { clusters, interArcs, isPlanetarium, clusterRadius };
             b.toString(16).padStart(2, "0"));
         }
 
+        // Brighten hover ring with vapor — para-selene halo effect
+        vaporLevel = v;
+        if (hlRingMat) {
+          hlRingMat.opacity = 0.6 + v * 0.4;
+          hlRingMat.color.lerpColors(
+            new THREE.Color(0xfbbf24),
+            new THREE.Color(0xffeebb),
+            v,
+          );
+        }
+        if (hlGlowMat) {
+          hlGlowMat.opacity = 0.08 + v * 0.5;
+          hlGlowMat.color.lerpColors(
+            new THREE.Color(0xfbbf24),
+            new THREE.Color(0xffddaa),
+            v,
+          );
+        }
+        // Scale up the glow disc at high vapor
+        if (hlGlow) {
+          const glowScale = 1 + v * 1.5;
+          hlGlow.scale.setScalar(hlGlow.userData._baseScale ?? 1);
+          hlGlow.scale.multiplyScalar(glowScale);
+        }
+
+        // Particle dust
+        ensureParticles();
+        if (particleMat) {
+          particleMat.opacity = v * 0.35;
+          particleMat.size = 0.06 + v * 0.15;
+          particleMat.color.setHex(v > 0.6 ? 0xffaacc : 0xffc0dd);
+        }
+
         // Visual feedback on the slider — fill to the left of the thumb
         const pct = vaporSlider.value;
         vaporSlider.style.background =
@@ -1116,25 +1149,29 @@ const clientData = { clusters, interArcs, isPlanetarium, clusterRadius };
     // Three.js ring highlight — rendered in WebGL so it works in all modes
     let hlRing = null;
     let hlGlow = null;
+    let hlRingMat = null;
+    let hlGlowMat = null;
+    let vaporLevel = 0.3; // synced with slider default
+
     const ensureHlRing = () => {
       if (hlRing) return;
       if (typeof THREE === "undefined") return;
       // Thin torus for the ring outline
       const ringGeo = new THREE.TorusGeometry(1, 0.12, 8, 48);
-      const ringMat = new THREE.MeshBasicMaterial({
+      hlRingMat = new THREE.MeshBasicMaterial({
         color: 0xfbbf24,
         transparent: true,
         opacity: 0.8,
         depthTest: false,
         depthWrite: false,
       });
-      hlRing = new THREE.Mesh(ringGeo, ringMat);
+      hlRing = new THREE.Mesh(ringGeo, hlRingMat);
       hlRing.renderOrder = 998;
       hlRing.visible = false;
 
       // Glow disc behind the ring
       const glowGeo = new THREE.RingGeometry(0.5, 1.5, 32);
-      const glowMat = new THREE.MeshBasicMaterial({
+      hlGlowMat = new THREE.MeshBasicMaterial({
         color: 0xfbbf24,
         transparent: true,
         opacity: 0.12,
@@ -1142,7 +1179,7 @@ const clientData = { clusters, interArcs, isPlanetarium, clusterRadius };
         depthWrite: false,
         side: THREE.DoubleSide,
       });
-      hlGlow = new THREE.Mesh(glowGeo, glowMat);
+      hlGlow = new THREE.Mesh(glowGeo, hlGlowMat);
       hlGlow.renderOrder = 997;
       hlGlow.visible = false;
 
@@ -1150,12 +1187,59 @@ const clientData = { clusters, interArcs, isPlanetarium, clusterRadius };
       sceneEl.object3D.add(hlGlow);
     };
 
+    // --- Particle dust ---
+    let particles = null;
+    let particleMat = null;
+
+    const ensureParticles = () => {
+      if (particles) return;
+      if (typeof THREE === "undefined") return;
+      const count = 600;
+      const positions = new Float32Array(count * 3);
+      const domeR = clientData.clusterRadius;
+      for (let i = 0; i < count; i++) {
+        // Random positions within the dome sphere
+        const r = domeR * Math.cbrt(Math.random());
+        const theta = Math.random() * Math.PI * 2;
+        const phi = Math.acos(2 * Math.random() - 1);
+        positions[i * 3] = r * Math.sin(phi) * Math.cos(theta);
+        positions[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
+        positions[i * 3 + 2] = r * Math.cos(phi);
+      }
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+      particleMat = new THREE.PointsMaterial({
+        color: 0xffc0dd,
+        size: 0.08,
+        transparent: true,
+        opacity: 0.0,
+        depthTest: false,
+        sizeAttenuation: true,
+      });
+      particles = new THREE.Points(geo, particleMat);
+      particles.renderOrder = 500;
+      turntable.object3D.add(particles);
+    };
+
     const _hlWorld = new THREE.Vector3();
     const _hlCamPos = new THREE.Vector3();
+    let prevClusterWireframe = null;
 
     const highlightNode = (node) => {
       ensureHlRing();
       if (!hlRing) { prevHighlightSphere = node; return; }
+
+      // Hide previous cluster glow (unless wireframes toggle is on)
+      if (prevClusterWireframe && !wireframesVisible) {
+        prevClusterWireframe.setAttribute("visible", "false");
+        prevClusterWireframe.object3D?.traverse((c) => {
+          if (c.material && c.userData._vaporGlow) {
+            c.material.color.set(c.userData._origWireColor);
+            c.material.opacity = c.userData._origWireOpacity;
+          }
+        });
+      }
+      prevClusterWireframe = null;
 
       if (node) {
         const obj = node.object3D;
@@ -1182,9 +1266,47 @@ const clientData = { clusters, interArcs, isPlanetarium, clusterRadius };
         const ringScale = r3d + 0.04;
         hlRing.scale.setScalar(ringScale);
         hlGlow.scale.setScalar(ringScale);
+        hlGlow.userData._baseScale = ringScale;
 
         hlRing.visible = true;
         hlGlow.visible = true;
+
+        // At high vapor, glow the parent cluster's wireframe sphere
+        if (vaporLevel > 0.2) {
+          const cluster = node.closest(".story-cluster");
+          if (cluster) {
+            // Find or create the glow orb for this cluster
+            let orb = cluster.querySelector(".cluster-glow-orb");
+            if (!orb) {
+              orb = document.createElement("a-entity");
+              orb.className = "cluster-glow-orb";
+              const wf = cluster.querySelector(".cluster-wireframe");
+              if (wf) {
+                const wfPos = wf.getAttribute("position");
+                orb.setAttribute("position", wfPos.x + " " + wfPos.y + " " + wfPos.z);
+                const wfGeo = wf.getAttribute("geometry");
+                const r = (wfGeo && typeof wfGeo === "object" && wfGeo.radius) ? wfGeo.radius : 5;
+                orb.setAttribute("geometry", "primitive: sphere; radius: " + r + "; segmentsWidth: 24; segmentsHeight: 16");
+              } else {
+                orb.setAttribute("geometry", "primitive: sphere; radius: 5; segmentsWidth: 24; segmentsHeight: 16");
+              }
+              orb.setAttribute("material", "shader: flat; color: #fbbf24; opacity: 0; transparent: true; side: double; depthWrite: false");
+              cluster.appendChild(orb);
+            }
+            orb.setAttribute("visible", "true");
+            orb.object3D?.traverse((c) => {
+              c.renderOrder = -1;
+              if (c.material) {
+                c.material.color.set(0xfbbf24);
+                c.material.opacity = vaporLevel * 0.06;
+                c.material.wireframe = false;
+                c.material.depthWrite = false;
+                c.material.needsUpdate = true;
+              }
+            });
+            prevClusterWireframe = orb;
+          }
+        }
       } else {
         hlRing.visible = false;
         hlGlow.visible = false;
@@ -1295,6 +1417,15 @@ const clientData = { clusters, interArcs, isPlanetarium, clusterRadius };
         applyTransform();
       });
     });
+
+    // --- Particle drift animation (must be after all let declarations) ---
+    const animateParticles = () => {
+      requestAnimationFrame(animateParticles);
+      if (!particles || vaporLevel < 0.05) return;
+      particles.rotation.y += 0.00004;
+      particles.rotation.x += 0.00001;
+    };
+    animateParticles();
   </script>
 </Layout>
 
