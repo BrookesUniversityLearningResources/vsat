@@ -550,6 +550,7 @@ const clientData = { clusters, interArcs, isPlanetarium, clusterRadius };
               ></a-entity>
               {/* Pink vaporwave glow layer */}
               <a-entity
+                id="vsat-vapor"
                 geometry={`primitive: sphere; radius: ${clusterRadius + 9}; segmentsWidth: 32; segmentsHeight: 32`}
                 material="color: #1a0a1e; emissive: #ff69b4; emissiveIntensity: 0.35; opacity: 0.12; transparent: true; side: back; shader: flat"
               ></a-entity>
@@ -596,7 +597,7 @@ const clientData = { clusters, interArcs, isPlanetarium, clusterRadius };
                   : { x: sp.x, y: sp.y + 0.7, z: sp.z };
                 return (
                   <a-entity
-                    troika-text={`value: ${cluster.title}; align: center; color: ${isPlanetarium ? "#e2eaff" : "#c8d6ff"}; fontSize: 0.9; outlineWidth: 0.035; outlineColor: #000000; outlineBlur: 0.02; outlineOpacity: 0.85`}
+                    troika-text={`value: ${cluster.title.replace(/[;:]/g, " ")}; align: center; color: ${isPlanetarium ? "#e2eaff" : "#c8d6ff"}; fontSize: 0.9; outlineWidth: 0.035; outlineColor: #000000; outlineBlur: 0.02; outlineOpacity: 0.85`}
                     position={`${labelPos.x.toFixed(3)} ${labelPos.y.toFixed(3)} ${labelPos.z.toFixed(3)}`}
                     stabilcam={`baseScale: ${isPlanetarium ? "1.8" : "1"}; refDist: ${isPlanetarium ? clusterRadius : "24"}`}
                   />
@@ -642,7 +643,7 @@ const clientData = { clusters, interArcs, isPlanetarium, clusterRadius };
                       };
                       return (
                         <a-entity
-                          troika-text={`value: ${(scene.title.length > 20 ? scene.title.substring(0, 20) + "..." : scene.title)}; align: center; color: #d4e0f4; fontSize: 0.65; outlineWidth: 0.03; outlineColor: #000000; outlineBlur: 0.015; outlineOpacity: 0.85`}
+                          troika-text={`value: ${(scene.title.length > 20 ? scene.title.substring(0, 20) + "..." : scene.title).replace(/[;:]/g, " ")}; align: center; color: #d4e0f4; fontSize: 0.65; outlineWidth: 0.03; outlineColor: #000000; outlineBlur: 0.015; outlineOpacity: 0.85`}
                           position={`${lp.x.toFixed(3)} ${lp.y.toFixed(3)} ${lp.z.toFixed(3)}`}
                           stabilcam={`baseScale: 1.8; refDist: ${clusterRadius}`}
                         />
@@ -673,6 +674,15 @@ const clientData = { clusters, interArcs, isPlanetarium, clusterRadius };
           Stories appear as clusters of scenes. Curved arcs show narrative
           connections within stories and interpretive links between them.
         </p>
+
+        {isPlanetarium && (
+          <div class="vsatlatarium__vapor-control">
+            <label class="vsatlatarium__vapor-label">
+              <span>Vapor</span>
+              <input type="range" id="vsat-vapor-slider" min="0" max="100" value="30" />
+            </label>
+          </div>
+        )}
 
         <div class="vsatlatarium__legend">
           <h3>Legend</h3>
@@ -744,7 +754,7 @@ const clientData = { clusters, interArcs, isPlanetarium, clusterRadius };
       isDragging = true;
       dragTotal = 0;
       lastMouse = { x: e.clientX, y: e.clientY };
-      highlightRing.style.display = "none";
+      highlightNode(null);
       hoveredNode = null;
     });
 
@@ -778,6 +788,76 @@ const clientData = { clusters, interArcs, isPlanetarium, clusterRadius };
       camZ = camZDefault;
       applyTransform();
     });
+
+    // --- Vapor slider — controls pink glow via Three.js material directly ---
+    const vaporSlider = document.getElementById("vsat-vapor-slider");
+    const initVaporSlider = () => {
+      if (!vaporSlider) return;
+      const vaporEl = document.getElementById("vsat-vapor");
+      if (!vaporEl) return;
+
+      vaporSlider.addEventListener("input", () => {
+        const v = Number(vaporSlider.value) / 100;
+
+        // Pink dome glow
+        vaporEl.object3D.traverse((child) => {
+          if (child.material) {
+            child.material.opacity = v * 0.7;
+            child.material.emissiveIntensity = v * 4.0;
+            child.material.needsUpdate = true;
+          }
+        });
+
+        // Boost arc tubes — increase opacity and brighten color toward white
+        document.querySelectorAll(".arc-segment").forEach((el) => {
+          if (!el.object3D) return;
+          el.object3D.traverse((child) => {
+            if (!child.material) return;
+            if (child.userData._baseOpacity === undefined) {
+              child.userData._baseOpacity = child.material.opacity;
+              child.userData._baseColor = child.material.color.clone();
+            }
+            child.material.opacity = Math.min(child.userData._baseOpacity + v * 0.5, 1);
+            // Slight brighten — keep saturation, just lighten
+            child.material.color.copy(child.userData._baseColor).lerp(new THREE.Color(0xffffff), v * 0.15);
+            child.material.needsUpdate = true;
+            // Bloom — fatten the tubes
+            if (child.userData._baseScaleX === undefined) {
+              child.userData._baseScaleX = child.scale.x;
+              child.userData._baseScaleZ = child.scale.z;
+            }
+            const bloom = 1 + v * 3;
+            child.scale.x = child.userData._baseScaleX * bloom;
+            child.scale.z = child.userData._baseScaleZ * bloom;
+          });
+        });
+
+        // Shift scene background toward pink
+        if (sceneEl) {
+          const r = Math.round(3 + v * 30);
+          const g = Math.round(3 + v * 5);
+          const b = Math.round(8 + v * 25);
+          sceneEl.setAttribute("background", "color: #" +
+            r.toString(16).padStart(2, "0") +
+            g.toString(16).padStart(2, "0") +
+            b.toString(16).padStart(2, "0"));
+        }
+
+        // Visual feedback on the slider — fill to the left of the thumb
+        const pct = vaporSlider.value;
+        vaporSlider.style.background =
+          `linear-gradient(90deg, #ff69b4 0%, #ff69b4 ${pct}%, #1a1a3a ${pct}%, #1a1a3a 100%)`;
+        const pinkGlow = `rgba(255, 105, 180, ${(v * 0.3).toFixed(2)})`;
+        vaporSlider.style.boxShadow = v > 0.05
+          ? `0 0 ${Math.round(v * 10)}px ${Math.round(v * 4)}px ${pinkGlow}`
+          : "none";
+      });
+
+      // Fire once to set initial glow on the slider
+      vaporSlider.dispatchEvent(new Event("input"));
+    };
+    if (sceneEl.hasLoaded) initVaporSlider();
+    else sceneEl.addEventListener("loaded", () => setTimeout(initVaporSlider, 200));
 
     // --- Wireframe toggle ---
     let wireframesVisible = false;
@@ -959,18 +1039,38 @@ const clientData = { clusters, interArcs, isPlanetarium, clusterRadius };
 
     let hoveredNode = null;
     let prevHighlightSphere = null;
-    const hoverRadiusPx = 70; // screen pixels — generous to cover nearby text labels
+    const hoverRadiusPx = 100; // generous — story titles can be wide
     const sceneNodeEls = [];
+    // Each entry: { el, targets: [object3D, ...] } — node + text label positions
+    const hoverEntries = [];
 
     const collectNodes = () => {
       sceneNodeEls.length = 0;
+      hoverEntries.length = 0;
       document.querySelectorAll(".scene-node").forEach((el) => {
         if (el.object3D) {
           sceneNodeEls.push(el);
-          // Snapshot original material before any highlighting
-          const sphere = el.querySelector(".clickable");
-          if (sphere && !sphere.dataset.origMaterial) {
-            sphere.dataset.origMaterial = sphere.getAttribute("material") || "";
+          const targets = [el.object3D];
+          // Include text label positions as additional hover targets
+          el.querySelectorAll("[troika-text], a-text").forEach((txt) => {
+            if (txt.object3D) targets.push(txt.object3D);
+          });
+          hoverEntries.push({ el, targets });
+        }
+      });
+
+      // Story title text is a sibling of the hub node inside .story-cluster.
+      // Associate it with the hub node so hovering the title highlights the hub.
+      document.querySelectorAll(".story-cluster").forEach((cluster) => {
+        const hubNode = cluster.querySelector(".scene-node");
+        if (!hubNode) return;
+        const entry = hoverEntries.find((e) => e.el === hubNode);
+        if (!entry) return;
+        // Find direct child text that isn't inside a scene-node
+        for (const child of cluster.children) {
+          if (child.classList?.contains("scene-node")) continue;
+          if (child.hasAttribute("troika-text") || child.tagName === "A-TEXT") {
+            if (child.object3D) entry.targets.push(child.object3D);
           }
         }
       });
@@ -989,70 +1089,105 @@ const clientData = { clusters, interArcs, isPlanetarium, clusterRadius };
       const my = clientY - rect.top;
       const hw = rect.width / 2;
       const hh = rect.height / 2;
+      const cam = sceneEl.camera;
 
       let best = null;
       let bestDist = hoverRadiusPx;
 
-      for (const el of sceneNodeEls) {
-        el.object3D.getWorldPosition(_worldPos);
-        _projected.copy(_worldPos).project(sceneEl.camera);
-        const sx = (_projected.x + 1) * hw;
-        const sy = (-_projected.y + 1) * hh;
-        // Skip nodes behind camera
-        if (_projected.z > 1) continue;
-        const dist = Math.sqrt((mx - sx) ** 2 + (my - sy) ** 2);
-        if (dist < bestDist) {
-          bestDist = dist;
-          best = el;
+      for (const entry of hoverEntries) {
+        // Check all targets (node position + text positions)
+        for (const obj of entry.targets) {
+          obj.getWorldPosition(_worldPos);
+          _projected.copy(_worldPos).project(cam);
+          if (_projected.z > 1) continue;
+          const sx = (_projected.x + 1) * hw;
+          const sy = (-_projected.y + 1) * hh;
+          const dist = Math.sqrt((mx - sx) ** 2 + (my - sy) ** 2);
+          if (dist < bestDist) {
+            bestDist = dist;
+            best = entry.el;
+          }
         }
       }
       return best;
     };
 
     // 2D highlight ring — a CSS circle overlay that tracks the node's screen position
-    const highlightRing = document.createElement("div");
-    highlightRing.className = "vsatlatarium__highlight";
-    canvas.appendChild(highlightRing);
+    // Three.js ring highlight — rendered in WebGL so it works in all modes
+    let hlRing = null;
+    let hlGlow = null;
+    const ensureHlRing = () => {
+      if (hlRing) return;
+      if (typeof THREE === "undefined") return;
+      // Thin torus for the ring outline
+      const ringGeo = new THREE.TorusGeometry(1, 0.12, 8, 48);
+      const ringMat = new THREE.MeshBasicMaterial({
+        color: 0xfbbf24,
+        transparent: true,
+        opacity: 0.8,
+        depthTest: false,
+        depthWrite: false,
+      });
+      hlRing = new THREE.Mesh(ringGeo, ringMat);
+      hlRing.renderOrder = 998;
+      hlRing.visible = false;
+
+      // Glow disc behind the ring
+      const glowGeo = new THREE.RingGeometry(0.5, 1.5, 32);
+      const glowMat = new THREE.MeshBasicMaterial({
+        color: 0xfbbf24,
+        transparent: true,
+        opacity: 0.12,
+        depthTest: false,
+        depthWrite: false,
+        side: THREE.DoubleSide,
+      });
+      hlGlow = new THREE.Mesh(glowGeo, glowMat);
+      hlGlow.renderOrder = 997;
+      hlGlow.visible = false;
+
+      sceneEl.object3D.add(hlRing);
+      sceneEl.object3D.add(hlGlow);
+    };
 
     const _hlWorld = new THREE.Vector3();
-    const _hlProj = new THREE.Vector3();
+    const _hlCamPos = new THREE.Vector3();
 
     const highlightNode = (node) => {
+      ensureHlRing();
+      if (!hlRing) { prevHighlightSphere = node; return; }
+
       if (node) {
         const obj = node.object3D;
         const cam = sceneEl.camera;
-        const aCanvas = sceneEl.canvas;
-        if (!obj || !cam || !aCanvas) { highlightRing.style.display = "none"; return; }
+        if (!obj || !cam) { hlRing.visible = false; hlGlow.visible = false; return; }
 
-        const rect = aCanvas.getBoundingClientRect();
-        const canvasRect = canvas.getBoundingClientRect();
         obj.getWorldPosition(_hlWorld);
-        _hlProj.copy(_hlWorld).project(cam);
-        if (_hlProj.z > 1) { highlightRing.style.display = "none"; return; }
+        cam.getWorldPosition(_hlCamPos);
 
-        const sx = (_hlProj.x + 1) * rect.width / 2 + (rect.left - canvasRect.left);
-        const sy = (-_hlProj.y + 1) * rect.height / 2 + (rect.top - canvasRect.top);
-
-        // Estimate screen-space radius from the 3D sphere radius + distance
-        const dist = _hlWorld.distanceTo(cam.getWorldPosition(new THREE.Vector3()));
+        // Get sphere radius
         let r3d = 0.35;
         const sphere = node.querySelector(".clickable");
         if (sphere) {
           const geo = sphere.getAttribute("geometry");
           if (geo && typeof geo === "object" && geo.radius) r3d = geo.radius;
         }
-        const fov = cam.fov * Math.PI / 180;
-        const screenR = (r3d / (dist * Math.tan(fov / 2))) * rect.height / 2;
-        const padding = Math.max(screenR * 0.4, 3);
-        const size = Math.max(screenR * 2 + padding, 10);
 
-        highlightRing.style.display = "block";
-        highlightRing.style.left = (sx - size / 2) + "px";
-        highlightRing.style.top = (sy - size / 2) + "px";
-        highlightRing.style.width = size + "px";
-        highlightRing.style.height = size + "px";
+        // Position at node, face camera
+        hlRing.position.copy(_hlWorld);
+        hlGlow.position.copy(_hlWorld);
+        hlRing.lookAt(_hlCamPos);
+        hlGlow.lookAt(_hlCamPos);
+
+        const ringScale = r3d + 0.04;
+        hlRing.scale.setScalar(ringScale);
+        hlGlow.scale.setScalar(ringScale);
+
+        hlRing.visible = true;
+        hlGlow.visible = true;
       } else {
-        highlightRing.style.display = "none";
+        hlRing.visible = false;
+        hlGlow.visible = false;
       }
       prevHighlightSphere = node;
     };
@@ -1235,14 +1370,40 @@ const clientData = { clusters, interArcs, isPlanetarium, clusterRadius };
     border-color: #4cc9f0;
   }
 
-  :global(.vsatlatarium__highlight) {
-    display: none;
-    position: absolute;
-    border: 2.5px solid #fbbf24;
+  .vsatlatarium__vapor-control {
+    border-top: 1px solid #1a2244;
+    padding-top: 0.5rem;
+  }
+
+  .vsatlatarium__vapor-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.8rem;
+    color: #c8d6ff;
+    cursor: pointer;
+  }
+
+  .vsatlatarium__vapor-label input[type="range"] {
+    flex: 1;
+    height: 6px;
+    accent-color: #ff69b4;
+    cursor: pointer;
+    border-radius: 3px;
+    background: #1a1a3a;
+    -webkit-appearance: none;
+    appearance: none;
+    transition: box-shadow 0.2s;
+  }
+
+  .vsatlatarium__vapor-label input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px;
+    height: 14px;
     border-radius: 50%;
-    pointer-events: none;
-    z-index: 5;
-    box-shadow: 0 0 16px 6px rgba(251, 191, 36, 0.3);
+    background: #ff69b4;
+    border: 2px solid #e2eaff;
+    cursor: pointer;
   }
 
   .vsatlatarium__btn--active {
@@ -1363,8 +1524,12 @@ const clientData = { clusters, interArcs, isPlanetarium, clusterRadius };
     border: 1px solid #1a2244;
     border-radius: 0.5rem;
     padding: 0.6rem;
-    min-height: 3rem;
     background: #0f1328;
+    flex-shrink: 0;
+  }
+
+  .vsatlatarium__info:empty {
+    display: none;
   }
 
   .vsatlatarium__info-empty {
