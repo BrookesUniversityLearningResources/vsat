@@ -597,7 +597,7 @@ const clientData = { clusters, interArcs, isPlanetarium, clusterRadius };
                   : { x: sp.x, y: sp.y + 0.7, z: sp.z };
                 return (
                   <a-entity
-                    troika-text={`value: ${cluster.title.replace(/[;:]/g, " ")}; align: center; color: ${isPlanetarium ? "#e2eaff" : "#c8d6ff"}; fontSize: 0.9; outlineWidth: 0.035; outlineColor: #000000; outlineBlur: 0.02; outlineOpacity: 0.85`}
+                    troika-text={`value: ${cluster.title.replace(/[;:\-]/g, " ")}; align: center; color: ${isPlanetarium ? "#e2eaff" : "#c8d6ff"}; fontSize: 0.9; outlineWidth: 0.035; outlineColor: #000000; outlineBlur: 0.02; outlineOpacity: 0.85`}
                     position={`${labelPos.x.toFixed(3)} ${labelPos.y.toFixed(3)} ${labelPos.z.toFixed(3)}`}
                     stabilcam={`baseScale: ${isPlanetarium ? "1.8" : "1"}; refDist: ${isPlanetarium ? clusterRadius : "24"}`}
                   />
@@ -643,7 +643,7 @@ const clientData = { clusters, interArcs, isPlanetarium, clusterRadius };
                       };
                       return (
                         <a-entity
-                          troika-text={`value: ${(scene.title.length > 20 ? scene.title.substring(0, 20) + "..." : scene.title).replace(/[;:]/g, " ")}; align: center; color: #d4e0f4; fontSize: 0.65; outlineWidth: 0.03; outlineColor: #000000; outlineBlur: 0.015; outlineOpacity: 0.85`}
+                          troika-text={`value: ${(scene.title.length > 20 ? scene.title.substring(0, 20) + "..." : scene.title).replace(/[;:\-]/g, " ")}; align: center; color: #d4e0f4; fontSize: 0.65; outlineWidth: 0.03; outlineColor: #000000; outlineBlur: 0.015; outlineOpacity: 0.85`}
                           position={`${lp.x.toFixed(3)} ${lp.y.toFixed(3)} ${lp.z.toFixed(3)}`}
                           stabilcam={`baseScale: 1.8; refDist: ${clusterRadius}`}
                         />
@@ -690,11 +690,11 @@ const clientData = { clusters, interArcs, isPlanetarium, clusterRadius };
             <li><span class="legend-dot legend-dot--story"></span> Story</li>
             <li><span class="legend-dot legend-dot--opening"></span> Opening scene</li>
             <li><span class="legend-dot legend-dot--scene"></span> Scene</li>
-            <li><span class="legend-arc legend-arc--internal"></span> Narrative arc (within story)</li>
-            <li><span class="legend-arc legend-arc--thematic"></span> Thematic link</li>
-            <li><span class="legend-arc legend-arc--causal"></span> Causal link</li>
-            <li><span class="legend-arc legend-arc--adjacency"></span> Adjacency link</li>
-            <li><span class="legend-arc legend-arc--contrast"></span> Contrast link</li>
+            <li class="legend-toggle" data-arc-type="internal"><span class="legend-arc legend-arc--internal"></span> Narrative arc</li>
+            <li class="legend-toggle" data-arc-type="thematic"><span class="legend-arc legend-arc--thematic"></span> Thematic link</li>
+            <li class="legend-toggle" data-arc-type="causal"><span class="legend-arc legend-arc--causal"></span> Causal link</li>
+            <li class="legend-toggle" data-arc-type="adjacency"><span class="legend-arc legend-arc--adjacency"></span> Adjacency link</li>
+            <li class="legend-toggle" data-arc-type="contrast"><span class="legend-arc legend-arc--contrast"></span> Contrast link</li>
             <li class="legend-note">Bright = accepted, dim = proposed, faint = retired</li>
           </ul>
         </div>
@@ -903,6 +903,26 @@ const clientData = { clusters, interArcs, isPlanetarium, clusterRadius };
       wireframeBtn.classList.toggle("vsatlatarium__btn--active", wireframesVisible);
     });
 
+    // --- Legend arc type toggles ---
+    const hiddenArcTypes = new Set();
+    document.querySelectorAll(".legend-toggle").forEach((li) => {
+      li.addEventListener("click", () => {
+        const type = li.getAttribute("data-arc-type");
+        if (!type) return;
+        const isOff = hiddenArcTypes.has(type);
+        if (isOff) {
+          hiddenArcTypes.delete(type);
+        } else {
+          hiddenArcTypes.add(type);
+        }
+        li.classList.toggle("legend-toggle--off", !isOff);
+        // Show/hide matching arc segments
+        document.querySelectorAll('.arc-segment[data-arc-type="' + type + '"]').forEach((el) => {
+          el.setAttribute("visible", isOff ? "true" : "false");
+        });
+      });
+    });
+
     // --- Build 3D Bezier arcs as line segments ---
     const bezierPoint = (a, cp, b, t) => ({
       x: (1 - t) * (1 - t) * a.x + 2 * (1 - t) * t * cp.x + t * t * b.x,
@@ -965,7 +985,7 @@ const clientData = { clusters, interArcs, isPlanetarium, clusterRadius };
       };
     };
 
-    const drawArc = (from, to, controlPoint, color, opacity, thickness) => {
+    const drawArc = (from, to, controlPoint, color, opacity, thickness, arcType) => {
       const radius = thickness || 0.04;
       for (let i = 0; i < segments; i++) {
         const t0 = i / segments;
@@ -998,6 +1018,7 @@ const clientData = { clusters, interArcs, isPlanetarium, clusterRadius };
         el.setAttribute("look-at-target", p0.x + " " + p0.y + " " + p0.z + " " + p1.x + " " + p1.y + " " + p1.z);
 
         el.classList.add("arc-segment");
+        if (arcType) el.setAttribute("data-arc-type", arcType);
         turntable.appendChild(el);
 
         // Orient after insertion using Three.js directly
@@ -1026,7 +1047,7 @@ const clientData = { clusters, interArcs, isPlanetarium, clusterRadius };
           if (!from || !to) continue;
           const internalBow = isPlanetarium ? 0.15 : 1.2;
           const cp = localArcControlPoint(from, to, cluster.center, internalBow);
-          drawArc(from, to, cp, "#fb923c", 0.8, 0.06);
+          drawArc(from, to, cp, "#fb923c", 0.8, 0.06, "internal");
         }
       }
 
@@ -1048,7 +1069,7 @@ const clientData = { clusters, interArcs, isPlanetarium, clusterRadius };
           ? (arc.status === "accepted" ? 0.5 : 0.3)
           : (arc.status === "accepted" ? 3.5 : 2.5);
         const cp = arcControlPoint(arc.fromPos, arc.toPos, bowFactor);
-        drawArc(arc.fromPos, arc.toPos, cp, color, opacity, 0.05);
+        drawArc(arc.fromPos, arc.toPos, cp, color, opacity, 0.05, arc.linkType);
       }
     };
 
@@ -1616,6 +1637,17 @@ const clientData = { clusters, interArcs, isPlanetarium, clusterRadius };
 
   .legend-dot--scene {
     background: #4cc9f0;
+  }
+
+  .legend-toggle {
+    cursor: pointer;
+    transition: opacity 0.2s;
+    user-select: none;
+  }
+
+  :global(.legend-toggle--off) {
+    opacity: 0.3;
+    text-decoration: line-through;
   }
 
   .legend-arc {
