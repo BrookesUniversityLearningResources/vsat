@@ -225,6 +225,7 @@ const StoryHeader: FC<StoryHeaderProps> = ({
 
         <div className={styles.actionBar}>
           <a href="/author/story/">{t("action.back-to-my-stories.label")}</a>
+          <a href={`/author/story/${story.id}/links`}>Interpretive links</a>
           <div className={styles.toolbar}>
             <button
               type="button"

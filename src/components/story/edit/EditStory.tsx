@@ -15,6 +15,7 @@ import styles from "./EditStory.module.css";
 import type {
   PersistentScene,
   PersistentStory,
+  StoryLinkSummary,
 } from "../../../domain/index.js";
 import unsupported from "../../../domain/story/client/unsupportedResult.js";
 import useScrollIntoView from "../../../hooks/useScrollIntoView.js";
@@ -30,6 +31,7 @@ import {
   type WithCreateScene,
   type WithFeedback,
   type WithGetStory,
+  type WithGetStoryLinks,
   type WithSaveStoryTitle,
   createClientEnvironment,
   useEnvironment,
@@ -48,8 +50,10 @@ const StoryEditor: FC<StoryEditorProps> = ({ story: initialStory }) => {
   const scrollTo = useScrollIntoView();
 
   const { saveStoryTitle, getStory, feedback } = useEnvironment<
-    WithSaveStoryTitle & WithGetStory & WithFeedback
+    WithSaveStoryTitle & WithGetStory & WithGetStoryLinks & WithFeedback
   >();
+
+  const { getStoryLinks } = useEnvironment<WithGetStoryLinks>();
 
   const queryClient = useQueryClient();
 
@@ -67,6 +71,25 @@ const StoryEditor: FC<StoryEditorProps> = ({ story: initialStory }) => {
         switch (result.kind) {
           case "gotStory":
             return result.story;
+          case "error":
+            return Promise.reject(result.error);
+          default:
+            return unsupported(result);
+        }
+      }),
+  });
+
+  const { data: links = [], refetch: refetchLinks } = useQuery<
+    StoryLinkSummary[],
+    Error
+  >({
+    queryKey: [`story-links-${initialStory.id}`],
+    initialData: [],
+    queryFn: () =>
+      getStoryLinks(initialStory.id).then((result) => {
+        switch (result.kind) {
+          case "gotStoryLinks":
+            return result.links;
           case "error":
             return Promise.reject(result.error);
           default:
@@ -157,28 +180,119 @@ const StoryEditor: FC<StoryEditorProps> = ({ story: initialStory }) => {
     }
   };
 
+  const outboundLinks = links.filter((link) => link.fromStory.id === story.id);
+  const inboundLinks = links.filter((link) => link.toStory.id === story.id);
+
+  const sceneLinkMap = new Map<
+    number,
+    { count: number; pages: number[] }
+  >();
+
+  inboundLinks.forEach((link) => {
+    if (!link.toScene?.id) return;
+    const existing = sceneLinkMap.get(link.toScene.id) ?? {
+      count: 0,
+      pages: [],
+    };
+    existing.count += 1;
+    if (
+      typeof link.toPageNumber === "number" &&
+      !existing.pages.includes(link.toPageNumber)
+    ) {
+      existing.pages.push(link.toPageNumber);
+    }
+    sceneLinkMap.set(link.toScene.id, existing);
+  });
+
   return (
     <main className={styles.story} id={htmlIdForStory(story.id)}>
-      <StoryHeader
-        story={story}
-        onSceneChanged={onSceneChanged}
-        onStoryChanged={onStoryChanged}
-      >
-        <StoryOverview
+      <div className={styles.editor}>
+        <StoryHeader
           story={story}
-          onSceneSelected={(sceneId) => scrollTo(htmlIdForScene(sceneId))}
-        />
-      </StoryHeader>
-
-      {isNonEmptyArray(story.scenes) ? (
-        <Scenes
-          storyId={story.id}
-          scenes={story.scenes}
           onSceneChanged={onSceneChanged}
-        />
-      ) : (
-        <NoScenes storyId={story.id} onSceneChanged={onSceneChanged} />
-      )}
+          onStoryChanged={onStoryChanged}
+        >
+          <StoryOverview
+            story={story}
+            onSceneSelected={(sceneId) => scrollTo(htmlIdForScene(sceneId))}
+          />
+        </StoryHeader>
+
+        {isNonEmptyArray(story.scenes) ? (
+          <Scenes
+            storyId={story.id}
+            scenes={story.scenes}
+            onSceneChanged={onSceneChanged}
+            sceneLinkMap={sceneLinkMap}
+          />
+        ) : (
+          <NoScenes storyId={story.id} onSceneChanged={onSceneChanged} />
+        )}
+      </div>
+
+      <aside className={styles.linkPanel}>
+        <div className={styles.linkPanelHeader}>
+          <h2>Interpretive links</h2>
+          <button
+            type="button"
+            className={styles.linkPanelRefresh}
+            onClick={() => refetchLinks()}
+          >
+            Refresh
+          </button>
+        </div>
+        <a className={styles.linkPanelManage} href={`/author/story/${story.id}/links`}>
+          Manage links
+        </a>
+        <div className={styles.linkPanelSection}>
+          <h3>Outbound</h3>
+          {outboundLinks.length ? (
+            <ul>
+              {outboundLinks.map((link) => (
+                <li key={link.id}>
+                  <span className={styles.linkStatus}>{link.status}</span>
+                  <div className={styles.linkTitle}>{link.toStory.title}</div>
+                  <div className={styles.linkMeta}>
+                    {link.linkType}
+                    {link.toScene && (
+                      <span>
+                        · Scene {link.toScene.title ?? `#${link.toScene.id}`}
+                      </span>
+                    )}
+                    {link.toPageNumber && <span>· Page {link.toPageNumber}</span>}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className={styles.empty}>No outbound links yet.</p>
+          )}
+        </div>
+        <div className={styles.linkPanelSection}>
+          <h3>Inbound</h3>
+          {inboundLinks.length ? (
+            <ul>
+              {inboundLinks.map((link) => (
+                <li key={link.id}>
+                  <span className={styles.linkStatus}>{link.status}</span>
+                  <div className={styles.linkTitle}>{link.fromStory.title}</div>
+                  <div className={styles.linkMeta}>
+                    {link.linkType}
+                    {link.toScene && (
+                      <span>
+                        · Scene {link.toScene.title ?? `#${link.toScene.id}`}
+                      </span>
+                    )}
+                    {link.toPageNumber && <span>· Page {link.toPageNumber}</span>}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className={styles.empty}>No inbound links yet.</p>
+          )}
+        </div>
+      </aside>
     </main>
   );
 };
@@ -187,9 +301,15 @@ type ScenesProps = {
   storyId: PersistentStory["id"];
   scenes: NonEmptyArray<PersistentScene>;
   onSceneChanged: OnSceneChanged;
+  sceneLinkMap: Map<number, { count: number; pages: number[] }>;
 };
 
-const Scenes: FC<ScenesProps> = ({ storyId, scenes, onSceneChanged }) => {
+const Scenes: FC<ScenesProps> = ({
+  storyId,
+  scenes,
+  onSceneChanged,
+  sceneLinkMap,
+}) => {
   return (
     <div className="scenes">
       {scenes.map((scene) => (
@@ -198,6 +318,7 @@ const Scenes: FC<ScenesProps> = ({ storyId, scenes, onSceneChanged }) => {
           key={scene.id}
           storyId={storyId}
           onSceneChanged={onSceneChanged}
+          linkInfo={sceneLinkMap.get(scene.id)}
         />
       ))}
     </div>

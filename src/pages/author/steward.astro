@@ -1,0 +1,184 @@
+---
+import Layout from "@layouts/AuthoringLayout.astro";
+import isStewardUser from "@authentication/isStewardUser";
+
+export const prerender = false;
+
+const { repositoryStoryLink, i18n } = Astro.locals.environment<
+  App.WithStoryLinkRepository & App.WithI18N
+>();
+
+const links = await repositoryStoryLink.getAllStoryLinks();
+const isSteward = isStewardUser(
+  Astro.locals.user,
+  Astro.request.headers.get("cookie"),
+);
+const stewardToggleEnabled =
+  process.env.DEV_STEWARD_TOGGLE === "1" ||
+  process.env.DEV_STEWARD_TOGGLE === "true";
+---
+
+<Layout title="Steward console" description={i18n.t("page.story.meta.description")}>
+  <main class="steward-page">
+    <header class="steward-header">
+      <div>
+        <p class="steward-kicker">Steward console</p>
+        <h1>Link stewardship</h1>
+        <p class="steward-help">
+          Text-first overview for steward actions and link status.
+        </p>
+      </div>
+      <a href="/author/story/">Back to stories</a>
+    </header>
+
+    {!isSteward ? (
+      <div class="steward-card">
+        <p>You are not marked as a steward for this environment.</p>
+        <p class="steward-help">
+          Set <code>STEWARD_EMAILS</code> in <code>.env</code> to enable
+          steward access.
+        </p>
+        {stewardToggleEnabled && (
+          <p class="steward-help">
+            Dev toggle enabled: set <code>vsat_steward</code> cookie to 1 to
+            enable access.
+          </p>
+        )}
+      </div>
+    ) : (
+      <section class="steward-section">
+        {links.length ? (
+          <table class="steward-table">
+            <thead>
+              <tr>
+                <th>Status</th>
+                <th>Type</th>
+                <th>From</th>
+                <th>To</th>
+                <th>Rationale</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="steward-links">
+              {links.map((link) => (
+                <tr data-link-id={link.id}>
+                  <td class="status">{link.status}</td>
+                  <td>{link.linkType}</td>
+                  <td>{link.fromStory.title}</td>
+                  <td>
+                    {link.toStory.title}
+                    {link.toScene && (
+                      <span class="route"> · Scene {link.toScene.title ?? `#${link.toScene.id}`}</span>
+                    )}
+                    {link.toPageNumber && (
+                      <span class="route"> · Page {link.toPageNumber}</span>
+                    )}
+                  </td>
+                  <td class="rationale">{link.rationale}</td>
+                  <td>
+                    <button
+                      type="button"
+                      class="steward-action"
+                      data-retire
+                    >
+                      {link.status === "retired" ? "Unretire" : "Retire"}
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        ) : (
+          <p>No links yet.</p>
+        )}
+      </section>
+    )}
+  </main>
+
+  {isSteward && (
+    <script is:inline>
+      document.addEventListener("click", async (event) => {
+        if (!(event.target instanceof Element)) return;
+        const button = event.target.closest("button[data-retire]");
+        if (!button) return;
+        const row = button.closest("tr[data-link-id]");
+        const linkId = row?.getAttribute("data-link-id");
+        if (!linkId) return;
+
+        const res = await fetch(`/api/links/${linkId}/retire`, { method: "POST" });
+        if (!res.ok) return;
+        const data = await res.json();
+        const statusCell = row?.querySelector(".status");
+        if (statusCell) statusCell.textContent = data.status;
+        button.textContent = data.status === "retired" ? "Unretire" : "Retire";
+      });
+    </script>
+  )}
+</Layout>
+
+<style>
+  .steward-page {
+    max-width: 1100px;
+    margin: 2rem auto;
+    padding: 0 1.5rem 3rem;
+  }
+
+  .steward-header {
+    display: flex;
+    justify-content: space-between;
+    gap: 1.5rem;
+    align-items: flex-start;
+    margin-bottom: 2rem;
+  }
+
+  .steward-kicker {
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: 0.75rem;
+  }
+
+  .steward-help {
+    font-style: italic;
+  }
+
+  .steward-card {
+    border: 1px solid #222;
+    border-radius: 0.75rem;
+    padding: 1rem;
+    background: #fff;
+  }
+
+  .steward-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+  }
+
+  .steward-table th,
+  .steward-table td {
+    border-bottom: 1px solid #ddd;
+    padding: 0.6rem 0.5rem;
+    text-align: left;
+    vertical-align: top;
+  }
+
+  .rationale {
+    max-width: 280px;
+  }
+
+  .route {
+    display: inline-block;
+    margin-left: 0.25rem;
+    opacity: 0.7;
+    font-size: 0.85rem;
+  }
+
+  .steward-action {
+    border: 1px solid #7a1f1f;
+    background: #ffecec;
+    color: #7a1f1f;
+    padding: 0.25rem 0.6rem;
+    border-radius: 999px;
+    cursor: pointer;
+  }
+</style>

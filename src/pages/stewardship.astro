@@ -1,0 +1,111 @@
+---
+import Layout from "../layouts/PublicSiteLayout.astro";
+
+export const prerender = false;
+---
+
+<Layout
+  title="Stewardship compact"
+  description="A compact agreement for shared interpretation and care."
+  pageName="site-stories"
+>
+  <main class="stewardship">
+    <header>
+      <p class="kicker">Stewardship compact</p>
+      <h1>Shared interpretation, shared care</h1>
+      <p class="lead">
+        This compact outlines how we steward interpretive links and shared
+        meaning without rewriting original stories.
+      </p>
+    </header>
+
+    <section>
+      <h2>Purpose</h2>
+      <p>
+        Build collective understanding across stories while preserving author
+        sovereignty, safety, and context.
+      </p>
+    </section>
+
+    <section>
+      <h2>Roles</h2>
+      <ul>
+        <li><strong>Viewers</strong>: read stories and explore links.</li>
+        <li><strong>Interpreters</strong>: propose links with rationale.</li>
+        <li><strong>Stewards</strong>: curate, retire, and document link status.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Principles</h2>
+      <ul>
+        <li>Links are interpretive, not canonical.</li>
+        <li>Rationale is required for every link.</li>
+        <li>Context matters; avoid extraction or misrepresentation.</li>
+        <li>Disagreement is expected; capture it rather than erase it.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Steward actions</h2>
+      <ul>
+        <li><strong>Accept</strong>: evidence supports the interpretation.</li>
+        <li><strong>Reject</strong>: interpretation is not supported.</li>
+        <li><strong>Retire</strong>: link is harmful, stale, or out of scope.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Safety and accountability</h2>
+      <ul>
+        <li>Document why links are accepted, rejected, or retired.</li>
+        <li>Review high-impact links with multiple stewards when possible.</li>
+        <li>Respect community consent and boundaries.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Revision</h2>
+      <p>
+        This compact can evolve. Updates should be visible and attributable.
+      </p>
+    </section>
+  </main>
+</Layout>
+
+<style>
+  .stewardship {
+    max-width: 860px;
+    margin: 2rem auto 3rem;
+    padding: 0 1.5rem;
+    display: grid;
+    gap: 1.75rem;
+  }
+
+  header {
+    display: grid;
+    gap: 0.75rem;
+  }
+
+  .kicker {
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-size: 0.75rem;
+  }
+
+  .lead {
+    font-style: italic;
+  }
+
+  section {
+    display: grid;
+    gap: 0.5rem;
+  }
+
+  ul {
+    margin: 0;
+    padding-left: 1.25rem;
+    display: grid;
+    gap: 0.35rem;
+  }
+</style>

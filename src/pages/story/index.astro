@@ -16,8 +16,17 @@ const allStories = await repositoryStory.getPublishedStorySummaries({});
   pageName={"site-stories"}
 >
   <header>
-    <h1>{i18n.t("page.site-stories.heading.title")}</h1>
-    <div class="strapline">{i18n.t("page.site-stories.heading.strapline")}</div>
+    <div class="stories-header">
+      <div>
+        <h1>{i18n.t("page.site-stories.heading.title")}</h1>
+        <div class="strapline">
+          {i18n.t("page.site-stories.heading.strapline")}
+        </div>
+      </div>
+      <a class="vsatlatarium-link" href="/story/vsatlatarium">
+        Open VSATLATARIUM
+      </a>
+    </div>
   </header>
   <main class="stories">
     <div class="published">
@@ -38,12 +47,29 @@ const allStories = await repositoryStory.getPublishedStorySummaries({});
 
   header {
     margin: 1rem;
+  }
 
-    .strapline {
-      margin-top: 0.5rem;
-      font-size: 1.5rem;
-      font-style: italic;
-    }
+  .stories-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .strapline {
+    margin-top: 0.5rem;
+    font-size: 1.5rem;
+    font-style: italic;
+  }
+
+  .vsatlatarium-link {
+    border: 1px solid #1f4d7a;
+    padding: 0.5rem 0.85rem;
+    border-radius: 999px;
+    background: #e7f2ff;
+    color: #1f4d7a;
+    text-decoration: none;
+    white-space: nowrap;
   }
 
   .stories {

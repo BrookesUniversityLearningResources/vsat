@@ -1,0 +1,57 @@
+Story level - "generate me a story with this outline"
+
+Scene level -
+
+Collaborate button?
+
+E.g., if you're in a passage in the text...
+
+Lobby idea?
+
+AI to categorize?
+
+Here’s how I’d approach a “storyboarding” assistant:
+
+  1. Expose the key in config
+
+- Add openAI (or gemini) block to config/default.json (and the
+production config) reading from process.env.OPENAI_API_KEY.
+
+- Update src/environment/config.ts to surface config.ai.openai.key (or
+similar) so server-side code can access it via
+Astro.locals.environment.
+
+  2. Server-side helper
+  
+- Create a new module under src/domain/story/ai/ that wraps the
+  OpenAI/Gemini SDK. It receives the current PersistentStory, builds a
+  prompt from scenes/pages, and returns the AI-suggested outline/text.
+
+- Keep the API call server-side so the key never hits the browser.
+
+  3. API route
+
+- Add an Express route (e.g., routeStoryAssistant) similar to the
+  existing story routes. It should:
+
+- Require author authentication (assertIsAuthorOfTheStory).
+
+- Call the helper and return { suggestions: ... }.
+
+  4. Client integration
+
+- In the story editor, add a new React hook/button (e.g., “Ask
+Assistant”) that POSTs to /api/story/:id/ assistant and displays the
+response (perhaps as a pre-filled page snippet or a sidebar list).
+
+- Reuse the existing feedback/notify dialog to show progress/errors.
+
+  5. Future polish
+
+      - Cache responses per story, let users insert suggestions, log
+        prompts for debugging, etc.
+
+This keeps the secret confined to the server, plugs neatly into your
+existing route structure, and gives you a hook for both human
+collaborators and future AI agents. If you want more detail on the
+prompt format or UI, I can sketch that out next.

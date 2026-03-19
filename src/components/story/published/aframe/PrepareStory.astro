@@ -198,6 +198,18 @@ const serializedStory = DOMPurify.sanitize(
         fiction.appendChild(content);
         fiction.appendChild(heading);
       }
+
+      const contextDetail = {
+        sceneId: current.scene.id,
+        sceneTitle: current.scene.title,
+        pageNumber: current.page.number,
+      };
+      window.vsatStoryContext = contextDetail;
+      window.dispatchEvent(
+        new CustomEvent("vsat:story-context", {
+          detail: contextDetail,
+        }),
+      );
     },
   });
 

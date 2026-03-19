@@ -3,6 +3,7 @@ import { type RequestHandler, Router } from "express";
 import type { Logger } from "pino";
 
 import authenticationRequired from "./authentication/authenticationRequired.js";
+import devAuthBypass from "./authentication/devAuthBypass.js";
 import passportWithMagicLogin from "./authentication/passport/passportWithMagicLogin.js";
 import routeAuthenticate from "./authentication/routeAuthenticate.js";
 import routeLogout from "./authentication/routeLogout.js";
@@ -15,11 +16,13 @@ import routeDeleteStory from "./domain/story/route/routeDeleteStory.js";
 import routeGetPublishedStories from "./domain/story/route/routeGetPublishedStories.js";
 import routeGetScene from "./domain/story/route/routeGetScene.js";
 import routeGetStory from "./domain/story/route/routeGetStory.js";
+import routePilot from "./domain/pilot/route/routePilot.js";
 import routePublishStory from "./domain/story/route/routePublishStory.js";
 import routeSaveAuthorName from "./domain/story/route/routeSaveAuthorName.js";
 import routeSaveSceneContent from "./domain/story/route/routeSaveSceneContent.js";
 import routeSaveSceneTitle from "./domain/story/route/routeSaveSceneTitle.js";
 import routeSaveStoryTitle from "./domain/story/route/routeSaveStoryTitle.js";
+import routeStoryLinks from "./domain/story/route/routeStoryLinks.js";
 import routeUnpublishStory from "./domain/story/route/routeUnpublishStory.js";
 import routeUploadSceneAudio from "./domain/story/route/routeUploadSceneAudio.js";
 import routeUploadSceneImage from "./domain/story/route/routeUploadSceneImage.js";
@@ -28,18 +31,25 @@ import assertIsAuthorOfTheStoryHandler from "./domain/story/support/assertIsAuth
 import isAuthorOfTheStory from "./domain/story/support/isAuthorOfTheStory.js";
 import loadConfig from "./environment/config.js";
 import getEnvironment from "./environment/getEnvironment.js";
-import createServer, { type StartServer } from "./server/createServer.js";
+import type { StartServer } from "./server/createServer.js";
 import httpSession from "./server/httpSessionMiddleware.js";
 import routeHealthcheck from "./server/routeHealthcheck.js";
 import { withHeadersToEnableSharedArrayBufferUsage } from "./server/staticHeadersMiddleware.js";
 
-export default async function createApp(): Promise<[StartServer, Logger]> {
+export async function createAppParts(): Promise<{
+  log: Logger;
+  config: ReturnType<typeof loadConfig>;
+  middlewares: RequestHandler[];
+  routes: RequestHandler[];
+}> {
   const config = loadConfig();
 
   const {
     log,
     repositoryAuthor,
     repositoryStory,
+    repositoryStoryLink,
+    repositoryPilot,
     repositoryScene,
     database: { connectionPool, db },
   } = getEnvironment<
@@ -47,6 +57,8 @@ export default async function createApp(): Promise<[StartServer, Logger]> {
       App.WithDatabase &
       App.WithAuthorRepository &
       App.WithStoryRepository &
+      App.WithStoryLinkRepository &
+      App.WithPilotRepository &
       App.WithSceneRepository
   >();
 
@@ -57,14 +69,32 @@ export default async function createApp(): Promise<[StartServer, Logger]> {
     repositoryAuthor.createAuthor,
   );
 
+  const devAuthBypassEnabled =
+    process.env.DEV_AUTH_BYPASS === "1" ||
+    process.env.DEV_AUTH_BYPASS === "true";
+  const devAuthBypassEmail =
+    process.env.DEV_AUTH_BYPASS_EMAIL ?? "dev@localhost";
+  const devAuthBypassName = process.env.DEV_AUTH_BYPASS_NAME ?? "Dev User";
+
+  const sharedArrayBufferHeadersEnabled =
+    process.env.DEV_DISABLE_COEP !== "1" &&
+    process.env.DEV_DISABLE_COEP !== "true";
+
   const middlewares: RequestHandler[] = [
     httpSession(config.server.session, connectionPool),
     passport.session(),
+    devAuthBypass(log, repositoryAuthor, {
+      enabled: devAuthBypassEnabled,
+      email: devAuthBypassEmail,
+      name: devAuthBypassName,
+    }),
     authenticationRequired(
       log,
       config.authentication.pathsRequiringAuthentication,
     ),
-    withHeadersToEnableSharedArrayBufferUsage(),
+    ...(sharedArrayBufferHeadersEnabled
+      ? [withHeadersToEnableSharedArrayBufferUsage()]
+      : []),
   ];
 
   const assertIsAuthor = assertIsAuthorHandler(log);
@@ -120,6 +150,22 @@ export default async function createApp(): Promise<[StartServer, Logger]> {
       repositoryScene.saveSceneTitle,
       assertIsAuthorOfTheStory,
     ),
+    routeStoryLinks(
+      repositoryStoryLink.createStoryLink,
+      repositoryStoryLink.getStoryLinksForStory,
+      repositoryStoryLink.voteOnStoryLink,
+      repositoryStoryLink.retireStoryLink,
+    ),
+    routePilot(
+      repositoryPilot.createPilot,
+      repositoryPilot.getPilot,
+      repositoryPilot.getPilots,
+      repositoryPilot.assignStoryToPilot,
+      repositoryPilot.getPilotStories,
+      repositoryPilot.createInterpretiveNote,
+      repositoryPilot.getInterpretiveNotes,
+      repositoryStoryLink.getStoryLinksForStory,
+    ),
     routeDeleteScene(repositoryScene.deleteScene, assertIsAuthorOfTheStory),
     routeDeleteStory(
       log,
@@ -149,7 +195,12 @@ export default async function createApp(): Promise<[StartServer, Logger]> {
     apiRoutes,
   ];
 
-  const startServer = createServer(config.server, routes, middlewares);
+  return { log, config, middlewares, routes };
+}
 
+export default async function createApp(): Promise<[StartServer, Logger]> {
+  const { log, config, middlewares, routes } = await createAppParts();
+  const { default: createServer } = await import("./server/createServer.js");
+  const startServer = createServer(config.server, routes, middlewares);
   return [startServer, log];
 }

@@ -1,0 +1,323 @@
+---
+import Layout from "../../layouts/PublicSiteLayout.astro";
+
+export const prerender = false;
+
+const { i18n, repositoryStory, repositoryStoryLink, repositoryPilot } =
+  Astro.locals.environment<
+    App.WithI18N &
+      App.WithStoryRepository &
+      App.WithStoryLinkRepository &
+      App.WithPilotRepository
+  >();
+
+const pilotParam = Astro.url.searchParams.get("pilot");
+const pilotId = pilotParam ? Number(pilotParam) : null;
+
+const [allStories, allLinks, pilots, pilotStories] = await Promise.all([
+  repositoryStory.getPublishedStorySummaries({}),
+  repositoryStoryLink.getAllStoryLinks(),
+  repositoryPilot.getPilots(),
+  pilotId ? repositoryPilot.getPilotStories(pilotId) : Promise.resolve([]),
+]);
+
+const pilotStoryIds = new Set(pilotStories.map((story) => story.id));
+const visibleStories = pilotId
+  ? allStories.filter((story) => pilotStoryIds.has(story.id))
+  : allStories;
+const visibleStoryIds = new Set(visibleStories.map((story) => story.id));
+const visibleLinks = allLinks.filter(
+  (link) =>
+    visibleStoryIds.has(link.fromStory.id) &&
+    visibleStoryIds.has(link.toStory.id),
+);
+
+const linkCounts = visibleLinks.reduce((acc, link) => {
+  acc.set(link.fromStory.id, (acc.get(link.fromStory.id) ?? 0) + 1);
+  acc.set(link.toStory.id, (acc.get(link.toStory.id) ?? 0) + 1);
+  return acc;
+}, new Map<number, number>());
+
+const selectedPilot =
+  pilotId && pilots.find((pilot) => pilot.id === pilotId);
+---
+
+<Layout
+  title="Story manifold"
+  description="A connected view of published stories and their interpretive links."
+  pageName="site-stories"
+>
+  <header class="manifold-header">
+    <div>
+      <p class="manifold-kicker">Interpretive layer</p>
+      <h1>Story manifold</h1>
+      <p class="manifold-help">
+        A quick adjacency view across published stories and their interpretive
+        links.
+      </p>
+    </div>
+    <a href="/story/">Back to stories</a>
+  </header>
+
+  <section class="manifold-filters">
+    <div class="filter-group">
+      <span class="filter-label">Pilot filter</span>
+      <div class="filter-options">
+        <a
+          class={`filter-chip ${pilotId ? "" : "filter-chip--active"}`}
+          href="/story/manifold"
+        >
+          All pilots
+        </a>
+        {pilots.map((pilot) => (
+          <a
+            class={`filter-chip ${pilot.id === pilotId ? "filter-chip--active" : ""}`}
+            href={`/story/manifold?pilot=${pilot.id}`}
+          >
+            {pilot.title}
+          </a>
+        ))}
+      </div>
+    </div>
+    <div class="filter-summary">
+      <span>{visibleStories.length} stories</span>
+      <span>{visibleLinks.length} links</span>
+      {selectedPilot && (
+        <span class="filter-pilot">
+          Pilot: {selectedPilot.title} ({selectedPilot.status})
+        </span>
+      )}
+    </div>
+  </section>
+
+  <main class="manifold-grid">
+    {visibleStories.length ? (
+      <div class="story-grid">
+        {visibleStories.map((story) => (
+          <article class="story-card">
+            <h2>{story.title}</h2>
+            <p class="story-meta">
+              {linkCounts.get(story.id) ?? 0} connections
+            </p>
+            <a class="story-link" href={`/story/${story.id}`}>
+              View story
+            </a>
+          </article>
+        ))}
+      </div>
+    ) : (
+      <p class="empty-state">No stories match this pilot yet.</p>
+    )}
+  </main>
+
+  <section class="manifold-links">
+    <h2>Adjacency list</h2>
+    {visibleLinks.length ? (
+      <ul class="link-list">
+        {visibleLinks.map((link) => (
+          <li class={`link-row link-row--${link.status}`}>
+            <span class="link-type">{link.linkType}</span>
+            <span class="link-status">{link.status}</span>
+            <span class="link-from">{link.fromStory.title}</span>
+            <span class="link-arrow">→</span>
+            <span class="link-to">
+              {link.toStory.title}
+              {(link.toScene || link.toPageNumber) && (
+                <span class="link-route">
+                  {link.toScene && (
+                    <span>
+                      Scene {link.toScene.title ?? `#${link.toScene.id}`}
+                    </span>
+                  )}
+                  {link.toPageNumber && <span>Page {link.toPageNumber}</span>}
+                </span>
+              )}
+            </span>
+          </li>
+        ))}
+      </ul>
+    ) : (
+      <p class="empty-state">No links to show.</p>
+    )}
+  </section>
+</Layout>
+
+<style>
+  .manifold-header {
+    display: flex;
+    justify-content: space-between;
+    gap: 1.5rem;
+    align-items: flex-start;
+    margin: 1.5rem auto 1rem;
+    max-width: 1100px;
+  }
+
+  .manifold-kicker {
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: 0.75rem;
+  }
+
+  .manifold-help {
+    font-style: italic;
+  }
+
+  .manifold-filters {
+    max-width: 1100px;
+    margin: 1rem auto 1.5rem;
+    padding: 0 1.5rem;
+    display: grid;
+    gap: 1rem;
+  }
+
+  .filter-group {
+    display: grid;
+    gap: 0.5rem;
+  }
+
+  .filter-label {
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  .filter-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .filter-chip {
+    border: 1px solid #222;
+    border-radius: 999px;
+    padding: 0.35rem 0.75rem;
+    font-size: 0.85rem;
+    text-decoration: none;
+    color: inherit;
+  }
+
+  .filter-chip--active {
+    background: #111;
+    color: #fff;
+  }
+
+  .filter-summary {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    font-size: 0.9rem;
+  }
+
+  .filter-pilot {
+    font-style: italic;
+  }
+
+  .manifold-grid {
+    max-width: 1100px;
+    margin: 0 auto 2rem;
+    padding: 0 1.5rem;
+  }
+
+  .story-grid {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  }
+
+  .story-card {
+    border: 1px solid #222;
+    border-radius: 0.75rem;
+    padding: 1rem;
+    background: #fff;
+  }
+
+  .story-card h2 {
+    font-size: 1.1rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .story-meta {
+    font-size: 0.85rem;
+    opacity: 0.7;
+  }
+
+  .story-link {
+    display: inline-block;
+    margin-top: 0.75rem;
+    text-decoration: none;
+    color: inherit;
+    font-weight: 600;
+  }
+
+  .manifold-links {
+    max-width: 1100px;
+    margin: 0 auto 3rem;
+    padding: 0 1.5rem;
+  }
+
+  .link-list {
+    list-style: none;
+    padding: 0;
+    display: grid;
+    gap: 0.5rem;
+  }
+
+  .link-row {
+    border: 1px solid #222;
+    border-radius: 0.6rem;
+    padding: 0.75rem;
+    display: grid;
+    grid-template-columns: auto auto 1fr auto 1fr;
+    gap: 0.5rem;
+    align-items: center;
+  }
+
+  .link-row--accepted {
+    background: #eef6ff;
+  }
+
+  .link-row--retired {
+    opacity: 0.6;
+  }
+
+  .link-type,
+  .link-status {
+    text-transform: uppercase;
+    font-size: 0.7rem;
+    letter-spacing: 0.05em;
+  }
+
+  .link-arrow {
+    font-weight: bold;
+  }
+
+  .link-to {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .link-route {
+    display: flex;
+    gap: 0.5rem;
+    font-size: 0.75rem;
+    opacity: 0.7;
+  }
+
+  .empty-state {
+    font-style: italic;
+    opacity: 0.7;
+  }
+
+  @media screen and (max-width: 720px) {
+    .manifold-header {
+      flex-direction: column;
+      padding: 0 1.5rem;
+    }
+
+    .link-row {
+      grid-template-columns: auto auto;
+      grid-template-rows: auto auto auto;
+    }
+  }
+</style>

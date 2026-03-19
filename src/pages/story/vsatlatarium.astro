@@ -1,0 +1,1236 @@
+---
+import ImportAFrameScripts from "@components/story/published/aframe/ImportAFrameScripts.astro";
+import Layout from "../../layouts/PublicSiteLayout.astro";
+import type { PublishedStory, PublishedScene } from "@domain/story/publish/types";
+
+export const prerender = false;
+
+const { repositoryStory, repositoryStoryLink } = Astro.locals.environment<
+  App.WithStoryRepository & App.WithStoryLinkRepository
+>();
+
+const summaries = await repositoryStory.getPublishedStorySummaries({});
+const interStoryLinks = await repositoryStoryLink.getAllStoryLinks();
+
+// Fetch full story data to get scenes and internal navigation links
+const fullStories = (
+  await Promise.all(
+    summaries.map((s) => repositoryStory.getPublishedStory(s.id)),
+  )
+).filter((s): s is PublishedStory => s !== null);
+
+// --- Layout constants ---
+const viewMode = Astro.url.searchParams.get("view") ?? "planetarium";
+const isPlanetarium = viewMode === "planetarium";
+const clusterRadius = isPlanetarium ? 25 : 10;
+const localRadius = isPlanetarium ? 5.0 : 2.5;
+const goldenAngle = Math.PI * (3 - Math.sqrt(5));
+
+// --- Build cluster data ---
+type Vec3 = { x: number; y: number; z: number };
+type SceneNode = {
+  id: string; // "story-{storyId}-scene-{sceneId}"
+  sceneId: number;
+  storyId: number;
+  title: string;
+  isOpening: boolean;
+  position: Vec3;
+  pageCount: number;
+};
+type InternalArc = {
+  from: string; // sceneNode id
+  to: string;   // sceneNode id
+};
+type StoryCluster = {
+  storyId: number;
+  title: string;
+  center: Vec3;
+  storyNodeId: string;
+  storyNodePos: Vec3;
+  scenes: SceneNode[];
+  internalArcs: InternalArc[];
+};
+
+const clusters: StoryCluster[] = [];
+
+for (let i = 0; i < fullStories.length; i++) {
+  const story = fullStories[i];
+
+  // Cluster center on the golden spiral sphere
+  const t = (i + 0.5) / Math.max(fullStories.length, 1);
+  const cy = 1 - 2 * t;
+  const cr = Math.sqrt(1 - cy * cy);
+  const cTheta = goldenAngle * i;
+  const center: Vec3 = {
+    x: Number((clusterRadius * cr * Math.cos(cTheta)).toFixed(3)),
+    y: Number((clusterRadius * cy).toFixed(3)),
+    z: Number((clusterRadius * cr * Math.sin(cTheta)).toFixed(3)),
+  };
+
+  const scenes = story.scenes;
+
+  // Layout scenes around the cluster center using a local golden spiral
+  const sceneNodes: SceneNode[] = scenes.map((scene, si) => {
+    const st = (si + 0.5) / Math.max(scenes.length, 1);
+    const sy = 1 - 2 * st;
+    const sr = Math.sqrt(1 - sy * sy);
+    const sTheta = goldenAngle * si;
+    const pages = Object.keys(scene.pages);
+    return {
+      id: `story-${story.id}-scene-${scene.id}`,
+      sceneId: scene.id,
+      storyId: story.id,
+      title: scene.title,
+      isOpening: scene.isOpeningScene,
+      pageCount: pages.length,
+      position: {
+        x: Number((center.x + localRadius * sr * Math.cos(sTheta)).toFixed(3)),
+        y: Number((center.y + localRadius * sy).toFixed(3)),
+        z: Number((center.z + localRadius * sr * Math.sin(sTheta)).toFixed(3)),
+      },
+    };
+  });
+
+  // Build a map from link targets to scene IDs
+  const linkTargetToSceneId = new Map<string, number>();
+  for (const scene of scenes) {
+    if (scene.link) {
+      linkTargetToSceneId.set(scene.link, scene.id);
+    }
+    for (const page of Object.values(scene.pages)) {
+      linkTargetToSceneId.set(page.link, scene.id);
+    }
+  }
+
+  // Extract internal arcs from blockLinks in the already-parsed pages
+  const arcSet = new Set<string>();
+  const internalArcs: InternalArc[] = [];
+  for (const scene of scenes) {
+    for (const page of Object.values(scene.pages)) {
+      for (const block of page.content) {
+        if (block.kind !== "blockLink") continue;
+        const targetSceneId = linkTargetToSceneId.get(block.link);
+        if (targetSceneId === undefined || targetSceneId === scene.id) continue;
+        const fromId = `story-${story.id}-scene-${scene.id}`;
+        const toId = `story-${story.id}-scene-${targetSceneId}`;
+        const key = `${fromId}->${toId}`;
+        if (arcSet.has(key)) continue;
+        arcSet.add(key);
+        internalArcs.push({ from: fromId, to: toId });
+      }
+    }
+  }
+
+  // --- Spring-based force-directed layout for scenes ---
+  // Start from golden-spiral positions, then relax with simple physics
+  if (sceneNodes.length > 1) {
+    // Deterministic pseudo-random perturbation seeded by story id
+    const seedRand = (seed: number) => {
+      let s = seed;
+      return () => { s = (s * 16807 + 0) % 2147483647; return (s / 2147483647) - 0.5; };
+    };
+    const rand = seedRand(story.id * 7919);
+
+    const positions = sceneNodes.map((s) => ({
+      x: s.position.x - center.x + rand() * 0.3,
+      y: s.position.y - center.y + rand() * 0.3,
+      z: s.position.z - center.z + rand() * 0.3,
+    }));
+
+    // Build adjacency from internal arcs for attraction forces
+    const adjSet = new Set<string>();
+    for (const arc of internalArcs) {
+      const fi = sceneNodes.findIndex((s) => s.id === arc.from);
+      const ti = sceneNodes.findIndex((s) => s.id === arc.to);
+      if (fi >= 0 && ti >= 0) adjSet.add(`${fi}-${ti}`);
+    }
+
+    const iterations = 120;
+    const repulsion = 3.5;
+    const attraction = 0.06;
+    const centering = 0.005;
+    const damping = 0.9;
+    const springRestLength = 2.5;
+    const velocities = positions.map(() => ({ x: 0, y: 0, z: 0 }));
+
+    for (let iter = 0; iter < iterations; iter++) {
+      for (let a = 0; a < positions.length; a++) {
+        // Repulsion from all other nodes
+        for (let b = a + 1; b < positions.length; b++) {
+          const dx = positions[a].x - positions[b].x;
+          const dy = positions[a].y - positions[b].y;
+          const dz = positions[a].z - positions[b].z;
+          const dist = Math.sqrt(dx * dx + dy * dy + dz * dz) || 0.01;
+          const force = repulsion / (dist * dist);
+          const fx = (dx / dist) * force;
+          const fy = (dy / dist) * force;
+          const fz = (dz / dist) * force;
+          velocities[a].x += fx; velocities[a].y += fy; velocities[a].z += fz;
+          velocities[b].x -= fx; velocities[b].y -= fy; velocities[b].z -= fz;
+        }
+
+        // Attraction along arcs
+        for (let b = 0; b < positions.length; b++) {
+          if (a === b) continue;
+          if (!adjSet.has(`${a}-${b}`) && !adjSet.has(`${b}-${a}`)) continue;
+          const dx = positions[b].x - positions[a].x;
+          const dy = positions[b].y - positions[a].y;
+          const dz = positions[b].z - positions[a].z;
+          const dist = Math.sqrt(dx * dx + dy * dy + dz * dz) || 0.01;
+          const force = (dist - springRestLength) * attraction;
+          velocities[a].x += (dx / dist) * force;
+          velocities[a].y += (dy / dist) * force;
+          velocities[a].z += (dz / dist) * force;
+        }
+
+        // Centering force (keep nodes near cluster center)
+        velocities[a].x -= positions[a].x * centering;
+        velocities[a].y -= positions[a].y * centering;
+        velocities[a].z -= positions[a].z * centering;
+      }
+
+      // Apply velocities
+      for (let a = 0; a < positions.length; a++) {
+        velocities[a].x *= damping;
+        velocities[a].y *= damping;
+        velocities[a].z *= damping;
+        positions[a].x += velocities[a].x;
+        positions[a].y += velocities[a].y;
+        positions[a].z += velocities[a].z;
+
+        // Clamp to local radius
+        const dist = Math.sqrt(
+          positions[a].x ** 2 + positions[a].y ** 2 + positions[a].z ** 2,
+        );
+        if (dist > localRadius) {
+          const s = localRadius / dist;
+          positions[a].x *= s;
+          positions[a].y *= s;
+          positions[a].z *= s;
+        }
+      }
+    }
+
+    // Write back to scene nodes
+    for (let a = 0; a < sceneNodes.length; a++) {
+      sceneNodes[a].position = {
+        x: Number((center.x + positions[a].x).toFixed(3)),
+        y: Number((center.y + positions[a].y).toFixed(3)),
+        z: Number((center.z + positions[a].z).toFixed(3)),
+      };
+    }
+  }
+
+  // In planetarium mode, project all scene nodes onto the dome sphere
+  if (isPlanetarium) {
+    for (const scene of sceneNodes) {
+      const p = scene.position;
+      const len = Math.sqrt(p.x * p.x + p.y * p.y + p.z * p.z) || 1;
+      scene.position = {
+        x: Number(((p.x / len) * clusterRadius).toFixed(3)),
+        y: Number(((p.y / len) * clusterRadius).toFixed(3)),
+        z: Number(((p.z / len) * clusterRadius).toFixed(3)),
+      };
+    }
+  }
+
+  // Story node sits just above the cluster center (also dome-projected in planetarium)
+  const storyNodeId = `story-${story.id}-hub`;
+  let storyNodePos: Vec3 = {
+    x: center.x,
+    y: center.y + localRadius,
+    z: center.z,
+  };
+  if (isPlanetarium) {
+    const len = Math.sqrt(storyNodePos.x ** 2 + storyNodePos.y ** 2 + storyNodePos.z ** 2) || 1;
+    storyNodePos = {
+      x: Number(((storyNodePos.x / len) * clusterRadius).toFixed(3)),
+      y: Number(((storyNodePos.y / len) * clusterRadius).toFixed(3)),
+      z: Number(((storyNodePos.z / len) * clusterRadius).toFixed(3)),
+    };
+  } else {
+    storyNodePos = {
+      x: Number(center.x.toFixed(3)),
+      y: Number((center.y + localRadius).toFixed(3)),
+      z: Number(center.z.toFixed(3)),
+    };
+  }
+
+  // Arc from opening scene to story node
+  const openingScene = sceneNodes.find((s) => s.isOpening);
+  if (openingScene) {
+    const key = `${openingScene.id}->${storyNodeId}`;
+    if (!arcSet.has(key)) {
+      arcSet.add(key);
+      internalArcs.push({ from: openingScene.id, to: storyNodeId });
+    }
+  }
+
+  // Connect any orphaned scenes (not source or target of any arc) to the story node
+  const connectedIds = new Set<string>();
+  for (const arc of internalArcs) {
+    connectedIds.add(arc.from);
+    connectedIds.add(arc.to);
+  }
+  for (const scene of sceneNodes) {
+    if (!connectedIds.has(scene.id)) {
+      internalArcs.push({ from: scene.id, to: storyNodeId });
+    }
+  }
+
+  clusters.push({
+    storyId: story.id,
+    title: story.title,
+    center,
+    storyNodeId,
+    storyNodePos,
+    scenes: sceneNodes,
+    internalArcs,
+  });
+}
+
+// --- Build inter-story arc data ---
+// Map scene IDs to their 3D positions for targeted links
+const sceneNodeMap = new Map<string, SceneNode>();
+for (const cluster of clusters) {
+  for (const sn of cluster.scenes) {
+    sceneNodeMap.set(sn.id, sn);
+  }
+}
+
+const clusterByStoryId = new Map(clusters.map((c) => [c.storyId, c]));
+
+type InterStoryArc = {
+  id: number;
+  status: string;
+  linkType: string;
+  fromPos: Vec3;
+  toPos: Vec3;
+  fromStoryTitle: string;
+  toStoryTitle: string;
+};
+
+const interArcs: InterStoryArc[] = [];
+for (const link of interStoryLinks) {
+  const fromCluster = clusterByStoryId.get(link.fromStory.id);
+  const toCluster = clusterByStoryId.get(link.toStory.id);
+  if (!fromCluster || !toCluster) continue;
+
+  // Source: story hub node of the originating story
+  const fromPos = fromCluster.storyNodePos;
+
+  // Target: specific scene node if available, otherwise story hub node
+  let toPos = toCluster.storyNodePos;
+  if (link.toScene) {
+    const targetNode = sceneNodeMap.get(
+      `story-${link.toStory.id}-scene-${link.toScene.id}`,
+    );
+    if (targetNode) toPos = targetNode.position;
+  }
+
+  interArcs.push({
+    id: link.id,
+    status: link.status,
+    linkType: link.linkType,
+    fromPos,
+    toPos,
+    fromStoryTitle: link.fromStory.title,
+    toStoryTitle: link.toStory.title,
+  });
+}
+
+// --- Serialise the data for the client-side script ---
+const clientData = { clusters, interArcs, isPlanetarium };
+---
+
+<Layout
+  title="VSATLATARIUM"
+  description="A 3D constellation of stories and interpretive links."
+  pageName="site-stories"
+>
+  <ImportAFrameScripts />
+  <script is:inline>
+    // Register stabilcam component: billboard + distance-compensated scale
+    // dome-text: orient text tangent to dome surface, facing inward
+    if (typeof AFRAME !== "undefined" && !AFRAME.components["dome-text"]) {
+      AFRAME.registerComponent("dome-text", {
+        init: function () {
+          this._normal = new THREE.Vector3();
+          this._right = new THREE.Vector3();
+          this._up = new THREE.Vector3();
+          this._worldUp = new THREE.Vector3(0, 1, 0);
+          this._mat = new THREE.Matrix4();
+          // Orient once the element is in the scene
+          this.el.addEventListener("loaded", () => this._orient());
+        },
+        _orient: function () {
+          var obj = this.el.object3D;
+          // Get world position of this text entity
+          var pos = new THREE.Vector3();
+          obj.getWorldPosition(pos);
+          if (pos.lengthSq() < 0.001) return;
+
+          // Normal = outward from dome center (origin)
+          this._normal.copy(pos).normalize();
+          // Text faces inward (toward viewer at origin)
+          var forward = this._normal.clone().negate();
+          // Right = cross(worldUp, forward), handling pole case
+          this._right.crossVectors(this._worldUp, forward);
+          if (this._right.lengthSq() < 0.0001) {
+            this._right.set(1, 0, 0);
+          }
+          this._right.normalize();
+          // Corrected up = cross(forward, right)
+          this._up.crossVectors(forward, this._right);
+
+          // Build rotation from basis vectors (right=X, up=Y, forward=-Z)
+          this._mat.makeBasis(this._right, this._up, forward.negate());
+          var qWorld = new THREE.Quaternion().setFromRotationMatrix(this._mat);
+
+          // Convert world quaternion to local space
+          if (obj.parent) {
+            var parentQuat = new THREE.Quaternion();
+            obj.parent.getWorldQuaternion(parentQuat);
+            parentQuat.invert();
+            obj.quaternion.copy(parentQuat.multiply(qWorld));
+          } else {
+            obj.quaternion.copy(qWorld);
+          }
+        },
+        tick: function () {
+          // Re-orient every frame (turntable rotates the parent)
+          this._orient();
+        },
+      });
+    }
+
+    if (typeof AFRAME !== "undefined" && !AFRAME.components["stabilcam"]) {
+      AFRAME.registerComponent("stabilcam", {
+        schema: {
+          baseScale: { type: "number", default: 1 },
+          refDist: { type: "number", default: 25 },
+        },
+        init: function () {
+          this._camWorldPos = new THREE.Vector3();
+          this._worldPos = new THREE.Vector3();
+          this._camWorldQuat = new THREE.Quaternion();
+          this._parentWorldQuat = new THREE.Quaternion();
+          this._inverseParentQuat = new THREE.Quaternion();
+          this._depthFixed = false;
+        },
+        _fixDepth: function () {
+          // Render text on top of everything (no depth test)
+          if (this._depthFixed) return;
+          var obj = this.el.object3D;
+          var found = false;
+          obj.renderOrder = 999;
+          obj.traverse(function (child) {
+            child.renderOrder = 999;
+            if (child.material) {
+              child.material.depthTest = false;
+              child.material.depthWrite = false;
+              child.material.needsUpdate = true;
+              found = true;
+            }
+          });
+          // Only mark done once we've actually modified materials
+          this._depthFixed = found;
+        },
+        tick: function () {
+          var cam = this.el.sceneEl.camera;
+          if (!cam) return;
+          var obj = this.el.object3D;
+
+          if (!this._depthFixed) this._fixDepth();
+
+          // Force parent world matrix update so transforms are fresh
+          obj.parent?.updateWorldMatrix(true, false);
+
+          // Get world positions
+          cam.getWorldPosition(this._camWorldPos);
+          obj.getWorldPosition(this._worldPos);
+
+          // Billboard: copy camera's world rotation, then undo parent's rotation
+          // so the label always faces exactly where the camera faces
+          cam.getWorldQuaternion(this._camWorldQuat);
+          if (obj.parent) {
+            obj.parent.getWorldQuaternion(this._parentWorldQuat);
+            this._inverseParentQuat.copy(this._parentWorldQuat).invert();
+            obj.quaternion.copy(this._inverseParentQuat).multiply(this._camWorldQuat);
+          } else {
+            obj.quaternion.copy(this._camWorldQuat);
+          }
+
+          // Distance-compensated scale: keep apparent size constant
+          var dist = this._worldPos.distanceTo(this._camWorldPos);
+          var s = this.data.baseScale * (dist / this.data.refDist);
+          s = Math.max(s, this.data.baseScale * 0.6);
+          obj.scale.set(s, s, s);
+        },
+      });
+    }
+  </script>
+  <div class="vsatlatarium">
+    <header class="vsatlatarium__header">
+      <div>
+        <p class="vsatlatarium__kicker">VSATLATARIUM</p>
+        <h1>Story constellation</h1>
+        <p class="vsatlatarium__help">
+          {isPlanetarium
+            ? "You are inside the planetarium. Drag to look around. Each cluster is a story projected on the dome."
+            : "Each cluster is a story. Scenes orbit within. Arcs show narrative flow and interpretive links between stories."}
+        </p>
+      </div>
+      <a href="/story/">Back to stories</a>
+    </header>
+
+    <div class="vsatlatarium__content">
+      <div class="vsatlatarium__canvas">
+        <div class="vsatlatarium__toolbar">
+          <button type="button" id="vsat-reset-cam" class="vsatlatarium__btn">Reset view</button>
+          <button type="button" id="vsat-toggle-wireframes" class="vsatlatarium__btn">Wireframes</button>
+          <a
+            class={`vsatlatarium__btn ${isPlanetarium ? "" : "vsatlatarium__btn--active"}`}
+            href="/story/vsatlatarium?view=geomview"
+          >GeomView</a>
+          <a
+            class={`vsatlatarium__btn ${isPlanetarium ? "vsatlatarium__btn--active" : ""}`}
+            href="/story/vsatlatarium?view=planetarium"
+          >Planetarium</a>
+        </div>
+        <a-scene
+          embedded
+          background="color: #030308"
+          vr-mode-ui="enabled: false"
+          renderer="antialias: true"
+        >
+          {isPlanetarium ? (
+            <a-entity id="vsat-cam-rig" position="0 0 0">
+              <a-camera
+                fov="75"
+                near="0.1"
+                far="200"
+                look-controls="enabled: false"
+                wasd-controls="enabled: false"
+              >
+                <a-entity
+                  position="0 0 -3"
+                  geometry="primitive: ring; radiusInner: 0.02; radiusOuter: 0.04"
+                  material="color: #dce7ff; shader: flat; opacity: 0.4"
+                  cursor="rayOrigin: mouse; fuse: false; maxDistance: 80"
+                  raycaster="objects: .clickable"
+                ></a-entity>
+              </a-camera>
+            </a-entity>
+          ) : (
+            <a-entity id="vsat-cam-rig" position="0 0 24">
+              <a-camera
+                fov="60"
+                near="0.1"
+                far="200"
+                look-controls="enabled: false"
+                wasd-controls="enabled: false"
+              >
+                <a-entity
+                  position="0 0 -3"
+                  geometry="primitive: ring; radiusInner: 0.02; radiusOuter: 0.04"
+                  material="color: #dce7ff; shader: flat; opacity: 0.5"
+                  cursor="rayOrigin: mouse; fuse: false; maxDistance: 80"
+                  raycaster="objects: .clickable"
+                ></a-entity>
+              </a-camera>
+            </a-entity>
+          )}
+
+          <a-entity light="type: ambient; color: #8899cc; intensity: 0.35"></a-entity>
+          <a-entity light="type: point; color: #ffffff; intensity: 0.5" position="0 0 0"></a-entity>
+
+          <!-- Turntable: rotated by controls, camera stays fixed -->
+          <a-entity id="vsat-turntable">
+
+          {/* Dome shell — faint grid sphere surrounding the viewer */}
+          {isPlanetarium && (
+            <a-entity
+              class="dome-wireframe"
+              visible="false"
+              geometry={`primitive: sphere; radius: ${clusterRadius + 8}; segmentsWidth: 32; segmentsHeight: 32`}
+              material="color: #0a0e2a; opacity: 0.15; transparent: true; wireframe: true; side: back"
+            ></a-entity>
+          )}
+
+          <!-- Story clusters -->
+          {clusters.map((cluster) => (
+            <a-entity class="story-cluster" data-story-id={cluster.storyId}>
+              <!-- Story hub node (gray) — inter-story arcs connect here -->
+              <a-entity
+                class="scene-node clickable"
+                data-scene-id={cluster.storyNodeId}
+                data-story-id={cluster.storyId}
+                data-scene-title={cluster.title}
+                data-story-title={cluster.title}
+                position={`${cluster.storyNodePos.x} ${cluster.storyNodePos.y} ${cluster.storyNodePos.z}`}
+              >
+                <a-entity
+                  geometry="primitive: sphere; radius: 0.35"
+                  material="color: #888888; emissive: #888888; emissiveIntensity: 0.3; metalness: 0.1; roughness: 0.3"
+                ></a-entity>
+              </a-entity>
+
+              <!-- Cluster label (just above the story node) -->
+              {(() => {
+                // Position label on dome surface just above the story node
+                const sp = cluster.storyNodePos;
+                const nudged = { x: sp.x, y: sp.y + 1.5, z: sp.z };
+                const len = Math.sqrt(nudged.x ** 2 + nudged.y ** 2 + nudged.z ** 2) || 1;
+                const labelPos = isPlanetarium
+                  ? { x: (nudged.x / len) * clusterRadius, y: (nudged.y / len) * clusterRadius, z: (nudged.z / len) * clusterRadius }
+                  : { x: sp.x, y: sp.y + 0.7, z: sp.z };
+                return (
+                  <a-text
+                    value={cluster.title}
+                    position={`${labelPos.x.toFixed(3)} ${labelPos.y.toFixed(3)} ${labelPos.z.toFixed(3)}`}
+                    align="center"
+                    color={isPlanetarium ? "#e2eaff" : "#c8d6ff"}
+                    width={isPlanetarium ? "20" : "10"}
+                    stabilcam={`baseScale: ${isPlanetarium ? "1.8" : "1"}; refDist: ${isPlanetarium ? "25" : "24"}`}
+                  />
+                );
+              })()}
+
+              <!-- Cluster boundary wireframe (toggled via scaffolding button) -->
+              <a-entity
+                class="cluster-wireframe"
+                visible="false"
+                position={`${cluster.center.x} ${cluster.center.y} ${cluster.center.z}`}
+                geometry={`primitive: sphere; radius: ${localRadius + 0.3}; segmentsWidth: 12; segmentsHeight: 8`}
+                material={`color: #1a2244; opacity: ${isPlanetarium ? "0.08" : "0.08"}; transparent: true; wireframe: true; side: double`}
+              ></a-entity>
+
+              <!-- Scene nodes -->
+              {cluster.scenes.map((scene) => (
+                <a-entity
+                  class="scene-node clickable"
+                  data-scene-id={scene.id}
+                  data-story-id={cluster.storyId}
+                  data-scene-title={scene.title}
+                  data-story-title={cluster.title}
+                  position={`${scene.position.x} ${scene.position.y} ${scene.position.z}`}
+                >
+                  <a-entity
+                    geometry={`primitive: sphere; radius: ${0.18 + scene.pageCount * 0.06}`}
+                    material={`color: ${scene.isOpening ? "#fbbf24" : "#4cc9f0"}; emissive: ${scene.isOpening ? "#fbbf24" : "#4cc9f0"}; emissiveIntensity: 0.4; metalness: 0.1; roughness: 0.3`}
+                  ></a-entity>
+                  {(() => {
+                    // Scene label: dome-projected position, stabilcam readability
+                    if (isPlanetarium) {
+                      const sp = scene.position;
+                      const nudged = { x: sp.x, y: sp.y + 0.8, z: sp.z };
+                      const len = Math.sqrt(nudged.x ** 2 + nudged.y ** 2 + nudged.z ** 2) || 1;
+                      const lp = {
+                        x: (nudged.x / len) * clusterRadius - sp.x,
+                        y: (nudged.y / len) * clusterRadius - sp.y,
+                        z: (nudged.z / len) * clusterRadius - sp.z,
+                      };
+                      return (
+                        <a-text
+                          value={scene.title.length > 20 ? scene.title.substring(0, 20) + "..." : scene.title}
+                          position={`${lp.x.toFixed(3)} ${lp.y.toFixed(3)} ${lp.z.toFixed(3)}`}
+                          align="center"
+                          color="#aabbdd"
+                          width="12"
+                          stabilcam="baseScale: 1.5; refDist: 25"
+                        />
+                      );
+                    }
+                    return (
+                      <a-text
+                        value={scene.title.length > 20 ? scene.title.substring(0, 20) + "..." : scene.title}
+                        position={`0 ${0.4 + scene.pageCount * 0.04} 0`}
+                        align="center"
+                        color="#aabbdd"
+                        width="5"
+                        stabilcam="baseScale: 1; refDist: 24"
+                      />
+                    );
+                  })()}
+                </a-entity>
+              ))}
+            </a-entity>
+          ))}
+          </a-entity><!-- /vsat-turntable -->
+        </a-scene>
+      </div>
+
+      <aside class="vsatlatarium__panel">
+        <h2>Constellation</h2>
+        <p class="vsatlatarium__panel-help">
+          Stories appear as clusters of scenes. Curved arcs show narrative
+          connections within stories and interpretive links between them.
+        </p>
+
+        <div class="vsatlatarium__legend">
+          <h3>Legend</h3>
+          <ul class="legend-list">
+            <li><span class="legend-dot legend-dot--story"></span> Story</li>
+            <li><span class="legend-dot legend-dot--opening"></span> Opening scene</li>
+            <li><span class="legend-dot legend-dot--scene"></span> Scene</li>
+            <li><span class="legend-arc legend-arc--internal"></span> Narrative arc (within story)</li>
+            <li><span class="legend-arc legend-arc--thematic"></span> Thematic link</li>
+            <li><span class="legend-arc legend-arc--causal"></span> Causal link</li>
+            <li><span class="legend-arc legend-arc--adjacency"></span> Adjacency link</li>
+            <li><span class="legend-arc legend-arc--contrast"></span> Contrast link</li>
+            <li class="legend-note">Bright = accepted, dim = proposed, faint = retired</li>
+          </ul>
+        </div>
+
+        <div id="vsat-info" class="vsatlatarium__info">
+          <p class="vsatlatarium__info-empty">Hover a scene node for details.</p>
+        </div>
+
+        <h3>Stories</h3>
+        <ul class="vsatlatarium__list">
+          {clusters.map((cluster) => (
+            <li>
+              <button type="button" class="vsatlatarium__story" data-story-id={cluster.storyId}>
+                {cluster.title}
+                <span class="story-badge">{cluster.scenes.length} scenes</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      </aside>
+    </div>
+  </div>
+
+  <script is:inline define:vars={{ clientData }}>
+    // --- Turntable controls (rotate the world, camera stays fixed) ---
+    const canvas = document.querySelector(".vsatlatarium__canvas");
+    const sceneEl = document.querySelector("a-scene");
+    const turntable = document.getElementById("vsat-turntable");
+    const { isPlanetarium } = clientData;
+
+    let rotY = 0; // yaw in degrees
+    let rotX = 0; // pitch in degrees
+    let camZ = isPlanetarium ? 0 : 24; // camera distance along Z
+    const camZDefault = camZ;
+    const camZMin = isPlanetarium ? -20 : 6;  // how far forward you can go
+    const camZMax = isPlanetarium ? 0 : 50;   // how far back
+    let isDragging = false;
+    let dragTotal = 0;
+    let lastMouse = { x: 0, y: 0 };
+
+    // In planetarium mode, drag direction is inverted (you're inside the sphere)
+    const dragSign = isPlanetarium ? -1 : 1;
+    const dragSpeed = isPlanetarium ? 0.2 : 0.3;
+
+    const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+
+    const camRig = document.getElementById("vsat-cam-rig");
+
+    const applyTransform = () => {
+      if (!turntable) return;
+      turntable.setAttribute("rotation", `${rotX} ${rotY} 0`);
+      // Move camera rig along Z axis (toward/away from dome)
+      if (camRig) {
+        camRig.setAttribute("position", `0 0 ${camZ}`);
+      }
+    };
+
+    canvas.addEventListener("mousedown", (e) => {
+      isDragging = true;
+      dragTotal = 0;
+      lastMouse = { x: e.clientX, y: e.clientY };
+    });
+
+    canvas.addEventListener("contextmenu", (e) => e.preventDefault());
+
+    window.addEventListener("mousemove", (e) => {
+      if (!isDragging) return;
+      const dx = e.clientX - lastMouse.x;
+      const dy = e.clientY - lastMouse.y;
+      dragTotal += Math.abs(dx) + Math.abs(dy);
+      lastMouse = { x: e.clientX, y: e.clientY };
+      rotY += dx * dragSpeed * dragSign;
+      rotX = clamp(rotX + dy * dragSpeed * dragSign, -85, 85);
+      applyTransform();
+    });
+
+    window.addEventListener("mouseup", () => { isDragging = false; });
+
+    canvas.addEventListener("wheel", (e) => {
+      e.preventDefault();
+      // Scroll moves the camera forward/backward (toward dome or back to center)
+      camZ = clamp(camZ - e.deltaY * 0.03, camZMin, camZMax);
+      applyTransform();
+    }, { passive: false });
+
+    // Reset button
+    document.getElementById("vsat-reset-cam")?.addEventListener("click", () => {
+      rotY = 0;
+      rotX = 0;
+      camZ = camZDefault;
+      applyTransform();
+    });
+
+    // --- Wireframe toggle ---
+    let wireframesVisible = false;
+    const wireframeBtn = document.getElementById("vsat-toggle-wireframes");
+    wireframeBtn?.addEventListener("click", () => {
+      wireframesVisible = !wireframesVisible;
+      document.querySelectorAll(".cluster-wireframe, .dome-wireframe").forEach((el) => {
+        el.setAttribute("visible", wireframesVisible);
+      });
+      wireframeBtn.classList.toggle("vsatlatarium__btn--active", wireframesVisible);
+    });
+
+    // --- Build 3D Bezier arcs as line segments ---
+    const bezierPoint = (a, cp, b, t) => ({
+      x: (1 - t) * (1 - t) * a.x + 2 * (1 - t) * t * cp.x + t * t * b.x,
+      y: (1 - t) * (1 - t) * a.y + 2 * (1 - t) * t * cp.y + t * t * b.y,
+      z: (1 - t) * (1 - t) * a.z + 2 * (1 - t) * t * cp.z + t * t * b.z,
+    });
+
+    const midpoint = (a, b) => ({
+      x: (a.x + b.x) / 2,
+      y: (a.y + b.y) / 2,
+      z: (a.z + b.z) / 2,
+    });
+
+    const length3 = (v) => Math.sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
+
+    const normalize3 = (v) => {
+      const len = length3(v) || 1;
+      return { x: v.x / len, y: v.y / len, z: v.z / len };
+    };
+
+    // For inter-story arcs: in planetarium mode bow inward (toward viewer),
+    // in geomview mode bow outward (away from origin)
+    const arcControlPoint = (a, b, bowFactor) => {
+      const mid = midpoint(a, b);
+      const dir = normalize3(mid);
+      const sign = isPlanetarium ? -1 : 1;
+      return {
+        x: mid.x + dir.x * bowFactor * sign,
+        y: mid.y + dir.y * bowFactor * sign,
+        z: mid.z + dir.z * bowFactor * sign,
+      };
+    };
+
+    const localArcControlPoint = (a, b, clusterCenter, bowFactor) => {
+      const mid = midpoint(a, b);
+      const toMid = {
+        x: mid.x - clusterCenter.x,
+        y: mid.y - clusterCenter.y,
+        z: mid.z - clusterCenter.z,
+      };
+      const dir = normalize3(toMid);
+      return {
+        x: mid.x + dir.x * bowFactor,
+        y: mid.y + dir.y * bowFactor,
+        z: mid.z + dir.z * bowFactor,
+      };
+    };
+
+    const segments = 24;
+    const domeRadius = isPlanetarium ? 25 : 0; // 0 = no projection
+
+    // Project a point onto a sphere of given radius (for dome projection)
+    const projectToDome = (p, radius) => {
+      if (!radius) return p;
+      const len = Math.sqrt(p.x * p.x + p.y * p.y + p.z * p.z) || 1;
+      return {
+        x: (p.x / len) * radius,
+        y: (p.y / len) * radius,
+        z: (p.z / len) * radius,
+      };
+    };
+
+    const drawArc = (from, to, controlPoint, color, opacity, thickness) => {
+      const radius = thickness || 0.04;
+      for (let i = 0; i < segments; i++) {
+        const t0 = i / segments;
+        const t1 = (i + 1) / segments;
+        let p0 = bezierPoint(from, controlPoint, to, t0);
+        let p1 = bezierPoint(from, controlPoint, to, t1);
+        if (domeRadius) {
+          p0 = projectToDome(p0, domeRadius);
+          p1 = projectToDome(p1, domeRadius);
+        }
+        // Midpoint + length for the cylinder
+        const mx = (p0.x + p1.x) / 2;
+        const my = (p0.y + p1.y) / 2;
+        const mz = (p0.z + p1.z) / 2;
+        const dx = p1.x - p0.x;
+        const dy = p1.y - p0.y;
+        const dz = p1.z - p0.z;
+        const len = Math.sqrt(dx * dx + dy * dy + dz * dz);
+        if (len < 0.001) continue;
+
+        const el = document.createElement("a-entity");
+        el.setAttribute("position", mx + " " + my + " " + mz);
+        el.setAttribute("geometry", "primitive: cylinder; radius: " + radius + "; height: " + len + "; segmentsRadial: 4; openEnded: true");
+        el.setAttribute("material", "color: " + color + "; opacity: " + opacity + "; transparent: true; shader: flat");
+
+        // Orient cylinder to point from p0 to p1
+        // A-Frame cylinders are Y-up, so we need to rotate to align with the segment direction
+        el.object3D.lookAt(p1.x, p1.y, p1.z);
+        // lookAt doesn't work before added to scene; use manual approach
+        el.setAttribute("look-at-target", p0.x + " " + p0.y + " " + p0.z + " " + p1.x + " " + p1.y + " " + p1.z);
+
+        el.classList.add("arc-segment");
+        turntable.appendChild(el);
+
+        // Orient after insertion using Three.js directly
+        requestAnimationFrame(() => {
+          if (!el.object3D) return;
+          const dir = new THREE.Vector3(dx, dy, dz).normalize();
+          const up = new THREE.Vector3(0, 1, 0);
+          const quat = new THREE.Quaternion().setFromUnitVectors(up, dir);
+          el.object3D.quaternion.copy(quat);
+        });
+      }
+    };
+
+    // Wait for scene to be loaded, then draw arcs
+    const onReady = () => {
+      const { clusters, interArcs } = clientData;
+
+      // Internal narrative arcs (within each story cluster) — orange like StoryOverview
+      for (const cluster of clusters) {
+        const nodeMap = new Map(cluster.scenes.map((s) => [s.id, s.position]));
+        // Include the story hub node so arcs can target it
+        nodeMap.set(cluster.storyNodeId, cluster.storyNodePos);
+        for (const arc of cluster.internalArcs) {
+          const from = nodeMap.get(arc.from);
+          const to = nodeMap.get(arc.to);
+          if (!from || !to) continue;
+          const internalBow = isPlanetarium ? 0.15 : 1.2;
+          const cp = localArcControlPoint(from, to, cluster.center, internalBow);
+          drawArc(from, to, cp, "#f97316", 0.7, 0.06);
+        }
+      }
+
+      // Inter-story arcs
+      const linkTypeColors = {
+        thematic: "#c084fc",  // purple
+        causal: "#ef4444",    // red (was orange — collided with narrative arcs)
+        adjacency: "#34d399", // green
+        contrast: "#f472b6",  // pink
+      };
+
+      for (const arc of interArcs) {
+        const color = linkTypeColors[arc.linkType] ?? "#7286ff";
+        const opacity =
+          arc.status === "retired" ? 0.12 :
+          arc.status === "accepted" ? 0.7 :
+          arc.status === "rejected" ? 0.15 : 0.4;
+        const bowFactor = isPlanetarium
+          ? (arc.status === "accepted" ? 0.5 : 0.3)
+          : (arc.status === "accepted" ? 3.5 : 2.5);
+        const cp = arcControlPoint(arc.fromPos, arc.toPos, bowFactor);
+        drawArc(arc.fromPos, arc.toPos, cp, color, opacity, 0.05);
+      }
+    };
+
+    if (sceneEl.hasLoaded) {
+      onReady();
+    } else {
+      sceneEl.addEventListener("loaded", onReady);
+    }
+
+    // --- Hover info panel ---
+    const infoEl = document.getElementById("vsat-info");
+
+    document.querySelectorAll(".scene-node").forEach((node) => {
+      node.addEventListener("mouseenter", () => {
+        const sceneTitle = node.getAttribute("data-scene-title");
+        const storyTitle = node.getAttribute("data-story-title");
+        infoEl.innerHTML =
+          '<p class="vsatlatarium__info-story">' + storyTitle + '</p>' +
+          '<p class="vsatlatarium__info-scene">' + sceneTitle + '</p>';
+      });
+
+      node.addEventListener("mouseleave", () => {
+        infoEl.innerHTML = '<p class="vsatlatarium__info-empty">Hover a scene node for details.</p>';
+      });
+
+      node.addEventListener("click", () => {
+        // Only navigate if this was a real click, not the end of a drag
+        if (dragTotal > 5) return;
+        const storyId = node.getAttribute("data-story-id");
+        if (storyId) {
+          window.open("/story/" + storyId, "_blank");
+        }
+      });
+    });
+
+    // --- Story list: rotate turntable to face cluster toward camera ---
+    document.querySelectorAll(".vsatlatarium__story").forEach((button) => {
+      button.addEventListener("click", () => {
+        const storyId = Number(button.getAttribute("data-story-id"));
+        const cluster = clientData.clusters.find((c) => c.storyId === storyId);
+        if (!cluster) return;
+        const c = cluster.center;
+        // Rotate so this cluster faces the camera (camera is at +Z)
+        rotY = -Math.atan2(c.x, c.z) * (180 / Math.PI);
+        rotX = Math.asin(clamp(c.y / (Math.sqrt(c.x*c.x + c.y*c.y + c.z*c.z) || 1), -1, 1)) * (180 / Math.PI);
+        // Move camera partway toward the cluster
+        camZ = isPlanetarium ? -12 : 14;
+        applyTransform();
+      });
+    });
+  </script>
+</Layout>
+
+<style>
+  .vsatlatarium {
+    max-width: 1400px;
+    margin: 1.5rem auto;
+    padding: 0 1.5rem 3rem;
+  }
+
+  .vsatlatarium__header {
+    display: flex;
+    justify-content: space-between;
+    gap: 1.5rem;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+  }
+
+  .vsatlatarium__kicker {
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-size: 0.7rem;
+    color: #8899bb;
+  }
+
+  .vsatlatarium__header h1 {
+    margin: 0.25rem 0 0.4rem;
+  }
+
+  .vsatlatarium__help {
+    font-style: italic;
+    font-size: 0.9rem;
+    opacity: 0.7;
+  }
+
+  .vsatlatarium__content {
+    display: grid;
+    grid-template-columns: minmax(0, 3fr) minmax(240px, 1fr);
+    gap: 1.5rem;
+  }
+
+  .vsatlatarium__canvas {
+    border: 1px solid #1a1f33;
+    border-radius: 0.75rem;
+    overflow: hidden;
+    min-height: 600px;
+    position: relative;
+    background: #060714;
+  }
+
+  .vsatlatarium__toolbar {
+    position: absolute;
+    top: 0.75rem;
+    right: 0.75rem;
+    z-index: 10;
+    display: flex;
+    gap: 0.35rem;
+  }
+
+  .vsatlatarium__btn {
+    border: 1px solid #334;
+    background: rgba(6, 7, 20, 0.85);
+    color: #c8d6ff;
+    padding: 0.35rem 0.75rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    cursor: pointer;
+    transition: border-color 0.2s;
+    text-decoration: none;
+  }
+
+  .vsatlatarium__btn:hover {
+    border-color: #4cc9f0;
+  }
+
+  .vsatlatarium__btn--active {
+    background: rgba(76, 201, 240, 0.2);
+    border-color: #4cc9f0;
+  }
+
+  .vsatlatarium__canvas a-scene,
+  .vsatlatarium__canvas canvas {
+    width: 100%;
+    height: 100%;
+  }
+
+  .vsatlatarium__panel {
+    border: 1px solid #1a1f33;
+    border-radius: 0.75rem;
+    padding: 1rem;
+    background: #0c0f1e;
+    color: #c8d6ff;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    overflow-y: auto;
+    max-height: 700px;
+  }
+
+  .vsatlatarium__panel h2 {
+    font-size: 1.1rem;
+    color: #e2eaff;
+  }
+
+  .vsatlatarium__panel h3 {
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #8899bb;
+    margin-top: 0.5rem;
+  }
+
+  .vsatlatarium__panel-help {
+    font-size: 0.85rem;
+    opacity: 0.6;
+    line-height: 1.5;
+  }
+
+  .vsatlatarium__legend {
+    border-top: 1px solid #1a2244;
+    padding-top: 0.5rem;
+  }
+
+  .legend-list {
+    list-style: none;
+    padding: 0;
+    display: grid;
+    gap: 0.4rem;
+    font-size: 0.8rem;
+  }
+
+  .legend-list li {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .legend-dot--story {
+    background: #888888;
+  }
+
+  .legend-dot--opening {
+    background: #fbbf24;
+  }
+
+  .legend-dot--scene {
+    background: #4cc9f0;
+  }
+
+  .legend-arc {
+    width: 20px;
+    height: 2px;
+    flex-shrink: 0;
+  }
+
+  .legend-arc--internal {
+    background: #f97316;
+  }
+
+  .legend-arc--thematic {
+    background: #c084fc;
+  }
+
+  .legend-arc--causal {
+    background: #ef4444;
+  }
+
+  .legend-arc--adjacency {
+    background: #34d399;
+  }
+
+  .legend-arc--contrast {
+    background: #f472b6;
+  }
+
+  .legend-note {
+    font-size: 0.7rem;
+    opacity: 0.5;
+    font-style: italic;
+    padding-top: 0.2rem;
+  }
+
+  .vsatlatarium__info {
+    border: 1px solid #1a2244;
+    border-radius: 0.5rem;
+    padding: 0.6rem;
+    min-height: 3rem;
+    background: #0f1328;
+  }
+
+  .vsatlatarium__info-empty {
+    font-size: 0.8rem;
+    opacity: 0.4;
+    font-style: italic;
+  }
+
+  :global(.vsatlatarium__info-story) {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #8899bb;
+  }
+
+  :global(.vsatlatarium__info-scene) {
+    font-weight: 600;
+    color: #e2eaff;
+  }
+
+  .vsatlatarium__list {
+    list-style: none;
+    padding: 0;
+    display: grid;
+    gap: 0.35rem;
+    max-height: 280px;
+    overflow: auto;
+  }
+
+  .vsatlatarium__story {
+    width: 100%;
+    text-align: left;
+    border: 1px solid #1a2244;
+    padding: 0.4rem 0.6rem;
+    border-radius: 0.5rem;
+    background: #0f1328;
+    color: #c8d6ff;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.9rem;
+    transition: border-color 0.2s;
+  }
+
+  .vsatlatarium__story:hover {
+    border-color: #4cc9f0;
+  }
+
+  .story-badge {
+    font-size: 0.7rem;
+    opacity: 0.5;
+  }
+
+  @media screen and (max-width: 980px) {
+    .vsatlatarium__content {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

@@ -30,12 +30,17 @@ export type SceneProps = {
   scene: PersistentScene;
   storyId: PersistentStory["id"];
   onSceneChanged: OnSceneChanged;
+  linkInfo?: {
+    count: number;
+    pages: number[];
+  };
 };
 
 const Scene: FC<SceneProps> = ({
   storyId,
   scene: initialScene,
   onSceneChanged,
+  linkInfo,
 }) => {
   const { getScene, saveSceneTitle, feedback } = useEnvironment<
     WithGetScene & WithSaveSceneTitle & WithFeedback
@@ -114,6 +119,21 @@ const Scene: FC<SceneProps> = ({
     }
   };
 
+  const proposeLinkFromHere = () => {
+    const location =
+      "location" in globalThis ? (globalThis.location as Location) : undefined;
+    if (!location) {
+      return;
+    }
+    const parts = location.pathname.split("/");
+    const storyIndex = parts.indexOf("story");
+    const resolvedStoryId =
+      storyIndex >= 0 ? Number(parts[storyIndex + 1]) : storyId;
+    const url = new URL(`/author/story/${resolvedStoryId}/links`, location.origin);
+    url.searchParams.set("contextSceneId", String(scene.id));
+    location.href = url.toString();
+  };
+
   return (
     <div className={styles.scene} id={htmlIdForScene(scene.id)}>
       <SceneHeader
@@ -125,6 +145,8 @@ const Scene: FC<SceneProps> = ({
             title,
           });
         }}
+        linkInfo={linkInfo}
+        onProposeLink={proposeLinkFromHere}
       />
 
       <div className={styles.sceneContent}>

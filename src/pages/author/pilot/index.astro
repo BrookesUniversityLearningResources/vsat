@@ -1,0 +1,166 @@
+---
+import Layout from "@layouts/AuthoringLayout.astro";
+
+export const prerender = false;
+
+const { repositoryPilot } = Astro.locals.environment<App.WithPilotRepository>();
+
+const pilots = await repositoryPilot.getPilots();
+---
+
+<Layout title="Pilots" description="Pilot overview">
+  <main class="pilot-page">
+    <header class="pilot-header">
+      <div>
+        <p class="pilot-kicker">Pilot dashboard</p>
+        <h1>Pilots</h1>
+        <p class="pilot-help">Create pilots and review questions and outputs.</p>
+      </div>
+      <a href="/author/story/">Back to stories</a>
+    </header>
+
+    <section class="pilot-section">
+      <h2>Create a pilot</h2>
+      <form id="pilot-form" class="pilot-form">
+        <label>
+          Title
+          <input type="text" name="title" required minlength="3" />
+        </label>
+        <label>
+          Question
+          <textarea name="question" rows="4" required minlength="5"></textarea>
+        </label>
+        <label>
+          Partner
+          <input type="text" name="partner" />
+        </label>
+        <label>
+          Status
+          <select name="status">
+            <option value="draft">Draft</option>
+            <option value="active">Active</option>
+            <option value="complete">Complete</option>
+          </select>
+        </label>
+        <button type="submit">Create pilot</button>
+        <p class="pilot-form__status" id="pilot-form-status"></p>
+      </form>
+    </section>
+
+    <section class="pilot-section">
+      <h2>Existing pilots</h2>
+      {pilots.length ? (
+        <ul class="pilot-list">
+          {pilots.map((pilot) => (
+            <li class="pilot-card">
+              <div>
+                <strong>{pilot.title}</strong>
+                <p>{pilot.question}</p>
+              </div>
+              <div class="pilot-meta">
+                <span>{pilot.status}</span>
+                <a href={`/author/pilot/${pilot.id}`}>Open</a>
+              </div>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p>No pilots yet.</p>
+      )}
+    </section>
+  </main>
+
+  <script is:inline>
+    const form = document.getElementById("pilot-form");
+    const status = document.getElementById("pilot-form-status");
+
+    form?.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const formData = new FormData(form);
+      const payload = {
+        title: formData.get("title"),
+        question: formData.get("question"),
+        partner: formData.get("partner") || undefined,
+        status: formData.get("status") || undefined,
+      };
+
+      status.textContent = "Submitting...";
+      const res = await fetch(`/api/pilot`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (res.ok) {
+        status.textContent = "Pilot created.";
+        window.location.reload();
+      } else {
+        status.textContent = "Failed to create pilot.";
+      }
+    });
+  </script>
+</Layout>
+
+<style>
+  .pilot-page {
+    max-width: 980px;
+    margin: 2rem auto;
+    padding: 0 1.5rem 3rem;
+  }
+
+  .pilot-header {
+    display: flex;
+    justify-content: space-between;
+    gap: 1.5rem;
+    align-items: flex-start;
+  }
+
+  .pilot-kicker {
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: 0.75rem;
+  }
+
+  .pilot-section {
+    margin-top: 2rem;
+  }
+
+  .pilot-form {
+    display: grid;
+    gap: 1rem;
+    max-width: 520px;
+  }
+
+  .pilot-form textarea,
+  .pilot-form input,
+  .pilot-form select {
+    width: 100%;
+    padding: 0.5rem;
+  }
+
+  .pilot-list {
+    list-style: none;
+    padding: 0;
+    display: grid;
+    gap: 1rem;
+  }
+
+  .pilot-card {
+    border: 1px solid #222;
+    border-radius: 0.75rem;
+    padding: 1rem;
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  .pilot-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .pilot-form__status {
+    font-size: 0.9rem;
+  }
+</style>

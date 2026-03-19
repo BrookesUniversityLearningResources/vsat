@@ -1,0 +1,223 @@
+---
+import Layout from "@layouts/AuthoringLayout.astro";
+import { ErrorCodes } from "@domain/error/errorCode";
+
+export const prerender = false;
+
+const { repositoryPilot } = Astro.locals.environment<App.WithPilotRepository>();
+const pilotId = Number(Astro.params.pilotId);
+
+if (!pilotId) {
+  return Astro.redirect(`/author/pilot?err=${ErrorCodes.StoryNotFound}`);
+}
+
+const pilot = await repositoryPilot.getPilot(pilotId);
+if (!pilot) {
+  return Astro.redirect(`/author/pilot?err=${ErrorCodes.StoryNotFound}`);
+}
+
+const stories = await repositoryPilot.getPilotStories(pilotId);
+const notes = await repositoryPilot.getInterpretiveNotes(pilotId);
+---
+
+<Layout title={`Pilot • ${pilot.title}`} description={pilot.question}>
+  <main class="pilot-page">
+    <header class="pilot-header">
+      <div>
+        <p class="pilot-kicker">Pilot</p>
+        <h1>{pilot.title}</h1>
+        <p class="pilot-question">{pilot.question}</p>
+      </div>
+      <div class="pilot-meta">
+        <span>Status: {pilot.status}</span>
+        <a href="/author/pilot">Back to pilots</a>
+      </div>
+    </header>
+
+    <section class="pilot-section">
+      <h2>Stories in this pilot</h2>
+      {stories.length ? (
+        <ul class="pilot-list">
+          {stories.map((story) => (
+            <li>
+              <a href={`/author/story/${story.id}`}>{story.title}</a>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p>No stories assigned yet.</p>
+      )}
+    </section>
+
+    <section class="pilot-section">
+      <h2>Add interpretive note</h2>
+      <form id="note-form" class="pilot-form">
+        <label>
+          Story
+          <select name="storyId" required>
+            <option value="">Select a story</option>
+            {stories.map((story) => (
+              <option value={story.id}>{story.title}</option>
+            ))}
+          </select>
+        </label>
+        <label>
+          Note
+          <textarea name="note" rows="4" required minlength="3"></textarea>
+        </label>
+        <button type="submit">Add note</button>
+        <p class="pilot-form__status" id="note-form-status"></p>
+      </form>
+    </section>
+
+    <section class="pilot-section">
+      <h2>Interpretive notes</h2>
+      {notes.length ? (
+        <ul class="notes-list">
+          {notes.map((note) => (
+            <li class="note-card">
+              <p class="note-text">{note.note}</p>
+              <p class="note-meta">
+                {note.author.name} • {note.story.title}
+              </p>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <div class="pilot-prompt">
+          <p>No notes yet. Add the first interpretive note for this pilot.</p>
+          <p class="pilot-prompt__hint">
+            Notes should capture patterns, tensions, or emerging questions.
+          </p>
+        </div>
+      )}
+    </section>
+
+    <section class="pilot-section">
+      <h2>Report</h2>
+      <p>
+        <a href={`/api/pilot/${pilot.id}/report`} target="_blank">
+          View JSON report
+        </a>
+      </p>
+    </section>
+  </main>
+
+  <script is:inline>
+    const form = document.getElementById("note-form");
+    const status = document.getElementById("note-form-status");
+    const pilotId = Number(window.location.pathname.split("/").pop());
+
+    form?.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const formData = new FormData(form);
+      const payload = {
+        storyId: Number(formData.get("storyId")),
+        note: formData.get("note"),
+      };
+
+      status.textContent = "Submitting...";
+      const res = await fetch(`/api/pilot/${pilotId}/notes`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (res.ok) {
+        status.textContent = "Note added.";
+        window.location.reload();
+      } else {
+        status.textContent = "Failed to add note.";
+      }
+    });
+  </script>
+</Layout>
+
+<style>
+  .pilot-page {
+    max-width: 980px;
+    margin: 2rem auto;
+    padding: 0 1.5rem 3rem;
+  }
+
+  .pilot-header {
+    display: flex;
+    justify-content: space-between;
+    gap: 1.5rem;
+    align-items: flex-start;
+  }
+
+  .pilot-kicker {
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: 0.75rem;
+  }
+
+  .pilot-question {
+    font-style: italic;
+  }
+
+  .pilot-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .pilot-section {
+    margin-top: 2rem;
+  }
+
+  .pilot-form {
+    display: grid;
+    gap: 1rem;
+    max-width: 520px;
+  }
+
+  .pilot-form textarea,
+  .pilot-form select {
+    width: 100%;
+    padding: 0.5rem;
+  }
+
+  .pilot-list {
+    list-style: none;
+    padding: 0;
+    display: grid;
+    gap: 0.5rem;
+  }
+
+  .notes-list {
+    list-style: none;
+    padding: 0;
+    display: grid;
+    gap: 0.75rem;
+  }
+
+  .note-card {
+    border: 1px solid #222;
+    border-radius: 0.75rem;
+    padding: 0.75rem;
+  }
+
+  .note-meta {
+    font-size: 0.85rem;
+    opacity: 0.7;
+  }
+
+  .pilot-form__status {
+    font-size: 0.9rem;
+  }
+
+  .pilot-prompt {
+    border: 1px dashed #1f4d7a;
+    padding: 0.75rem;
+    border-radius: 0.75rem;
+    background: #eef6ff;
+  }
+
+  .pilot-prompt__hint {
+    margin-top: 0.35rem;
+    font-size: 0.9rem;
+    opacity: 0.75;
+  }
+</style>
