@@ -1,0 +1,10 @@
+.git
+.github
+node_modules
+dist
+coverage
+test-results
+npm-debug.log
+.DS_Store
+.env
+vsat-value-model.edn

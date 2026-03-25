@@ -3,7 +3,6 @@ FROM node:24-slim AS build
 WORKDIR /app
 
 COPY [\
-  ".env",\
   "package.json",\
   "package-lock.json",\
   "tsconfig.json",\
