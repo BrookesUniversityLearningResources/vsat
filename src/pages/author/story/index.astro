@@ -3,6 +3,7 @@ import NoStories from "@components/story/NoStories.astro";
 import StoriesHeader from "@components/story/StoriesHeader/StoriesHeaderIsland";
 import StorySummaryGrid from "@components/story/summary/grid/StorySummaryGrid.astro";
 import { isNonEmptyArray } from "@util/nonEmptyArray";
+import isStewardUser from "@authentication/isStewardUser";
 
 import Layout from "../../../layouts/AuthoringLayout.astro";
 
@@ -12,6 +13,13 @@ const user = Astro.locals.user;
 if (!user?.id) {
   return Astro.redirect("/login");
 }
+const isSteward = isStewardUser(
+  user,
+  Astro.request.headers.get("cookie"),
+);
+const stewardToggleEnabled =
+  process.env.DEV_STEWARD_TOGGLE === "1" ||
+  process.env.DEV_STEWARD_TOGGLE === "true";
 
 const { repositoryStory, i18n } = Astro.locals.environment<
   App.WithStoryRepository & App.WithI18N
@@ -52,6 +60,20 @@ const thereIsAtLeastOneStory = isNonEmptyArray(stories.stories);
       showCreateStory={isNonEmptyArray(stories.stories)}
       client:only="react"
     />
+    {(isSteward || stewardToggleEnabled) && (
+      <div class="steward-banner">
+        <a href="/author/steward">Open steward console</a>
+        {stewardToggleEnabled && (
+          <button
+            type="button"
+            class="steward-toggle"
+            data-steward={isSteward ? "on" : "off"}
+          >
+            Steward: {isSteward ? "On" : "Off"}
+          </button>
+        )}
+      </div>
+    )}
 
     {!thereIsAtLeastOneStory && <NoStories translations={translations} />}
 
@@ -98,4 +120,45 @@ const thereIsAtLeastOneStory = isNonEmptyArray(stories.stories);
   .blurb {
     color: var(--color-text);
   }
+
+  .steward-banner {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .steward-banner a {
+    border: 1px solid #222;
+    padding: 0.4rem 0.75rem;
+    border-radius: 999px;
+    text-decoration: none;
+    color: inherit;
+  }
+
+  .steward-toggle {
+    border: 1px solid #1f4d7a;
+    padding: 0.4rem 0.75rem;
+    border-radius: 999px;
+    background: #e7f2ff;
+    color: #1f4d7a;
+    cursor: pointer;
+  }
 </style>
+
+{stewardToggleEnabled && (
+  <script is:inline>
+    const toggle = document.querySelector(".steward-toggle");
+    toggle?.addEventListener("click", () => {
+      const isOn = toggle.dataset.steward === "on";
+      if (isOn) {
+        document.cookie =
+          "vsat_steward=0; Path=/; Max-Age=0; SameSite=Lax";
+      } else {
+        document.cookie =
+          "vsat_steward=1; Path=/; SameSite=Lax";
+      }
+      window.location.reload();
+    });
+  </script>
+)}

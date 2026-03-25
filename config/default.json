@@ -19,7 +19,7 @@
   },
   "uploads": {
     "image": {
-      "maxBytes": 25000000
+      "maxBytes": 30000000
     },
     "audio": {
       "maxBytes": 50000000

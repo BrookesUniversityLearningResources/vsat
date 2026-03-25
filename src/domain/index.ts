@@ -179,6 +179,64 @@ export type GetStorySummariesByAuthor = (
   id: AuthorDto["id"],
 ) => Promise<StorySummariesByAuthor | null>;
 
+export const StoryLinkTypes = [
+  "adjacency",
+  "thematic",
+  "causal",
+  "contrast",
+] as const;
+
+export type StoryLinkType = (typeof StoryLinkTypes)[number];
+
+export const StoryLinkStatuses = [
+  "proposed",
+  "accepted",
+  "rejected",
+  "retired",
+] as const;
+
+export type StoryLinkStatus = (typeof StoryLinkStatuses)[number];
+
+export const LinkVoteValues = ["accept", "reject"] as const;
+
+export type LinkVoteValue = (typeof LinkVoteValues)[number];
+
+export type StoryLinkSummary = {
+  id: number;
+  fromStory: Pick<StoryDto, "id" | "title">;
+  toStory: Pick<StoryDto, "id" | "title">;
+  toScene?: {
+    id: number;
+    title: string | null;
+  } | null;
+  toPageNumber?: number | null;
+  linkType: StoryLinkType;
+  rationale: string;
+  status: StoryLinkStatus;
+  createdBy: Pick<AuthorDto, "id" | "name">;
+  createdAt: Date;
+};
+
+export type CreateStoryLinkRequest = {
+  fromStoryId: StoryDto["id"];
+  toStoryId: StoryDto["id"];
+  toSceneId?: number | null;
+  toPageNumber?: number | null;
+  linkType: StoryLinkType;
+  rationale: string;
+  createdBy: AuthorDto["id"];
+};
+
+export type CreateStoryLink = (
+  request: CreateStoryLinkRequest,
+) => Promise<StoryLinkSummary>;
+
+export type GetStoryLinksForStory = (
+  storyId: StoryDto["id"],
+) => Promise<ReadonlyArray<StoryLinkSummary>>;
+
+export type GetAllStoryLinks = () => Promise<ReadonlyArray<StoryLinkSummary>>;
+
 /**
  * A "lite" model of a published `Story`.
  *
@@ -210,6 +268,8 @@ export type GetStoryRequest = Readonly<{
 export type GetStory = (
   request: GetStoryRequest,
 ) => Promise<PersistentStory | null>;
+
+export type { Pilot, PilotStatus } from "./pilot/types.js";
 
 export type GetPublishedStory = (
   id: PersistentStory["id"],
@@ -261,6 +321,51 @@ export type RepositoryStory = Readonly<{
   getPublishedStorySummaries: GetPublishedStorySummaries;
   saveStoryTitle: SaveStoryTitleInDatabase;
 }>;
+
+export type RepositoryStoryLink = Readonly<{
+  createStoryLink: CreateStoryLink;
+  getStoryLinksForStory: GetStoryLinksForStory;
+  getAllStoryLinks: GetAllStoryLinks;
+  voteOnStoryLink: VoteOnStoryLink;
+  retireStoryLink: RetireStoryLink;
+}>;
+
+export type RepositoryPilot = Readonly<{
+  createPilot: import("./pilot/types.js").CreatePilot;
+  getPilot: import("./pilot/types.js").GetPilot;
+  getPilots: import("./pilot/types.js").GetPilots;
+  assignStoryToPilot: import("./pilot/types.js").AssignStoryToPilot;
+  getPilotStories: import("./pilot/types.js").GetPilotStories;
+  createInterpretiveNote: import("./pilot/interpretiveNotes.js").CreateInterpretiveNote;
+  getInterpretiveNotes: import("./pilot/interpretiveNotes.js").GetInterpretiveNotes;
+}>;
+
+export type VoteOnStoryLinkRequest = {
+  linkId: number;
+  userId: AuthorDto["id"];
+  vote: LinkVoteValue;
+  comment?: string | null;
+};
+
+export type VoteOnStoryLinkResult = {
+  link: StoryLinkSummary;
+  acceptedVotes: number;
+  rejectedVotes: number;
+};
+
+export type VoteOnStoryLink = (
+  request: VoteOnStoryLinkRequest,
+) => Promise<VoteOnStoryLinkResult>;
+
+export type RetireStoryLinkRequest = {
+  linkId: number;
+  userId: AuthorDto["id"];
+  reason?: string | null;
+};
+
+export type RetireStoryLink = (
+  request: RetireStoryLinkRequest,
+) => Promise<StoryLinkSummary>;
 
 export type RepositoryImage = Readonly<{
   getImageById: (id: ImageDto["id"]) => Promise<Image | undefined>;

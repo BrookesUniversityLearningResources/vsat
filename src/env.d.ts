@@ -34,6 +34,14 @@ declare namespace App {
     repositoryStory: import("./domain/index.js").RepositoryStory;
   };
 
+  type WithStoryLinkRepository = {
+    repositoryStoryLink: import("./domain/index.js").RepositoryStoryLink;
+  };
+
+  type WithPilotRepository = {
+    repositoryPilot: import("./domain/index.js").RepositoryPilot;
+  };
+
   type WithSceneRepository = {
     repositoryScene: import("./domain/index.js").RepositoryScene;
   };
@@ -54,6 +62,8 @@ declare namespace App {
       WithDatabase &
       WithAuthorRepository &
       WithStoryRepository &
+      WithStoryLinkRepository &
+      WithPilotRepository &
       WithSceneRepository &
       WithImageRepository &
       WithAudioRepository &

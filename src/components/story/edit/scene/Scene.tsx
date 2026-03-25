@@ -27,15 +27,20 @@ export type SceneTitleChangeEvent = {
 };
 
 export type SceneProps = {
-  story: PersistentStory;
   scene: PersistentScene;
+  storyId: PersistentStory["id"];
   onSceneChanged: OnSceneChanged;
+  linkInfo?: {
+    count: number;
+    pages: number[];
+  };
 };
 
 const Scene: FC<SceneProps> = ({
-  story,
+  storyId,
   scene: initialScene,
   onSceneChanged,
+  linkInfo,
 }) => {
   const { getScene, saveSceneTitle, feedback } = useEnvironment<
     WithGetScene & WithSaveSceneTitle & WithFeedback
@@ -46,7 +51,7 @@ const Scene: FC<SceneProps> = ({
     queryKey: [`scene-${initialScene.id}`],
     initialData: initialScene,
     queryFn: () =>
-      getScene(story.id, initialScene.id).then((result) => {
+      getScene(storyId, initialScene.id).then((result) => {
         switch (result.kind) {
           case "gotScene":
             return result.scene;
@@ -64,7 +69,7 @@ const Scene: FC<SceneProps> = ({
     SceneTitleChanged
   >({
     mutationFn: ({ title, sceneId }) =>
-      saveSceneTitle(story.id, sceneId, title).then((result) => {
+      saveSceneTitle(storyId, sceneId, title).then((result) => {
         switch (result.kind) {
           case "sceneTitleSaved":
             return result.scene;
@@ -114,6 +119,21 @@ const Scene: FC<SceneProps> = ({
     }
   };
 
+  const proposeLinkFromHere = () => {
+    const location =
+      "location" in globalThis ? (globalThis.location as Location) : undefined;
+    if (!location) {
+      return;
+    }
+    const parts = location.pathname.split("/");
+    const storyIndex = parts.indexOf("story");
+    const resolvedStoryId =
+      storyIndex >= 0 ? Number(parts[storyIndex + 1]) : storyId;
+    const url = new URL(`/author/story/${resolvedStoryId}/links`, location.origin);
+    url.searchParams.set("contextSceneId", String(scene.id));
+    location.href = url.toString();
+  };
+
   return (
     <div className={styles.scene} id={htmlIdForScene(scene.id)}>
       <SceneHeader
@@ -125,23 +145,25 @@ const Scene: FC<SceneProps> = ({
             title,
           });
         }}
+        linkInfo={linkInfo}
+        onProposeLink={proposeLinkFromHere}
       />
 
       <div className={styles.sceneContent}>
         <div className={styles.sceneMedia}>
           <SceneImage
             scene={scene}
-            storyId={story.id}
+            storyId={storyId}
             onSceneChanged={internalOnSceneChanged}
           />
           <SceneAudio
             scene={scene}
-            storyId={story.id}
+            storyId={storyId}
             onSceneChanged={internalOnSceneChanged}
           />
         </div>
         <SceneFiction
-          story={story}
+          storyId={storyId}
           scene={scene}
           onSceneChanged={internalOnSceneChanged}
         />
