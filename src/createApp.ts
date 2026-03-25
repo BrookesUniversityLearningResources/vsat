@@ -3,6 +3,7 @@ import { type RequestHandler, Router } from "express";
 import type { Logger } from "pino";
 
 import authenticationRequired from "./authentication/authenticationRequired.js";
+import devAuthBypass from "./authentication/devAuthBypass.js";
 import passportWithMagicLogin from "./authentication/passport/passportWithMagicLogin.js";
 import routeAuthenticate from "./authentication/routeAuthenticate.js";
 import routeLogout from "./authentication/routeLogout.js";
@@ -56,9 +57,22 @@ export default async function createApp(): Promise<[StartServer, Logger]> {
     repositoryAuthor.createAuthor,
   );
 
+  const devAuthBypassEnabled =
+    process.env.NODE_ENV === "development" &&
+    (process.env.DEV_AUTH_BYPASS === "1" ||
+      process.env.DEV_AUTH_BYPASS === "true");
+  const devAuthBypassEmail =
+    process.env.DEV_AUTH_BYPASS_EMAIL ?? "dev@localhost";
+  const devAuthBypassName = process.env.DEV_AUTH_BYPASS_NAME ?? "Dev User";
+
   const middlewares: RequestHandler[] = [
     httpSession(config.server.session, connectionPool),
     passport.session(),
+    devAuthBypass(log, repositoryAuthor, {
+      enabled: devAuthBypassEnabled,
+      email: devAuthBypassEmail,
+      name: devAuthBypassName,
+    }),
     authenticationRequired(
       log,
       config.authentication.pathsRequiringAuthentication,

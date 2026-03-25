@@ -22,6 +22,17 @@ MAGIC_PUBLISHABLE_KEY=
 NODE_V8_COVERAGE=./coverage
 ```
 
+Optional (development only):
+
+```
+DEV_AUTH_BYPASS=1
+DEV_AUTH_BYPASS_EMAIL=dev@localhost
+DEV_AUTH_BYPASS_NAME=Dev User
+```
+
+`DEV_AUTH_BYPASS` only applies when `NODE_ENV=development` and the request host
+is local (`localhost`, `127.0.0.1`, `::1`, or `*.localhost`).
+
 > You'll need to ask
 > [someone on the team](https://github.com/BrookesUniversityLearningResources/vsat/graphs/contributors)
 > for the values.
