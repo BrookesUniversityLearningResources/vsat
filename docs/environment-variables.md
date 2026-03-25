@@ -22,6 +22,14 @@ MAGIC_PUBLISHABLE_KEY=
 NODE_V8_COVERAGE=./coverage
 ```
 
+Optional (development only):
+
+```
+DEV_DISABLE_COEP=1
+DEV_DISABLE_OVERLAY=1
+DEV_API_PORT=3001
+```
+
 > You'll need to ask
 > [someone on the team](https://github.com/BrookesUniversityLearningResources/vsat/graphs/contributors)
 > for the values.

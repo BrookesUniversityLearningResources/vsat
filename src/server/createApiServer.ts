@@ -3,26 +3,19 @@ import type { Server } from "node:http";
 import express, { type RequestHandler } from "express";
 
 import type { ServerConfig } from "../environment/config.js";
-import attachAstroMiddleware from "./attachAstroMiddleware.js";
 
 type StartServerResult = {
   server: Server;
   config: ServerConfig;
 };
 
-/**
- * Start the server.
- *
- * This doesn't _need_ to be asynchronous but we're explicitly making it such so
- * that we can continue to chain invocations upstream.
- */
-export type StartServer = () => Promise<StartServerResult>;
+export type StartApiServer = () => Promise<StartServerResult>;
 
-function createServer(
+function createApiServer(
   config: ServerConfig,
   routes: RequestHandler[],
   middlewares: RequestHandler[],
-): StartServer {
+): StartApiServer {
   const app = express();
 
   for (const middleware of middlewares) {
@@ -33,7 +26,9 @@ function createServer(
     app.use(route);
   }
 
-  attachAstroMiddleware(app);
+  app.use("/api", (_req, res) => {
+    res.status(404).json({ error: "Not Found" });
+  });
 
   const startServer = async () => {
     const server = app.listen(config.port);
@@ -43,4 +38,4 @@ function createServer(
   return startServer;
 }
 
-export default createServer;
+export default createApiServer;

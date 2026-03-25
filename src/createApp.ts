@@ -28,12 +28,17 @@ import assertIsAuthorOfTheStoryHandler from "./domain/story/support/assertIsAuth
 import isAuthorOfTheStory from "./domain/story/support/isAuthorOfTheStory.js";
 import loadConfig from "./environment/config.js";
 import getEnvironment from "./environment/getEnvironment.js";
-import createServer, { type StartServer } from "./server/createServer.js";
+import type { StartServer } from "./server/createServer.js";
 import httpSession from "./server/httpSessionMiddleware.js";
 import routeHealthcheck from "./server/routeHealthcheck.js";
 import { withHeadersToEnableSharedArrayBufferUsage } from "./server/staticHeadersMiddleware.js";
 
-export default async function createApp(): Promise<[StartServer, Logger]> {
+export async function createAppParts(): Promise<{
+  log: Logger;
+  config: ReturnType<typeof loadConfig>;
+  middlewares: RequestHandler[];
+  routes: RequestHandler[];
+}> {
   const config = loadConfig();
 
   const {
@@ -57,6 +62,10 @@ export default async function createApp(): Promise<[StartServer, Logger]> {
     repositoryAuthor.createAuthor,
   );
 
+  const sharedArrayBufferHeadersEnabled =
+    process.env.DEV_DISABLE_COEP !== "1" &&
+    process.env.DEV_DISABLE_COEP !== "true";
+
   const middlewares: RequestHandler[] = [
     httpSession(config.server.session, connectionPool),
     passport.session(),
@@ -64,7 +73,9 @@ export default async function createApp(): Promise<[StartServer, Logger]> {
       log,
       config.authentication.pathsRequiringAuthentication,
     ),
-    withHeadersToEnableSharedArrayBufferUsage(),
+    ...(sharedArrayBufferHeadersEnabled
+      ? [withHeadersToEnableSharedArrayBufferUsage()]
+      : []),
   ];
 
   const assertIsAuthor = assertIsAuthorHandler(log);
@@ -149,7 +160,12 @@ export default async function createApp(): Promise<[StartServer, Logger]> {
     apiRoutes,
   ];
 
-  const startServer = createServer(config.server, routes, middlewares);
+  return { log, config, middlewares, routes };
+}
 
+export default async function createApp(): Promise<[StartServer, Logger]> {
+  const { log, config, middlewares, routes } = await createAppParts();
+  const { default: createServer } = await import("./server/createServer.js");
+  const startServer = createServer(config.server, routes, middlewares);
   return [startServer, log];
 }
