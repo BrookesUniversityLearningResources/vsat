@@ -2,5 +2,5 @@
 
 set -e
 
-node ./dist/build/src/database/migrate/migrate.js
-node .
+node ./dist/build/database/migrate/migrate.js
+node ./dist/build/main.js
