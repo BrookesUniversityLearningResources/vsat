@@ -1,7 +1,7 @@
 import express, { type Express } from "express";
 
-// @ts-expect-error See the "outDir" in astro.config.mjs
-import { handler as astroHandler } from "../../server/astro/entry.mjs";
+// @ts-expect-error Astro builds entry.mjs into dist/build/server/astro/ (see astro.config.mjs build.server)
+import { handler as astroHandler } from "./astro/entry.mjs";
 
 export default function attachAstroMiddleware(app: Express) {
   // https://docs.astro.build/en/guides/integrations-guide/node/
