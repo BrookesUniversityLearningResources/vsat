@@ -28,6 +28,9 @@ Optional (development only):
 DEV_AUTH_BYPASS=1
 DEV_AUTH_BYPASS_EMAIL=dev@localhost
 DEV_AUTH_BYPASS_NAME=Dev User
+DEV_DISABLE_COEP=1
+DEV_DISABLE_OVERLAY=1
+DEV_API_PORT=3001
 ```
 
 `DEV_AUTH_BYPASS` only applies when `NODE_ENV=development` and the request host

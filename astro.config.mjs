@@ -7,6 +7,10 @@ import react from "@astrojs/react";
 import icon from "astro-icon";
 
 // https://astro.build/config
+const devApiPort = process.env.DEV_API_PORT ?? "3001";
+const disableViteOverlay =
+  process.env.DEV_DISABLE_OVERLAY === "1" || process.env.PLAYWRIGHT === "1";
+
 export default defineConfig({
   output: "server",
 
@@ -36,5 +40,18 @@ export default defineConfig({
 
   redirects: {
     "/author/": "/author/story/",
-  }
+  },
+
+  vite: {
+    server: {
+      port: 4321,
+      strictPort: true,
+      hmr: {
+        overlay: !disableViteOverlay,
+      },
+      proxy: {
+        "/api": `http://localhost:${devApiPort}`,
+      },
+    },
+  },
 });
