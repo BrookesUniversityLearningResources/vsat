@@ -36,7 +36,6 @@ function initializeI18n(overrides: Partial<InitOptions> = {}) {
     backend: {
       loadPath: "src/i18n/locales/{{lng}}/{{ns}}.json",
     },
-    showSupportNotice: false,
     ...overrides,
   };
 
