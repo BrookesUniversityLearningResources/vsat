@@ -1,3 +1,6 @@
 #!/usr/bin/env bash
 
-node ./dist/build/database/migrate/migrate.js && node .
+set -e
+
+node ./dist/build/src/database/migrate/migrate.js
+node .

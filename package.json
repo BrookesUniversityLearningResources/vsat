@@ -19,6 +19,7 @@
     "dev": "nodemon --watch src --ext ts,tsx,astro,json,css --exec \"npm run build && npm run start:local\"",
     "dev:api": "node --env-file=.env --import tsx ./src/dev/apiServer.ts",
     "dev:hot": "node ./scripts/devHot.mjs",
+    "run:vsat": "node ./scripts/runVsat.mjs",
     "test:e2e": "PLAYWRIGHT=1 playwright test",
     "db:import": "node --env-file=.env ./dist/build/src/database/import/import.js",
     "db:migrate": "node ./dist/build/src/database/migrate/migrate.js",

@@ -5,19 +5,33 @@ import type { PublishedStory, PublishedScene } from "@domain/story/publish/types
 
 export const prerender = false;
 
-const { repositoryStory, repositoryStoryLink } = Astro.locals.environment<
-  App.WithStoryRepository & App.WithStoryLinkRepository
+const { log, repositoryStory, repositoryStoryLink } = Astro.locals.environment<
+  App.WithLog & App.WithStoryRepository & App.WithStoryLinkRepository
 >();
 
-const summaries = await repositoryStory.getPublishedStorySummaries({});
-const interStoryLinks = await repositoryStoryLink.getAllStoryLinks();
+let summaries: Awaited<ReturnType<typeof repositoryStory.getPublishedStorySummaries>> =
+  [];
+let interStoryLinks: Awaited<ReturnType<typeof repositoryStoryLink.getAllStoryLinks>> =
+  [];
+let fullStories: PublishedStory[] = [];
+let storyDataUnavailable = false;
 
-// Fetch full story data to get scenes and internal navigation links
-const fullStories = (
-  await Promise.all(
-    summaries.map((s) => repositoryStory.getPublishedStory(s.id)),
-  )
-).filter((s): s is PublishedStory => s !== null);
+try {
+  [summaries, interStoryLinks] = await Promise.all([
+    repositoryStory.getPublishedStorySummaries({}),
+    repositoryStoryLink.getAllStoryLinks(),
+  ]);
+
+  // Fetch full story data to get scenes and internal navigation links
+  fullStories = (
+    await Promise.all(
+      summaries.map((s) => repositoryStory.getPublishedStory(s.id)),
+    )
+  ).filter((s): s is PublishedStory => s !== null);
+} catch (err) {
+  storyDataUnavailable = true;
+  log.warn({ err }, "VSATLATARIUM story data unavailable; rendering empty view");
+}
 
 // --- Layout constants ---
 const viewMode = Astro.url.searchParams.get("view") ?? "planetarium";
@@ -491,6 +505,13 @@ const clientData = { clusters, interArcs, isPlanetarium, clusterRadius };
       </div>
       <a href="/story/">Back to stories</a>
     </header>
+
+    {storyDataUnavailable && (
+      <aside class="vsatlatarium__notice" role="status">
+        VSATLATARIUM is running without story data because the local database is
+        unavailable. Start Docker or Postgres to restore the full graph.
+      </aside>
+    )}
 
     <div class="vsatlatarium__content">
       <div class="vsatlatarium__canvas">
@@ -1480,6 +1501,15 @@ const clientData = { clusters, interArcs, isPlanetarium, clusterRadius };
     font-style: italic;
     font-size: 0.9rem;
     opacity: 0.7;
+  }
+
+  .vsatlatarium__notice {
+    margin-bottom: 1rem;
+    border: 1px solid rgba(217, 231, 255, 0.15);
+    border-radius: 0.75rem;
+    padding: 0.9rem 1rem;
+    background: rgba(12, 15, 30, 0.92);
+    color: #d9e7ff;
   }
 
   .vsatlatarium__content {

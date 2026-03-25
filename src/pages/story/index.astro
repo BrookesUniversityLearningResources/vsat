@@ -3,11 +3,20 @@ import PublishedStorySummaryView from "@components/story/published/PublishedStor
 
 import Layout from "../../layouts/PublicSiteLayout.astro";
 
-const { i18n, repositoryStory } = Astro.locals.environment<
-  App.WithI18N & App.WithStoryRepository
+const { i18n, log, repositoryStory } = Astro.locals.environment<
+  App.WithI18N & App.WithLog & App.WithStoryRepository
 >();
 
-const allStories = await repositoryStory.getPublishedStorySummaries({});
+let allStories: Awaited<ReturnType<typeof repositoryStory.getPublishedStorySummaries>> =
+  [];
+let storyDataUnavailable = false;
+
+try {
+  allStories = await repositoryStory.getPublishedStorySummaries({});
+} catch (err) {
+  storyDataUnavailable = true;
+  log.warn({ err }, "Public story index unavailable; rendering empty view");
+}
 ---
 
 <Layout
@@ -28,9 +37,19 @@ const allStories = await repositoryStory.getPublishedStorySummaries({});
       </a>
     </div>
   </header>
+  {storyDataUnavailable && (
+    <p class="stories-notice">
+      Story data is currently unavailable because the local database is not
+      reachable. VSATLATARIUM will still open in offline mode.
+    </p>
+  )}
   <main class="stories">
     <div class="published">
-      {allStories.map((story) => <PublishedStorySummaryView story={story} />)}
+      {allStories.length ? (
+        allStories.map((story) => <PublishedStorySummaryView story={story} />)
+      ) : (
+        <p class="stories-empty">No published stories are available right now.</p>
+      )}
     </div>
   </main>
 </Layout>
@@ -60,6 +79,15 @@ const allStories = await repositoryStory.getPublishedStorySummaries({});
     margin-top: 0.5rem;
     font-size: 1.5rem;
     font-style: italic;
+  }
+
+  .stories-notice {
+    margin: 0 1rem 1rem;
+    padding: 0.85rem 1rem;
+    border: 1px solid #c7d9ef;
+    border-radius: 0.75rem;
+    background: #f4f8fd;
+    color: #1f3551;
   }
 
   .vsatlatarium-link {
@@ -97,5 +125,14 @@ const allStories = await repositoryStory.getPublishedStorySummaries({});
         grid-template-columns: 25rem 25rem 25rem;
       }
     }
+  }
+
+  .stories-empty {
+    margin: 0;
+    padding: 2rem 1rem;
+    border: 1px dashed #aac1d8;
+    border-radius: 0.75rem;
+    background: #f9fbfd;
+    color: #48627d;
   }
 </style>
