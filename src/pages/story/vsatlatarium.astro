@@ -45,7 +45,16 @@ const clusterRadius = isPlanetarium
   ? Math.max(18, Math.round(10 + 4 * Math.sqrt(totalScenes)))
   : 10;
 const localRadius = isPlanetarium ? Math.min(clusterRadius * 0.2, 6) : 2.5;
+const geomViewCameraDefaultZ = 30;
+const geomViewCameraMinZ = 2;
+const geomViewCameraMaxZ = 70;
 const goldenAngle = Math.PI * (3 - Math.sqrt(5));
+const normalizeLabelText = (value: string) =>
+  value
+    .normalize("NFKC")
+    .replace(/[\u2010-\u2015\u2212:;_-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 
 // --- Build cluster data ---
 type Vec3 = { x: number; y: number; z: number };
@@ -360,8 +369,23 @@ for (const link of interStoryLinks) {
   });
 }
 
+const vectorLength = (v: Vec3) => Math.sqrt(v.x ** 2 + v.y ** 2 + v.z ** 2);
+const geomViewStoryEnvelopeRadius = Math.max(
+  0,
+  ...clusters.flatMap((cluster) => [
+    vectorLength(cluster.storyNodePos),
+    ...cluster.scenes.map((scene) => vectorLength(scene.position)),
+  ]),
+) + 1.5;
+
 // --- Serialise the data for the client-side script ---
-const clientData = { clusters, interArcs, isPlanetarium, clusterRadius };
+const clientData = {
+  clusters,
+  interArcs,
+  isPlanetarium,
+  clusterRadius,
+  geomViewStoryEnvelopeRadius,
+};
 ---
 
 <Layout
@@ -430,6 +454,7 @@ const clientData = { clusters, interArcs, isPlanetarium, clusterRadius };
         schema: {
           baseScale: { type: "number", default: 1 },
           refDist: { type: "number", default: 25 },
+          maxScale: { type: "number", default: 0 },
         },
         init: function () {
           this._camWorldPos = new THREE.Vector3();
@@ -487,6 +512,9 @@ const clientData = { clusters, interArcs, isPlanetarium, clusterRadius };
           var dist = this._worldPos.distanceTo(this._camWorldPos);
           var s = this.data.baseScale * (dist / this.data.refDist);
           s = Math.max(s, this.data.baseScale * 0.6);
+          if (this.data.maxScale > 0) {
+            s = Math.min(s, this.data.maxScale);
+          }
           obj.scale.set(s, s, s);
         },
       });
@@ -530,7 +558,7 @@ const clientData = { clusters, interArcs, isPlanetarium, clusterRadius };
         <a-scene
           embedded
           background="color: #030308"
-          vr-mode-ui="enabled: false"
+          vr-mode-ui="enabled: true"
           renderer="antialias: true"
         >
           {isPlanetarium ? (
@@ -544,7 +572,7 @@ const clientData = { clusters, interArcs, isPlanetarium, clusterRadius };
               ></a-camera>
             </a-entity>
           ) : (
-            <a-entity id="vsat-cam-rig" position="0 0 24">
+            <a-entity id="vsat-cam-rig" position={`0 0 ${geomViewCameraDefaultZ}`}>
               <a-camera
                 fov="60"
                 near="0.1"
@@ -554,6 +582,20 @@ const clientData = { clusters, interArcs, isPlanetarium, clusterRadius };
               ></a-camera>
             </a-entity>
           )}
+
+          {/* VR controllers — laser pointer + raycaster for Quest 2 / WebXR */}
+          <a-entity
+            id="vr-right-hand"
+            laser-controls="hand: right"
+            raycaster="objects: .clickable; far: 200"
+            line="color: #fbbf24; opacity: 0.6"
+          ></a-entity>
+          <a-entity
+            id="vr-left-hand"
+            laser-controls="hand: left"
+            raycaster="objects: .clickable; far: 200"
+            line="color: #fbbf24; opacity: 0.6"
+          ></a-entity>
 
           <a-entity light="type: ambient; color: #8899cc; intensity: 0.35"></a-entity>
           <a-entity light="type: point; color: #ffffff; intensity: 0.5" position="0 0 0"></a-entity>
@@ -617,11 +659,12 @@ const clientData = { clusters, interArcs, isPlanetarium, clusterRadius };
                   ? { x: (nudged.x / len) * clusterRadius, y: (nudged.y / len) * clusterRadius, z: (nudged.z / len) * clusterRadius }
                   : { x: sp.x, y: sp.y + 0.7, z: sp.z };
                 return (
-                  <a-entity
-                    troika-text={`value: ${cluster.title.replace(/[;:\-]/g, " ")}; align: center; color: ${isPlanetarium ? "#e2eaff" : "#c8d6ff"}; fontSize: 0.9; outlineWidth: 0.035; outlineColor: #000000; outlineBlur: 0.02; outlineOpacity: 0.85`}
-                    position={`${labelPos.x.toFixed(3)} ${labelPos.y.toFixed(3)} ${labelPos.z.toFixed(3)}`}
-                    stabilcam={`baseScale: ${isPlanetarium ? "1.8" : "1"}; refDist: ${isPlanetarium ? clusterRadius : "24"}`}
-                  />
+                    <a-entity
+                      class="story-label"
+                      troika-text={`value: ${normalizeLabelText(cluster.title)}; align: center; color: ${isPlanetarium ? "#e2eaff" : "#c8d6ff"}; fontSize: 0.9; outlineWidth: 0.035; outlineColor: #000000; outlineBlur: 0.02; outlineOpacity: 0.85`}
+                      position={`${labelPos.x.toFixed(3)} ${labelPos.y.toFixed(3)} ${labelPos.z.toFixed(3)}`}
+                      stabilcam={`baseScale: ${isPlanetarium ? "1.8" : "1"}; refDist: ${isPlanetarium ? clusterRadius : "24"}; maxScale: ${isPlanetarium ? "0" : "1.25"}`}
+                    />
                 );
               })()}
 
@@ -664,20 +707,19 @@ const clientData = { clusters, interArcs, isPlanetarium, clusterRadius };
                       };
                       return (
                         <a-entity
-                          troika-text={`value: ${(scene.title.length > 20 ? scene.title.substring(0, 20) + "..." : scene.title).replace(/[;:\-]/g, " ")}; align: center; color: #d4e0f4; fontSize: 0.65; outlineWidth: 0.03; outlineColor: #000000; outlineBlur: 0.015; outlineOpacity: 0.85`}
+                          class="scene-label"
+                          troika-text={`value: ${normalizeLabelText(scene.title.length > 20 ? scene.title.substring(0, 20) + "..." : scene.title)}; align: center; color: #d4e0f4; fontSize: 0.65; outlineWidth: 0.03; outlineColor: #000000; outlineBlur: 0.015; outlineOpacity: 0.85`}
                           position={`${lp.x.toFixed(3)} ${lp.y.toFixed(3)} ${lp.z.toFixed(3)}`}
                           stabilcam={`baseScale: 1.8; refDist: ${clusterRadius}`}
                         />
                       );
                     }
                     return (
-                      <a-text
-                        value={scene.title.length > 20 ? scene.title.substring(0, 20) + "..." : scene.title}
-                        position={`0 ${0.4 + scene.pageCount * 0.04} 0`}
-                        align="center"
-                        color="#aabbdd"
-                        width="5"
-                        stabilcam="baseScale: 1; refDist: 24"
+                      <a-entity
+                        class="scene-label"
+                        troika-text={`value: ${normalizeLabelText(scene.title.length > 20 ? scene.title.substring(0, 20) + "..." : scene.title)}; align: center; color: #d8e5ff; fontSize: 0.62; outlineWidth: 0.038; outlineColor: #000000; outlineBlur: 0.018; outlineOpacity: 0.9`}
+                        position={`0 ${(0.55 + scene.pageCount * 0.05).toFixed(3)} 0`}
+                        stabilcam="baseScale: 0.82; refDist: 20; maxScale: 0.95"
                       />
                     );
                   })()}
@@ -737,7 +779,15 @@ const clientData = { clusters, interArcs, isPlanetarium, clusterRadius };
     </div>
   </div>
 
-  <script is:inline define:vars={{ clientData }}>
+  <script
+    is:inline
+    define:vars={{
+      clientData,
+      geomViewCameraDefaultZ,
+      geomViewCameraMinZ,
+      geomViewCameraMaxZ,
+    }}
+  >
     // --- Turntable controls (rotate the world, camera stays fixed) ---
     const canvas = document.querySelector(".vsatlatarium__canvas");
     const sceneEl = document.querySelector("a-scene");
@@ -746,10 +796,12 @@ const clientData = { clusters, interArcs, isPlanetarium, clusterRadius };
 
     let rotY = 0; // yaw in degrees
     let rotX = 0; // pitch in degrees
-    let camZ = isPlanetarium ? 0 : 24; // camera distance along Z
+    let camZ = isPlanetarium ? 0 : geomViewCameraDefaultZ; // camera distance along Z
     const camZDefault = camZ;
-    const camZMin = isPlanetarium ? -(clientData.clusterRadius * 0.8) : 6;
-    const camZMax = isPlanetarium ? 0 : 50;   // how far back
+    const camZMin = isPlanetarium
+      ? -(clientData.clusterRadius * 0.8)
+      : geomViewCameraMinZ;
+    const camZMax = isPlanetarium ? 0 : geomViewCameraMaxZ;   // how far back
     let isDragging = false;
     let dragTotal = 0;
     let lastMouse = { x: 0, y: 0 };
@@ -769,6 +821,27 @@ const clientData = { clusters, interArcs, isPlanetarium, clusterRadius };
       if (camRig) {
         camRig.setAttribute("position", `0 0 ${camZ}`);
       }
+      updateGeomViewLabelMode();
+    };
+
+    let geomViewSceneLabelsVisible = isPlanetarium;
+    const updateGeomViewLabelMode = () => {
+      if (isPlanetarium || !camRig?.object3D) return;
+      const camDist = camRig.object3D.position.length();
+      const revealBelow = clientData.geomViewStoryEnvelopeRadius + 3;
+      const hideAbove = clientData.geomViewStoryEnvelopeRadius + 6;
+
+      if (geomViewSceneLabelsVisible) {
+        if (camDist >= hideAbove) {
+          geomViewSceneLabelsVisible = false;
+        }
+      } else if (camDist <= revealBelow) {
+        geomViewSceneLabelsVisible = true;
+      }
+
+      document.querySelectorAll(".scene-label").forEach((label) => {
+        label.setAttribute("visible", geomViewSceneLabelsVisible ? "true" : "false");
+      });
     };
 
     canvas.addEventListener("mousedown", (e) => {
@@ -1439,9 +1512,17 @@ const clientData = { clusters, interArcs, isPlanetarium, clusterRadius };
     };
 
     if (sceneEl.hasLoaded) {
-      setTimeout(initInteraction, 500);
+      setTimeout(() => {
+        initInteraction();
+        updateGeomViewLabelMode();
+      }, 500);
     } else {
-      sceneEl.addEventListener("loaded", () => setTimeout(initInteraction, 500));
+      sceneEl.addEventListener("loaded", () =>
+        setTimeout(() => {
+          initInteraction();
+          updateGeomViewLabelMode();
+        }, 500)
+      );
     }
 
     // --- Story list: rotate turntable to face cluster toward camera ---
@@ -1455,10 +1536,81 @@ const clientData = { clusters, interArcs, isPlanetarium, clusterRadius };
         rotY = -Math.atan2(c.x, c.z) * (180 / Math.PI);
         rotX = Math.asin(clamp(c.y / (Math.sqrt(c.x*c.x + c.y*c.y + c.z*c.z) || 1), -1, 1)) * (180 / Math.PI);
         // Move camera partway toward the cluster
-        camZ = isPlanetarium ? -12 : 14;
+        camZ = isPlanetarium ? -12 : 18;
         applyTransform();
       });
     });
+
+    // --- VR mode (Quest 2 / WebXR) ---
+    const vrOverlays = [
+      document.querySelector(".vsatlatarium__toolbar"),
+      document.querySelector(".vsatlatarium__panel"),
+    ];
+
+    let vrActive = false;
+
+    sceneEl.addEventListener("enter-vr", () => {
+      vrActive = true;
+      // Hide HTML overlays — they don't render inside WebXR
+      vrOverlays.forEach((el) => { if (el) el.style.display = "none"; });
+      // Expand canvas to fill viewport (remove sidebar grid)
+      const content = document.querySelector(".vsatlatarium__content");
+      if (content) content.style.gridTemplateColumns = "1fr";
+      initVRInteraction();
+    });
+
+    sceneEl.addEventListener("exit-vr", () => {
+      vrActive = false;
+      vrOverlays.forEach((el) => { if (el) el.style.display = ""; });
+      const content = document.querySelector(".vsatlatarium__content");
+      if (content) content.style.gridTemplateColumns = "";
+    });
+
+    let vrInteractionReady = false;
+    const initVRInteraction = () => {
+      if (vrInteractionReady) return;
+      vrInteractionReady = true;
+
+      // Laser-controls fire cursor events (mouseenter/mouseleave/click) on
+      // intersected .clickable entities.  Walk up to .scene-node for data.
+      document.querySelectorAll(".clickable").forEach((clickable) => {
+        const sceneNode = clickable.parentEl;
+        if (!sceneNode?.classList?.contains("scene-node")) return;
+
+        clickable.addEventListener("mouseenter", () => {
+          if (!vrActive) return;
+          highlightNode(sceneNode);
+          showInfo(sceneNode);
+        });
+
+        clickable.addEventListener("mouseleave", () => {
+          if (!vrActive) return;
+          highlightNode(null);
+          if (infoEl) infoEl.innerHTML = "";
+        });
+
+        clickable.addEventListener("click", () => {
+          if (!vrActive) return;
+          if (dragTotal > 5) return; // ignore if mid-drag
+          const storyId = sceneNode.getAttribute("data-story-id");
+          if (storyId) window.location.href = "/story/" + storyId;
+        });
+      });
+
+      // Thumbstick rotation — either controller rotates the turntable
+      const onThumbstick = (evt) => {
+        const { x, y } = evt.detail;
+        if (Math.abs(x) < 0.15 && Math.abs(y) < 0.15) return; // dead zone
+        rotY += x * 1.5 * dragSign;
+        rotX = clamp(rotX + y * 1.5 * dragSign, -85, 85);
+        applyTransform();
+      };
+
+      const rHand = document.getElementById("vr-right-hand");
+      const lHand = document.getElementById("vr-left-hand");
+      if (rHand) rHand.addEventListener("thumbstickmoved", onThumbstick);
+      if (lHand) lHand.addEventListener("thumbstickmoved", onThumbstick);
+    };
 
     // --- Particle drift animation (must be after all let declarations) ---
     const animateParticles = () => {
