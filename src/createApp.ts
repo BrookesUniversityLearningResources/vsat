@@ -50,13 +50,6 @@ export default async function createApp(): Promise<[StartServer, Logger]> {
       App.WithSceneRepository
   >();
 
-  const passport = passportWithMagicLogin(
-    log,
-    await Magic.init(config.authentication.magic.secretKey),
-    repositoryAuthor.getAuthorByEmail,
-    repositoryAuthor.createAuthor,
-  );
-
   const devAuthBypassEnabled =
     process.env.NODE_ENV === "development" &&
     (process.env.DEV_AUTH_BYPASS === "1" ||
@@ -65,9 +58,35 @@ export default async function createApp(): Promise<[StartServer, Logger]> {
     process.env.DEV_AUTH_BYPASS_EMAIL ?? "dev@localhost";
   const devAuthBypassName = process.env.DEV_AUTH_BYPASS_NAME ?? "Dev User";
 
+  let passportSessionMiddleware: RequestHandler = (_req, _res, next) => next();
+  let authenticateHandler: RequestHandler = (_req, res) => {
+    res.status(503).json({ error: "Magic authentication is unavailable" });
+  };
+
+  try {
+    const passport = passportWithMagicLogin(
+      log,
+      await Magic.init(config.authentication.magic.secretKey),
+      repositoryAuthor.getAuthorByEmail,
+      repositoryAuthor.createAuthor,
+    );
+
+    passportSessionMiddleware = passport.session();
+    authenticateHandler = passport.authenticate("magic");
+  } catch (err) {
+    if (!devAuthBypassEnabled) {
+      throw err;
+    }
+
+    log.warn(
+      { err },
+      "Magic initialization failed; continuing with dev auth bypass only",
+    );
+  }
+
   const middlewares: RequestHandler[] = [
     httpSession(config.server.session, connectionPool),
-    passport.session(),
+    passportSessionMiddleware,
     devAuthBypass(log, repositoryAuthor, {
       enabled: devAuthBypassEnabled,
       email: devAuthBypassEmail,
@@ -159,7 +178,7 @@ export default async function createApp(): Promise<[StartServer, Logger]> {
 
   const routes = [
     routeHealthcheck(log),
-    routeAuthenticate(log, passport.authenticate("magic")),
+    routeAuthenticate(log, authenticateHandler),
     routeLogout(log),
     apiRoutes,
   ];
