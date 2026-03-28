@@ -87,17 +87,38 @@ const startCommand = (command, args) =>
     env,
   });
 
+const forceRestart = process.argv.includes("--restart");
+
 const migrateScriptPath = path.resolve(process.cwd(), "dist/build/src/database/migrate/migrate.js");
+const seedScriptPath = path.resolve(process.cwd(), "dist/build/src/database/seed/seedDevelopment.js");
+
+const killDevServers = async () => {
+  for (const port of [astroPort, apiPort]) {
+    const result = spawnSync("fuser", [`${port}/tcp`], { encoding: "utf8" });
+    const pids = (result.stdout || "").trim().split(/\s+/).filter(Boolean);
+    for (const pid of pids) {
+      try { process.kill(Number(pid), "SIGTERM"); } catch {}
+    }
+  }
+  await sleep(2000);
+};
 
 const astroRunning = await isLocalPortOpen(astroPort);
 const apiRunning = await isLocalPortOpen(apiPort);
+const dbReachable = await isPortOpen(dbHost, dbPort);
+const devRunning = astroRunning || apiRunning;
 
-if (astroRunning && apiRunning) {
+if (devRunning && forceRestart) {
+  console.log("[run-vsat] --restart: killing existing dev servers...");
+  await killDevServers();
+} else if (astroRunning && apiRunning && dbReachable) {
   console.log(`[run-vsat] VSAT is already running at http://localhost:${astroPort}/`);
+  console.log("[run-vsat] Use --restart to force a full restart.");
   process.exit(0);
-}
-
-if (astroRunning || apiRunning) {
+} else if (devRunning && !dbReachable) {
+  console.log("[run-vsat] VSAT is running but database is unreachable. Restarting...");
+  await killDevServers();
+} else if (devRunning) {
   console.error(
     `[run-vsat] Port conflict detected: astro=${astroRunning} api=${apiRunning}. ` +
       "Stop the existing process or free ports 4321/3001 before starting VSAT.",
@@ -125,6 +146,14 @@ if (!existsSync(migrateScriptPath)) {
 
 console.log("[run-vsat] Running local database migrations...");
 runCommand("npm", ["run", "db:migrate:local"], "npm run db:migrate:local");
+
+if (!existsSync(seedScriptPath)) {
+  console.log("[run-vsat] Building server artifacts for seed...");
+  runCommand("npm", ["run", "build:server"], "npm run build:server");
+}
+
+console.log("[run-vsat] Seeding database (idempotent)...");
+runCommand("npm", ["run", "db:seed:local"], "npm run db:seed:local");
 
 console.log("[run-vsat] Starting VSAT dev stack...");
 const child = startCommand("npm", ["run", "dev:hot"]);

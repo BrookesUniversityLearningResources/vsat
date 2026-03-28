@@ -2,25 +2,49 @@
 import ImportAFrameScripts from "@components/story/published/aframe/ImportAFrameScripts.astro";
 import Layout from "../../layouts/PublicSiteLayout.astro";
 import type { PublishedStory, PublishedScene } from "@domain/story/publish/types";
+import { cached } from "@util/layoutCache";
 
 export const prerender = false;
 
-const { log, repositoryStory, repositoryStoryLink } = Astro.locals.environment<
-  App.WithLog & App.WithStoryRepository & App.WithStoryLinkRepository
->();
+const { log, repositoryStory, repositoryStoryLink, repositoryPilot } =
+  Astro.locals.environment<
+    App.WithLog & App.WithStoryRepository & App.WithStoryLinkRepository & App.WithPilotRepository
+  >();
+
+const pilotParam = Astro.url.searchParams.get("pilot");
+const pilotId = pilotParam ? Number(pilotParam) : null;
 
 let summaries: Awaited<ReturnType<typeof repositoryStory.getPublishedStorySummaries>> =
   [];
 let interStoryLinks: Awaited<ReturnType<typeof repositoryStoryLink.getAllStoryLinks>> =
   [];
 let fullStories: PublishedStory[] = [];
+let pilots: Awaited<ReturnType<typeof repositoryPilot.getPilots>> = [];
 let storyDataUnavailable = false;
 
 try {
-  [summaries, interStoryLinks] = await Promise.all([
+  const pilotStoriesPromise = pilotId
+    ? repositoryPilot.getPilotStories(pilotId)
+    : Promise.resolve([] as { id: number }[]);
+
+  const [allSummaries, allLinks, allPilots, pilotStories] = await Promise.all([
     repositoryStory.getPublishedStorySummaries({}),
     repositoryStoryLink.getAllStoryLinks(),
+    repositoryPilot.getPilots(),
+    pilotStoriesPromise,
   ]);
+
+  pilots = allPilots;
+
+  // Filter to pilot's stories if a pilot is selected
+  const pilotStoryIds = pilotId ? new Set(pilotStories.map((s) => s.id)) : null;
+  summaries = pilotStoryIds
+    ? allSummaries.filter((s) => pilotStoryIds.has(s.id))
+    : allSummaries;
+  const visibleStoryIds = new Set(summaries.map((s) => s.id));
+  interStoryLinks = allLinks.filter(
+    (l) => visibleStoryIds.has(l.fromStory.id) && visibleStoryIds.has(l.toStory.id),
+  );
 
   // Fetch full story data to get scenes and internal navigation links
   fullStories = (
@@ -33,9 +57,19 @@ try {
   log.warn({ err }, "VSATLATARIUM story data unavailable; rendering empty view");
 }
 
+const selectedPilot = pilotId ? pilots.find((p) => p.id === pilotId) : null;
+
 // --- Layout constants ---
 const viewMode = Astro.url.searchParams.get("view") ?? "planetarium";
 const isPlanetarium = viewMode === "planetarium";
+
+// Cache fingerprint: pilot, view mode, story ids, scene counts, link ids
+const layoutFingerprint = [
+  pilotId ? `P${pilotId}` : "all",
+  viewMode,
+  ...fullStories.map((s) => `${s.id}:${s.scenes.length}`),
+  ...interStoryLinks.map((l) => `L${l.id}`),
+].join("|");
 
 // Scale dome to content: count total scenes across all stories
 const totalScenes = fullStories.reduce((sum, s) => sum + (s?.scenes.length ?? 0), 0);
@@ -80,15 +114,32 @@ type StoryCluster = {
   scenes: SceneNode[];
   internalArcs: InternalArc[];
 };
+type InterStoryArc = {
+  id: number;
+  status: string;
+  linkType: string;
+  fromPos: Vec3;
+  toPos: Vec3;
+  fromStoryTitle: string;
+  toStoryTitle: string;
+};
+
+const { clusters, interArcs } = cached<{ clusters: StoryCluster[]; interArcs: InterStoryArc[] }>(
+  "vsatlatarium-layout",
+  layoutFingerprint,
+  () => {
 
 const clusters: StoryCluster[] = [];
 
 for (let i = 0; i < fullStories.length; i++) {
   const story = fullStories[i];
 
-  // Cluster center on the golden spiral sphere
+  // Cluster center on the golden spiral sphere.
+  // Clamp vertical range for small collections so nodes stay in a
+  // comfortable viewing band instead of scattering pole-to-pole.
   const t = (i + 0.5) / Math.max(fullStories.length, 1);
-  const cy = 1 - 2 * t;
+  const maxY = fullStories.length >= 8 ? 1.0 : 0.4 + fullStories.length * 0.075;
+  const cy = maxY * (1 - 2 * t);
   const cr = Math.sqrt(1 - cy * cy);
   const cTheta = goldenAngle * i;
   const center: Vec3 = {
@@ -330,16 +381,6 @@ for (const cluster of clusters) {
 
 const clusterByStoryId = new Map(clusters.map((c) => [c.storyId, c]));
 
-type InterStoryArc = {
-  id: number;
-  status: string;
-  linkType: string;
-  fromPos: Vec3;
-  toPos: Vec3;
-  fromStoryTitle: string;
-  toStoryTitle: string;
-};
-
 const interArcs: InterStoryArc[] = [];
 for (const link of interStoryLinks) {
   const fromCluster = clusterByStoryId.get(link.fromStory.id);
@@ -368,6 +409,9 @@ for (const link of interStoryLinks) {
     toStoryTitle: link.toStory.title,
   });
 }
+
+return { clusters, interArcs };
+}); // end cached layout
 
 const vectorLength = (v: Vec3) => Math.sqrt(v.x ** 2 + v.y ** 2 + v.z ** 2);
 const geomViewStoryEnvelopeRadius = Math.max(
@@ -524,7 +568,7 @@ const clientData = {
     <header class="vsatlatarium__header">
       <div>
         <p class="vsatlatarium__kicker">VSATLATARIUM</p>
-        <h1>Story constellation</h1>
+        <h1>{selectedPilot ? selectedPilot.title : "Story constellation"}</h1>
         <p class="vsatlatarium__help">
           {isPlanetarium
             ? "You are inside the planetarium. Drag to look around. Each cluster is a story projected on the dome."
@@ -548,11 +592,11 @@ const clientData = {
           <button type="button" id="vsat-toggle-wireframes" class="vsatlatarium__btn">Wireframes</button>
           <a
             class={`vsatlatarium__btn ${isPlanetarium ? "" : "vsatlatarium__btn--active"}`}
-            href="/story/vsatlatarium?view=geomview"
+            href={`/story/vsatlatarium?view=geomview${pilotId ? "&pilot=" + pilotId : ""}`}
           >GeomView</a>
           <a
             class={`vsatlatarium__btn ${isPlanetarium ? "vsatlatarium__btn--active" : ""}`}
-            href="/story/vsatlatarium?view=planetarium"
+            href={`/story/vsatlatarium${pilotId ? "?pilot=" + pilotId : ""}`}
           >Planetarium</a>
         </div>
         <a-scene
@@ -583,17 +627,17 @@ const clientData = {
             </a-entity>
           )}
 
-          {/* VR controllers — laser pointer + raycaster for Quest 2 / WebXR */}
+          {/* VR controllers — target nodes and text labels for generous hit areas */}
           <a-entity
             id="vr-right-hand"
             laser-controls="hand: right"
-            raycaster="objects: .clickable; far: 200"
+            raycaster="objects: .vr-hitarea; far: 200"
             line="color: #fbbf24; opacity: 0.6"
           ></a-entity>
           <a-entity
             id="vr-left-hand"
             laser-controls="hand: left"
-            raycaster="objects: .clickable; far: 200"
+            raycaster="objects: .vr-hitarea; far: 200"
             line="color: #fbbf24; opacity: 0.6"
           ></a-entity>
 
@@ -609,13 +653,13 @@ const clientData = {
               {/* Deep indigo base wash */}
               <a-entity
                 geometry={`primitive: sphere; radius: ${clusterRadius + 10}; segmentsWidth: 32; segmentsHeight: 32`}
-                material="color: #0a0a1e; emissive: #1a1a3a; emissiveIntensity: 0.3; opacity: 0.1; transparent: true; side: back; shader: flat"
+                material="color: #0a0a1e; emissive: #1a1a3a; emissiveIntensity: 0.3; opacity: 0.1; transparent: true; side: back; shader: flat; depthWrite: false"
               ></a-entity>
               {/* Pink vaporwave glow layer */}
               <a-entity
                 id="vsat-vapor"
                 geometry={`primitive: sphere; radius: ${clusterRadius + 9}; segmentsWidth: 32; segmentsHeight: 32`}
-                material="color: #1a0a1e; emissive: #ff69b4; emissiveIntensity: 0.35; opacity: 0.12; transparent: true; side: back; shader: flat"
+                material="color: #1a0a1e; emissive: #ff69b4; emissiveIntensity: 0.35; opacity: 0.12; transparent: true; side: back; shader: flat; depthWrite: false"
               ></a-entity>
             </a-entity>
           )}
@@ -738,6 +782,27 @@ const clientData = {
           connections within stories and interpretive links between them.
         </p>
 
+        {pilots.length > 0 && (
+          <div class="vsatlatarium__pilots">
+            <h3>Anthology</h3>
+            <div class="pilot-chips">
+              <a
+                class={`pilot-chip ${!pilotId ? "pilot-chip--active" : ""}`}
+                href={`/story/vsatlatarium${isPlanetarium ? "" : "?view=geomview"}`}
+              >All stories</a>
+              {pilots.map((pilot) => (
+                <a
+                  class={`pilot-chip ${pilot.id === pilotId ? "pilot-chip--active" : ""}`}
+                  href={`/story/vsatlatarium?pilot=${pilot.id}${isPlanetarium ? "" : "&view=geomview"}`}
+                >{pilot.title}</a>
+              ))}
+            </div>
+            {selectedPilot && (
+              <p class="pilot-question">{selectedPilot.question}</p>
+            )}
+          </div>
+        )}
+
         {isPlanetarium && (
           <div class="vsatlatarium__vapor-control">
             <label class="vsatlatarium__vapor-label">
@@ -801,7 +866,9 @@ const clientData = {
     const camZMin = isPlanetarium
       ? -(clientData.clusterRadius * 0.8)
       : geomViewCameraMinZ;
-    const camZMax = isPlanetarium ? 0 : geomViewCameraMaxZ;   // how far back
+    // In planetarium mode, allow scrolling back past origin to pull away
+    // from the dome — at max distance it becomes a "sky disk" overview
+    const camZMax = isPlanetarium ? clientData.clusterRadius * 1.5 : geomViewCameraMaxZ;
     let isDragging = false;
     let dragTotal = 0;
     let lastMouse = { x: 0, y: 0 };
@@ -867,10 +934,70 @@ const clientData = {
 
     window.addEventListener("mouseup", () => { isDragging = false; });
 
+    // Redraw all arcs at a blended dome radius (full dome → flat)
+    const redrawArcsAtBlend = (blend) => {
+      if (!isPlanetarium || arcDefs.length === 0) return;
+      if (blend === currentBlend) return;
+      currentBlend = blend;
+
+      // Remove existing arc segments
+      turntable.querySelectorAll(".arc-segment").forEach((el) => el.remove());
+
+      const blendedRadius = domeRadius * (1 - blend);
+
+      for (const def of arcDefs) {
+        const { from, to, controlPoint, color, opacity, radius, arcType } = def;
+        // Check if this arc type is currently hidden by legend toggle
+        if (hiddenArcTypes.has(arcType)) continue;
+        for (let i = 0; i < segments; i++) {
+          const t0 = i / segments;
+          const t1 = (i + 1) / segments;
+          let p0 = bezierPoint(from, controlPoint, to, t0);
+          let p1 = bezierPoint(from, controlPoint, to, t1);
+          if (blendedRadius > 0.1) {
+            p0 = projectToDome(p0, blendedRadius);
+            p1 = projectToDome(p1, blendedRadius);
+          }
+          const mx = (p0.x + p1.x) / 2;
+          const my = (p0.y + p1.y) / 2;
+          const mz = (p0.z + p1.z) / 2;
+          const dx = p1.x - p0.x;
+          const dy = p1.y - p0.y;
+          const dz = p1.z - p0.z;
+          const len = Math.sqrt(dx * dx + dy * dy + dz * dz);
+          if (len < 0.001) continue;
+
+          const el = document.createElement("a-entity");
+          el.setAttribute("position", mx + " " + my + " " + mz);
+          el.setAttribute("geometry", "primitive: cylinder; radius: " + radius + "; height: " + len + "; segmentsRadial: 4; openEnded: true");
+          el.setAttribute("material", "color: " + color + "; opacity: " + opacity + "; transparent: true; shader: flat");
+          const dir = new THREE.Vector3(dx, dy, dz).normalize();
+          const quat = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir);
+          el.object3D.quaternion.copy(quat);
+          el.classList.add("arc-segment");
+          if (arcType) el.setAttribute("data-arc-type", arcType);
+          turntable.appendChild(el);
+        }
+      }
+    };
+
+    // Debounce the redraw so rapid scrolling doesn't thrash the DOM
+    let arcRedrawTimer = null;
+    const scheduleArcRedraw = () => {
+      if (!isPlanetarium) return;
+      const blend = camZ <= 0 ? 0 : Math.min(camZ / (clientData.clusterRadius * 0.8), 1);
+      // Quantize to avoid redraws on tiny changes
+      const quantized = Math.round(blend * 20) / 20;
+      if (quantized === currentBlend) return;
+      if (arcRedrawTimer) clearTimeout(arcRedrawTimer);
+      arcRedrawTimer = setTimeout(() => redrawArcsAtBlend(quantized), 80);
+    };
+
     canvas.addEventListener("wheel", (e) => {
       e.preventDefault();
       camZ = clamp(camZ - e.deltaY * 0.03, camZMin, camZMax);
       applyTransform();
+      scheduleArcRedraw();
       // Update highlight ring position after zoom
       if (hoveredNode) highlightNode(hoveredNode);
     }, { passive: false });
@@ -1079,8 +1206,16 @@ const clientData = {
       };
     };
 
+    // Arc definitions stored for redraw at different dome projection radii
+    const arcDefs = [];
+    let currentBlend = 0;
+
     const drawArc = (from, to, controlPoint, color, opacity, thickness, arcType) => {
       const radius = thickness || 0.04;
+      // Store definition for later redraw on zoom
+      if (domeRadius) {
+        arcDefs.push({ from, to, controlPoint, color, opacity, radius, arcType });
+      }
       for (let i = 0; i < segments; i++) {
         const t0 = i / segments;
         const t1 = (i + 1) / segments;
@@ -1090,7 +1225,6 @@ const clientData = {
           p0 = projectToDome(p0, domeRadius);
           p1 = projectToDome(p1, domeRadius);
         }
-        // Midpoint + length for the cylinder
         const mx = (p0.x + p1.x) / 2;
         const my = (p0.y + p1.y) / 2;
         const mz = (p0.z + p1.z) / 2;
@@ -1105,24 +1239,14 @@ const clientData = {
         el.setAttribute("geometry", "primitive: cylinder; radius: " + radius + "; height: " + len + "; segmentsRadial: 4; openEnded: true");
         el.setAttribute("material", "color: " + color + "; opacity: " + opacity + "; transparent: true; shader: flat");
 
-        // Orient cylinder to point from p0 to p1
-        // A-Frame cylinders are Y-up, so we need to rotate to align with the segment direction
-        el.object3D.lookAt(p1.x, p1.y, p1.z);
-        // lookAt doesn't work before added to scene; use manual approach
-        el.setAttribute("look-at-target", p0.x + " " + p0.y + " " + p0.z + " " + p1.x + " " + p1.y + " " + p1.z);
+        const dir = new THREE.Vector3(dx, dy, dz).normalize();
+        const up = new THREE.Vector3(0, 1, 0);
+        const quat = new THREE.Quaternion().setFromUnitVectors(up, dir);
+        el.object3D.quaternion.copy(quat);
 
         el.classList.add("arc-segment");
         if (arcType) el.setAttribute("data-arc-type", arcType);
         turntable.appendChild(el);
-
-        // Orient after insertion using Three.js directly
-        requestAnimationFrame(() => {
-          if (!el.object3D) return;
-          const dir = new THREE.Vector3(dx, dy, dz).normalize();
-          const up = new THREE.Vector3(0, 1, 0);
-          const quat = new THREE.Quaternion().setFromUnitVectors(up, dir);
-          el.object3D.quaternion.copy(quat);
-        });
       }
     };
 
@@ -1556,6 +1680,22 @@ const clientData = {
       // Expand canvas to fill viewport (remove sidebar grid)
       const content = document.querySelector(".vsatlatarium__content");
       if (content) content.style.gridTemplateColumns = "1fr";
+
+      // Enable look-controls so the VR headset pose is applied to the camera
+      const cam = document.querySelector("a-camera");
+      if (cam) cam.setAttribute("look-controls", "enabled: true");
+
+      // Disable frustum culling on turntable children — stereo VR cameras
+      // can incorrectly cull small objects (nodes, arcs) while large-bounding-
+      // sphere objects (particles) survive
+      if (turntable?.object3D) {
+        turntable.object3D.traverse((child) => {
+          if (child.isMesh || child.isLine || child.isPoints) {
+            child.frustumCulled = false;
+          }
+        });
+      }
+
       initVRInteraction();
     });
 
@@ -1564,35 +1704,75 @@ const clientData = {
       vrOverlays.forEach((el) => { if (el) el.style.display = ""; });
       const content = document.querySelector(".vsatlatarium__content");
       if (content) content.style.gridTemplateColumns = "";
+
+      // Restore desktop camera mode (turntable controls, no look-controls)
+      const cam = document.querySelector("a-camera");
+      if (cam) cam.setAttribute("look-controls", "enabled: false");
+
+      // Re-enable frustum culling for desktop performance
+      if (turntable?.object3D) {
+        turntable.object3D.traverse((child) => {
+          if (child.isMesh || child.isLine || child.isPoints) {
+            child.frustumCulled = true;
+          }
+        });
+      }
     });
 
     let vrInteractionReady = false;
+
+    // Find the .scene-node ancestor for any element hit by the VR raycaster
+    const findSceneNode = (el) => {
+      while (el) {
+        if (el.classList?.contains("scene-node")) return el;
+        el = el.parentEl || el.parentNode;
+      }
+      return null;
+    };
+
     const initVRInteraction = () => {
       if (vrInteractionReady) return;
       vrInteractionReady = true;
 
-      // Laser-controls fire cursor events (mouseenter/mouseleave/click) on
-      // intersected .clickable entities.  Walk up to .scene-node for data.
-      document.querySelectorAll(".clickable").forEach((clickable) => {
-        const sceneNode = clickable.parentEl;
-        if (!sceneNode?.classList?.contains("scene-node")) return;
+      // Add large invisible hit spheres around each node — big enough to
+      // cover the nearby label text too, so pointing at a title works.
+      document.querySelectorAll(".scene-node").forEach((node) => {
+        const hitarea = document.createElement("a-entity");
+        hitarea.classList.add("vr-hitarea");
+        hitarea.setAttribute("geometry", "primitive: sphere; radius: 3");
+        hitarea.setAttribute("material", "opacity: 0; transparent: true; depthWrite: false");
+        hitarea.setAttribute("data-story-id", node.getAttribute("data-story-id") || "");
+        node.appendChild(hitarea);
+      });
 
-        clickable.addEventListener("mouseenter", () => {
+      // Listen on all .vr-hitarea elements
+      document.querySelectorAll(".vr-hitarea").forEach((hitarea) => {
+        // Find associated scene-node (direct parent for node hitareas,
+        // or hub node in parent cluster for label hitareas)
+        const sceneNode = findSceneNode(hitarea)
+          || (() => {
+            const storyId = hitarea.getAttribute("data-story-id");
+            if (!storyId) return null;
+            return document.querySelector(
+              `.story-cluster[data-story-id="${storyId}"] > .scene-node`
+            );
+          })();
+
+        hitarea.addEventListener("mouseenter", () => {
           if (!vrActive) return;
-          highlightNode(sceneNode);
-          showInfo(sceneNode);
+          if (sceneNode) { highlightNode(sceneNode); showInfo(sceneNode); }
         });
 
-        clickable.addEventListener("mouseleave", () => {
+        hitarea.addEventListener("mouseleave", () => {
           if (!vrActive) return;
           highlightNode(null);
           if (infoEl) infoEl.innerHTML = "";
         });
 
-        clickable.addEventListener("click", () => {
+        hitarea.addEventListener("click", () => {
           if (!vrActive) return;
-          if (dragTotal > 5) return; // ignore if mid-drag
-          const storyId = sceneNode.getAttribute("data-story-id");
+          if (dragTotal > 5) return;
+          const storyId = hitarea.getAttribute("data-story-id");
           if (storyId) window.location.href = "/story/" + storyId;
         });
       });
@@ -1781,6 +1961,48 @@ const clientData = {
     font-size: 0.85rem;
     opacity: 0.6;
     line-height: 1.5;
+  }
+
+  .vsatlatarium__pilots {
+    border-top: 1px solid #1a2244;
+    padding-top: 0.5rem;
+  }
+
+  .pilot-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+    margin-top: 0.4rem;
+  }
+
+  .pilot-chip {
+    border: 1px solid #334;
+    background: rgba(6, 7, 20, 0.85);
+    color: #c8d6ff;
+    padding: 0.25rem 0.6rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    cursor: pointer;
+    text-decoration: none;
+    transition: border-color 0.2s;
+  }
+
+  .pilot-chip:hover {
+    border-color: #4cc9f0;
+  }
+
+  .pilot-chip--active {
+    border-color: #4cc9f0;
+    background: rgba(76, 201, 240, 0.12);
+    color: #e2eaff;
+  }
+
+  .pilot-question {
+    font-size: 0.8rem;
+    font-style: italic;
+    opacity: 0.6;
+    margin-top: 0.3rem;
+    line-height: 1.4;
   }
 
   .vsatlatarium__legend {

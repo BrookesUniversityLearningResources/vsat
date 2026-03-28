@@ -16,7 +16,7 @@ const openingScene = openingSceneFor(story);
 
 <PrepareStory story={story} />
 
-<a-scene story sound="autoplay: false; positional: false">
+<a-scene story sound="autoplay: false; positional: false" vr-mode-ui="enabled: true">
   <a-sky src={openingScene.image?.url}></a-sky>
 
   <a-entity id="fiction" position="0 -2 -6"></a-entity>
@@ -29,7 +29,22 @@ const openingScene = openingSceneFor(story);
       cursor="maxDistance: 30"></a-entity>
   </a-camera>
 
-  <a-entity laser-controls raycaster="objects: [data-raycastable]"></a-entity>
+  <a-entity id="vr-right-hand" laser-controls="hand: right" raycaster="objects: [data-raycastable]; far: 30"></a-entity>
+  <a-entity id="vr-left-hand" laser-controls="hand: left" raycaster="objects: [data-raycastable]; far: 30"></a-entity>
 
   <PrepareAssets story={story} openingScene={openingScene} />
 </a-scene>
+
+<script is:inline>
+  // B button (right) or Y button (left) → back to VSATLATARIUM
+  const sceneEl = document.querySelector("a-scene");
+  const bindVrNav = () => {
+    const goBack = () => { window.location.href = "/story/vsatlatarium"; };
+    const rh = document.getElementById("vr-right-hand");
+    const lh = document.getElementById("vr-left-hand");
+    if (rh) rh.addEventListener("bbuttondown", goBack);
+    if (lh) lh.addEventListener("ybuttondown", goBack);
+  };
+  if (sceneEl?.hasLoaded) bindVrNav();
+  else sceneEl?.addEventListener("loaded", bindVrNav);
+</script>

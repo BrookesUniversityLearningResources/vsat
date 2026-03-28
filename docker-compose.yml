@@ -5,7 +5,7 @@ services:
       - .env
     environment:
       # use the compose service hostname so this works on Linux hosts too
-      - DATABASE_URL=postgres://postgres:postgres@db:5432/vsat
+      - DATABASE_URL=postgres://postgres:${POSTGRES_PASSWORD:-postgres}@db:5432/vsat
     ports:
       - 3000:3000
     depends_on:
@@ -22,10 +22,10 @@ services:
       - postgres-vsat:/var/lib/postgresql/data
     environment:
       - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
       - POSTGRES_DB=vsat
     ports:
-      - 5432:5432
+      - 127.0.0.1:5432:5432
     container_name: DB
     labels:
       - dev.dozzle.group=vsat
@@ -35,7 +35,7 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     ports:
-      - 8080:8080
+      - 127.0.0.1:8080:8080
     container_name: Dozzle
 
 volumes:

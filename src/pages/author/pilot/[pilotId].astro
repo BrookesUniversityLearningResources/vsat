@@ -4,7 +4,9 @@ import { ErrorCodes } from "@domain/error/errorCode";
 
 export const prerender = false;
 
-const { repositoryPilot } = Astro.locals.environment<App.WithPilotRepository>();
+const { repositoryPilot, repositoryStory } = Astro.locals.environment<
+  App.WithPilotRepository & App.WithStoryRepository
+>();
 const pilotId = Number(Astro.params.pilotId);
 
 if (!pilotId) {
@@ -18,6 +20,9 @@ if (!pilot) {
 
 const stories = await repositoryPilot.getPilotStories(pilotId);
 const notes = await repositoryPilot.getInterpretiveNotes(pilotId);
+const allStories = await repositoryStory.getPublishedStorySummaries({});
+const assignedIds = new Set(stories.map((s) => s.id));
+const availableStories = allStories.filter((s) => !assignedIds.has(s.id));
 ---
 
 <Layout title={`Pilot • ${pilot.title}`} description={pilot.question}>
@@ -46,6 +51,19 @@ const notes = await repositoryPilot.getInterpretiveNotes(pilotId);
         </ul>
       ) : (
         <p>No stories assigned yet.</p>
+      )}
+
+      {availableStories.length > 0 && (
+        <form id="add-story-form" class="pilot-form pilot-form--inline">
+          <select name="storyId" required>
+            <option value="">Add a story...</option>
+            {availableStories.map((story) => (
+              <option value={story.id}>{story.title}</option>
+            ))}
+          </select>
+          <button type="submit">Add</button>
+          <p class="pilot-form__status" id="add-story-status"></p>
+        </form>
       )}
     </section>
 
@@ -108,6 +126,29 @@ const notes = await repositoryPilot.getInterpretiveNotes(pilotId);
     const status = document.getElementById("note-form-status");
     const pilotId = Number(window.location.pathname.split("/").pop());
 
+    // Add story to pilot
+    const addForm = document.getElementById("add-story-form");
+    const addStatus = document.getElementById("add-story-status");
+    addForm?.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const formData = new FormData(addForm);
+      const storyId = Number(formData.get("storyId"));
+      if (!storyId) return;
+      addStatus.textContent = "Adding...";
+      const res = await fetch(`/api/pilot/${pilotId}/stories`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ storyId }),
+      });
+      if (res.ok) {
+        addStatus.textContent = "Added.";
+        window.location.reload();
+      } else {
+        addStatus.textContent = "Failed to add story.";
+      }
+    });
+
+    // Add interpretive note
     form?.addEventListener("submit", async (event) => {
       event.preventDefault();
       const formData = new FormData(form);
@@ -184,6 +225,17 @@ const notes = await repositoryPilot.getInterpretiveNotes(pilotId);
     padding: 0;
     display: grid;
     gap: 0.5rem;
+  }
+
+  .pilot-form--inline {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+  }
+
+  .pilot-form--inline select {
+    flex: 1;
   }
 
   .notes-list {
