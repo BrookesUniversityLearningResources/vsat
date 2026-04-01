@@ -45,4 +45,32 @@ describe("parseHeaderNamed", () => {
       assert.equal(result.name, "introduction-2nd");
     },
   );
+
+  test(
+    "given '#Introduction|a introduction' then the header is 'Introduction'" +
+      " and the name is explicitly 'a-introduction'",
+    () => {
+      const input = "#Introduction|a introduction";
+
+      const result = parseHeaderNamed()(input, 1);
+
+      assert.equal(result.kind, "headerNamed");
+      assert.equal(result.text, "Introduction");
+      assert.equal(result.name, "a-introduction");
+    },
+  );
+
+  test(
+    "given '#Introduction|an           introduction to   ' then the header is 'Introduction'" +
+      " and the name is explicitly 'an-introduction-to'",
+    () => {
+      const input = "#Introduction|an           introduction to   ";
+
+      const result = parseHeaderNamed()(input, 1);
+
+      assert.equal(result.kind, "headerNamed");
+      assert.equal(result.text, "Introduction");
+      assert.equal(result.name, "an-introduction-to");
+    },
+  );
 });

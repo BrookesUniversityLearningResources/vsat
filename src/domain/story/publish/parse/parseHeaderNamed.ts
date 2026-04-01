@@ -1,7 +1,7 @@
 import type { Parse } from "./parseTypes.js";
 
 const parseHeaderNamed = (): Parse => {
-  const pattern = /^#(.+)\|\s*([a-z0-9-]+)/i;
+  const pattern = /^#(.+)\|\s*([a-z0-9 -]+)/i;
 
   return (text, lineNumber) => {
     const matches = pattern.exec(text);
@@ -36,7 +36,7 @@ const parseHeaderNamed = (): Parse => {
       };
     }
 
-    const headerName = matches[2]?.trim();
+    const headerName = matches[2]?.trim().replace(/\s+/g, "-");
 
     if (!headerName) {
       return {
