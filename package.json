@@ -32,7 +32,7 @@
     "test:coverage": "cross-env NODE_OPTIONS=--experimental-vm-modules node --import tsx --test --experimental-test-coverage tests/**/*.test.ts"
   },
   "dependencies": {
-    "@astrojs/check": "^0.9.6",
+    "@astrojs/check": "^0.9.8",
     "@astrojs/node": "^9.5.2",
     "@astrojs/react": "^4.4.2",
     "@fontsource/source-sans-pro": "^5.2.5",
