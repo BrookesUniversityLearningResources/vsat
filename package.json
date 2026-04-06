@@ -28,6 +28,7 @@
     "start:local": "npm run db:migrate:local && node --env-file=.env .",
     "test": "cross-env NODE_OPTIONS=--experimental-vm-modules node --import tsx --test tests/**/*.test.ts",
     "test:unit": "cross-env NODE_OPTIONS=--experimental-vm-modules node --import tsx --test tests/unit/**/*.test.ts",
+    "test:unit:only": "cross-env NODE_OPTIONS=--experimental-vm-modules node --import tsx --test --test-only tests/unit/**/*.test.ts",
     "test:integration": "cross-env NODE_OPTIONS=--experimental-vm-modules node --import tsx --test tests/integration/**/*.test.ts",
     "test:coverage": "cross-env NODE_OPTIONS=--experimental-vm-modules node --import tsx --test --experimental-test-coverage tests/**/*.test.ts"
   },

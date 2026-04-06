@@ -1,4 +1,8 @@
-import { allLinkablesIn } from "@domain/story/publish/allLinkables.js";
+import {
+  allLinkablesIn,
+  allLinksInScene,
+  type Linkable,
+} from "@domain/story/publish/allLinkables.js";
 import findSceneById from "@domain/story/publish/support/findSceneById.js";
 import isWithinScene from "@domain/story/publish/support/isWithinScene.js";
 import openingPageFor from "@domain/story/publish/support/openingPage.js";
@@ -31,10 +35,34 @@ export type ChangePage = (
 ) => ChangeToPage | null;
 
 export default function changePage(story: PublishedStory): ChangePage {
-  const allLinks = allLinkablesIn(story.scenes);
+  const storyWideLinks = allLinkablesIn(story.scenes);
 
   return (link, currentScene) => {
-    const theLink = allLinks[link];
+    let theLink: Linkable | undefined;
+
+    /*
+     * Do we have a link within the current scene?
+     *
+     * We prefer links that are within the current scene because users are
+     * writing scenes that have link targets with the same name; for example,
+     * it's common for every scene to have a page called "Next".
+     */
+    const perSceneLinks = allLinksInScene(currentScene);
+    const sceneLink = perSceneLinks[link];
+    if (sceneLink) {
+      theLink = sceneLink;
+    } else {
+      /**
+       * OK, so we didn't find a link within the current scene... let's widen
+       * the search to consider all links across the story as a whole.
+       *
+       * This is what allows us to change to pages within other scenes.
+       */
+      const storyWideLink = storyWideLinks.get(link);
+      if (storyWideLink) {
+        theLink = storyWideLink;
+      }
+    }
 
     if (!theLink) {
       return null;

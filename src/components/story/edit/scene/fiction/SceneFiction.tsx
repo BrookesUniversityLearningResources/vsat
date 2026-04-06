@@ -4,7 +4,6 @@ import {
   type FC,
   type KeyboardEventHandler,
   useCallback,
-  useMemo,
   useState,
 } from "react";
 import { useTranslation } from "react-i18next";
@@ -17,8 +16,9 @@ import { ErrorCodedError } from "@domain/error/ErrorCodedError";
 import type { PersistentScene, PersistentStory } from "@domain/index";
 import unsupported from "@domain/story/client/unsupportedResult";
 import parse from "@domain/story/publish/parse/parse";
-import parseStory, { type ParsedStory } from "@domain/story/publish/parseStory";
-import validateHeader from "@domain/story/publish/validate/links/validateHeader";
+import deriveLinkTarget, {
+  deriveLinkTargetLeniently,
+} from "@domain/story/publish/support/deriveLinkTarget";
 import debounce from "@util/function/debounce";
 
 import {
@@ -34,6 +34,7 @@ import Toolbar from "./Toolbar";
 import toSlateModel, { emptyBlock } from "./toSlateModel";
 
 import styles from "./SceneFiction.module.css";
+import type { LinkTarget } from "@domain/story/publish/types";
 
 type SceneFictionProps = {
   story: PersistentStory;
@@ -55,14 +56,6 @@ const SceneFiction: FC<SceneFictionProps> = ({
   const [editor] = useState(() => withReact(withHistory(createEditor())));
 
   const [editorState] = useState(toSlateModel(scene));
-
-  const parsedStory = useMemo<ParsedStory | undefined>(() => {
-    const psr = parseStory(story);
-    if (psr.kind === "storyFailedToParse") {
-      return undefined;
-    }
-    return psr.story;
-  }, [story]);
 
   const saveTheSceneContent = useMutation<string, Error, string>({
     mutationFn: (content) =>
@@ -179,23 +172,26 @@ const SceneFiction: FC<SceneFictionProps> = ({
         }
         case "headerNamed":
         case "headerAnonymous": {
-          if (parsedStory) {
-            // the header parses syntactically but it may be semantically
-            // "wrong" such as being a non-unique link target
-            const validation = validateHeader(parsedStory)(parseResult);
-            if (validation.kind === "invalid") {
-              Transforms.setNodes(editor, {
-                type: "blockError",
-                error: {
-                  code: validation.errorCode || ErrorCodes.Error,
-                  message: validation.message,
-                },
-              });
-              break;
-            }
+          const existingLinks = deriveExistingLinksFromEditor(editor);
+
+          const linkName = deriveLinkTargetLeniently(
+            parseResult.kind === "headerNamed"
+              ? parseResult.name
+              : deriveLinkTarget(parseResult),
+          );
+
+          if (existingLinks.has(linkName)) {
+            Transforms.setNodes(editor, {
+              type: "blockError",
+              error: {
+                code: ErrorCodes.LinkNamesMustBeUnique,
+                message: "Link names must be unique within a scene",
+              },
+            });
+          } else {
+            Transforms.setNodes(editor, { type: "blockHeading" });
           }
 
-          Transforms.setNodes(editor, { type: "blockHeading" });
           break;
         }
         case "error": {
@@ -261,3 +257,28 @@ const SceneFiction: FC<SceneFictionProps> = ({
 };
 
 export default SceneFiction;
+
+function deriveExistingLinksFromEditor(editor: Editor): Set<LinkTarget> {
+  const currentPathIndex = editor.selection?.anchor.path[0];
+
+  const existingLinks = new Set<LinkTarget>();
+
+  for (const [node, path] of Node.nodes(editor)) {
+    if (path.length !== 1 || path[0] === currentPathIndex) {
+      continue;
+    }
+    const siblingText = Node.string(node).trim();
+    if (siblingText.length === 0) {
+      continue;
+    }
+
+    const sibling = parse(siblingText, 1);
+    if (sibling.kind === "headerNamed") {
+      existingLinks.add(deriveLinkTargetLeniently(sibling.name));
+    } else if (sibling.kind === "headerAnonymous") {
+      existingLinks.add(deriveLinkTargetLeniently(deriveLinkTarget(sibling)));
+    }
+  }
+
+  return existingLinks;
+}

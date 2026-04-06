@@ -1,5 +1,5 @@
 import type { NonEmptyArray } from "../../../util/nonEmptyArray.js";
-import type { PublishedScene, LinkTarget, Page } from "./types.js";
+import type { LinkTarget, Page, PublishedScene } from "./types.js";
 
 export type LinkableScene = {
   kind: "scene";
@@ -16,31 +16,39 @@ export type LinkablePage = {
 export type Linkable = LinkableScene | LinkablePage;
 
 export function allLinkablesIn(scenes: NonEmptyArray<PublishedScene>) {
-  return scenes.reduce(
-    (links, scene) => {
-      if (scene.link) {
-        // a scene can itself be the target of a link in the fiction
-        links[scene.link] = {
-          kind: "scene",
-          scene,
-          link: scene.link,
-        };
-      }
+  const links: Map<LinkTarget, Linkable> = new Map();
 
-      for (const [link, page] of Object.entries(scene.pages)) {
-        links[link] = {
-          kind: "page",
-          page,
-          link,
-        };
-      }
-
-      return links;
-    },
-    {} as Record<LinkTarget, Linkable>,
-  );
+  return scenes.reduce((all, scene) => {
+    const sceneLinks = allLinksInScene(scene);
+    for (const [link, linkable] of Object.entries(sceneLinks)) {
+      all.set(link, linkable);
+    }
+    return all;
+  }, links);
 }
 
 export function allLinksIn(scenes: NonEmptyArray<PublishedScene>) {
-  return new Set<LinkTarget>(Object.keys(allLinkablesIn(scenes)));
+  return new Set<LinkTarget>(allLinkablesIn(scenes).keys());
+}
+
+export function allLinksInScene(scene: PublishedScene) {
+  const links = {} as Record<LinkTarget, Linkable>;
+
+  if (scene.link) {
+    // a scene can itself be the target of a link in the fiction
+    links[scene.link] = {
+      kind: "scene",
+      scene,
+      link: scene.link,
+    };
+  }
+
+  for (const [link, page] of Object.entries(scene.pages)) {
+    links[link] = {
+      kind: "page",
+      page,
+      link,
+    };
+  }
+  return links;
 }
