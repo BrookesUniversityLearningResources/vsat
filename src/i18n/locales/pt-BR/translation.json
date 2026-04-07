@@ -128,6 +128,12 @@
         },
         "back-to-my-stories": {
           "label": "My stories"
+        },
+        "view-published-story": {
+          "label": "Published story URL",
+          "copy": {
+            "label": "Copy published story URL"
+          }
         }
       },
       "scene": {
@@ -256,7 +262,8 @@
         },
         "story": {
           "published": "Story published",
-          "unpublished": "Story unpublished"
+          "unpublished": "Story unpublished",
+          "published-url-copied": "Story URL copied"
         }
       }
     },
