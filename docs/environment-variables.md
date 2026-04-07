@@ -22,6 +22,13 @@ MAGIC_PUBLISHABLE_KEY=
 NODE_V8_COVERAGE=./coverage
 ```
 
+Optional (development only):
+
+```
+STEWARD_EMAILS=steward@example.com,second@example.com
+DEV_STEWARD_TOGGLE=1
+```
+
 > You'll need to ask
 > [someone on the team](https://github.com/BrookesUniversityLearningResources/vsat/graphs/contributors)
 > for the values.

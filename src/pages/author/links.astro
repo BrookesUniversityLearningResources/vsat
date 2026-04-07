@@ -1,0 +1,303 @@
+---
+import Layout from "@layouts/AuthoringLayout.astro";
+import isStewardUser from "@authentication/isStewardUser";
+
+export const prerender = false;
+
+const { repositoryStoryLink, i18n } = Astro.locals.environment<
+  App.WithStoryLinkRepository & App.WithI18N
+>();
+
+const links = await repositoryStoryLink.getAllStoryLinks();
+const isSteward = isStewardUser(
+  Astro.locals.user,
+  Astro.request.headers.get("cookie"),
+);
+---
+
+<Layout title="All story links" description={i18n.t("page.story.meta.description")}>
+  <main class="links-page">
+    <header class="links-header">
+      <div>
+        <p class="links-kicker">Interpretive layer</p>
+        <h1>All story links</h1>
+        <p class="links-help">Review proposed, accepted, or retired links.</p>
+      </div>
+      <a href="/author/story/">Back to stories</a>
+    </header>
+
+    <section class="links-section">
+      {links.length ? (
+        <ul class="links-list" id="links-list">
+          {links.map((link) => (
+            <li class={`link-card link-card--${link.status}`}>
+              <div class="link-meta">
+                <span class="link-type">{link.linkType}</span>
+                <span class="link-status">{link.status}</span>
+              </div>
+              <div class="link-main">
+                <strong>{link.fromStory.title}</strong>
+                <span class="link-arrow">→</span>
+                <strong>{link.toStory.title}</strong>
+              </div>
+              {(link.toScene || link.toPageNumber) && (
+                <div class="link-target">
+                  {link.toScene && (
+                    <span>
+                      Scene {link.toScene.title ?? `#${link.toScene.id}`}
+                    </span>
+                  )}
+                  {link.toPageNumber && <span>Page {link.toPageNumber}</span>}
+                </div>
+              )}
+              <p class="link-rationale">{link.rationale}</p>
+              <div class="link-actions">
+                <button
+                  type="button"
+                  class="link-action link-action--vote"
+                  data-link-id={link.id}
+                  data-vote="accept"
+                  disabled={link.status === "retired"}
+                >
+                  Accept
+                </button>
+                <button
+                  type="button"
+                  class="link-action link-action--vote"
+                  data-link-id={link.id}
+                  data-vote="reject"
+                  disabled={link.status === "retired"}
+                >
+                  Reject
+                </button>
+                {isSteward && (
+                  <button
+                    type="button"
+                    class="link-action link-action--retire"
+                    data-link-id={link.id}
+                    data-retire
+                  >
+                    {link.status === "retired" ? "Unretire" : "Retire"}
+                  </button>
+                )}
+              </div>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p>No links yet.</p>
+      )}
+      {!isSteward && (
+        <p class="links-note">
+          Retire/unretire actions are visible to stewards only.
+        </p>
+      )}
+    </section>
+  </main>
+
+  <script is:inline>
+    const updateCard = (card, status) => {
+      if (!card) return;
+      card.className = `link-card link-card--${status}`;
+      const statusEl = card.querySelector(".link-status");
+      if (statusEl) statusEl.textContent = status;
+      const disabled = status === "retired";
+      card.querySelectorAll("button[data-vote]").forEach((btn) => {
+        btn.disabled = disabled;
+      });
+      const retireButton = card.querySelector("button[data-retire]");
+      if (retireButton) {
+        retireButton.textContent = status === "retired" ? "Unretire" : "Retire";
+      }
+    };
+
+    const sendVote = async (linkId, vote, card) => {
+      const res = await fetch(`/api/links/${linkId}/vote`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ vote }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        updateCard(card, data.link.status);
+      }
+    };
+
+    const retireLink = async (linkId, card) => {
+      const res = await fetch(`/api/links/${linkId}/retire`, { method: "POST" });
+      if (res.ok) {
+        const data = await res.json();
+        updateCard(card, data.status);
+      }
+    };
+
+    document.addEventListener("click", (event) => {
+      if (!(event.target instanceof Element)) return;
+      const button = event.target.closest("button[data-link-id]");
+      if (!button) return;
+      const linkId = button.dataset.linkId;
+      if (!linkId) return;
+      const card = button.closest(".link-card");
+      if (button.dataset.vote) {
+        sendVote(linkId, button.dataset.vote, card);
+      }
+      if (button.dataset.retire !== undefined) {
+        retireLink(linkId, card);
+      }
+    });
+  </script>
+</Layout>
+
+<style>
+  .links-page {
+    max-width: 980px;
+    margin: 2rem auto;
+    padding: 0 1.5rem 3rem;
+  }
+
+  .links-header {
+    display: flex;
+    justify-content: space-between;
+    gap: 1.5rem;
+    align-items: flex-start;
+    margin-bottom: 2rem;
+  }
+
+  .links-kicker {
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: 0.75rem;
+  }
+
+  .links-help {
+    font-style: italic;
+  }
+
+  .links-section {
+    margin-top: 2rem;
+  }
+
+  .links-list {
+    list-style: none;
+    padding: 0;
+    display: grid;
+    gap: 1rem;
+  }
+
+  .link-card {
+    border: 1px solid #222;
+    padding: 1rem;
+    border-radius: 0.75rem;
+    background: #fff;
+  }
+
+  .link-meta {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .link-main {
+    margin-top: 0.5rem;
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+  }
+
+  .link-arrow {
+    font-weight: bold;
+  }
+
+  .link-rationale {
+    margin-top: 0.5rem;
+  }
+
+  .link-target {
+    margin-top: 0.35rem;
+    display: flex;
+    gap: 0.75rem;
+    font-size: 0.85rem;
+    opacity: 0.8;
+  }
+
+  .link-actions {
+    margin-top: 0.75rem;
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .links-note {
+    margin-top: 1rem;
+    font-size: 0.9rem;
+    opacity: 0.7;
+  }
+
+  .link-action {
+    border: 1px solid #1f4d7a;
+    padding: 0.35rem 0.65rem;
+    border-radius: 999px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    background: #e7f2ff;
+    color: #1f4d7a;
+  }
+
+  .link-action:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .link-action--retire {
+    border-color: #7a1f1f;
+    background: #ffecec;
+    color: #7a1f1f;
+  }
+
+  /* Status-colored card backgrounds */
+  .link-card--accepted {
+    background: #f0f7ff;
+  }
+
+  .link-card--rejected {
+    background: #fff5f5;
+  }
+
+  .link-card--proposed {
+    background: #fffef0;
+  }
+
+  /* Card hover effect */
+  .link-card {
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .link-card:hover {
+    border-color: #1f4d7a;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  }
+
+  /* Button hover states */
+  .link-action {
+    transition: background 0.2s ease;
+  }
+
+  .link-action:hover:not(:disabled) {
+    background: #cce3ff;
+  }
+
+  .link-action--retire:hover:not(:disabled) {
+    background: #ffd6d6;
+  }
+
+  /* Button focus-visible outlines */
+  .link-action:focus-visible {
+    outline: 2px solid #1f4d7a;
+    outline-offset: 2px;
+  }
+
+  .link-action--retire:focus-visible {
+    outline-color: #7a1f1f;
+  }
+</style>

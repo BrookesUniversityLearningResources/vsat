@@ -1,0 +1,517 @@
+---
+import Layout from "@layouts/AuthoringLayout.astro";
+import isStewardUser from "@authentication/isStewardUser";
+import { ErrorCodes } from "@domain/error/errorCode";
+import toStoryId from "@domain/story/toStoryId";
+
+export const prerender = false;
+
+const { repositoryStory, repositoryStoryLink, i18n } = Astro.locals.environment<
+  App.WithStoryRepository & App.WithStoryLinkRepository & App.WithI18N
+>();
+
+const storyId = toStoryId(Astro.params.storyId);
+
+if (!storyId) {
+  return Astro.redirect(`/author/story?err=${ErrorCodes.StoryNotFound}`);
+}
+
+const story = await repositoryStory.getStory({ id: storyId });
+
+if (!story) {
+  return Astro.redirect(`/author/story?err=${ErrorCodes.StoryNotFound}`);
+}
+
+const links = await repositoryStoryLink.getStoryLinksForStory(storyId);
+const publishedStories = await repositoryStory.getPublishedStorySummaries({});
+const otherStories = publishedStories.filter((s) => s.id !== storyId);
+const isSteward = isStewardUser(
+  Astro.locals.user,
+  Astro.request.headers.get("cookie"),
+);
+const contextSceneId = Astro.url.searchParams.get("contextSceneId");
+const contextPageNumber = Astro.url.searchParams.get("contextPageNumber");
+---
+
+<Layout
+  title={`Interpretive links • ${story.title}`}
+  description={i18n.t("page.story.meta.description")}
+>
+  <main class="links-page">
+    <header class="links-header">
+      <div>
+        <p class="links-kicker">Interpretive layer</p>
+        <h1>{story.title}</h1>
+        <p class="links-help">
+          Links are interpretive and do not change the canonical story.
+        </p>
+      </div>
+      <div class="links-actions">
+        <a href={`/author/story/${story.id}`}>Back to story</a>
+        <a href="/author/links">Review all links</a>
+      </div>
+    </header>
+
+    <section class="links-section">
+      <h2>Existing links</h2>
+      {links.length ? (
+        <ul class="links-list" id="links-list">
+          {links.map((link) => (
+            <li class={`link-card link-card--${link.status}`}>
+              <div class="link-meta">
+                <span class="link-type">{link.linkType}</span>
+                <span class="link-status">{link.status}</span>
+              </div>
+              <div class="link-main">
+                <strong>{link.fromStory.title}</strong>
+                <span class="link-arrow">→</span>
+                <strong>{link.toStory.title}</strong>
+              </div>
+              {(link.toScene || link.toPageNumber) && (
+                <div class="link-target">
+                  {link.toScene && (
+                    <span>
+                      Scene {link.toScene.title ?? `#${link.toScene.id}`}
+                    </span>
+                  )}
+                  {link.toPageNumber && <span>Page {link.toPageNumber}</span>}
+                </div>
+              )}
+              <p class="link-rationale">{link.rationale}</p>
+              <div class="link-actions">
+                <button
+                  type="button"
+                  class="link-action link-action--vote"
+                  data-link-id={link.id}
+                  data-vote="accept"
+                  disabled={link.status === "retired"}
+                >
+                  Accept
+                </button>
+                <button
+                  type="button"
+                  class="link-action link-action--vote"
+                  data-link-id={link.id}
+                  data-vote="reject"
+                  disabled={link.status === "retired"}
+                >
+                  Reject
+                </button>
+                {isSteward && (
+                  <button
+                    type="button"
+                    class="link-action link-action--retire"
+                    data-link-id={link.id}
+                    data-retire
+                  >
+                    {link.status === "retired" ? "Unretire" : "Retire"}
+                  </button>
+                )}
+              </div>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <div class="links-prompt">
+          <p>No links yet. Start by proposing a single interpretive link.</p>
+          <p class="links-prompt__hint">
+            Add a brief rationale explaining why the stories connect.
+          </p>
+        </div>
+      )}
+      {!isSteward && (
+        <p class="links-note">
+          Retire/unretire actions are visible to stewards only.
+        </p>
+      )}
+    </section>
+
+    <section class="links-section">
+      <h2>Propose a new link</h2>
+      {(contextSceneId || contextPageNumber) && (
+        <div class="links-context">
+          <strong>Context</strong>
+          {contextSceneId && <span>Scene {contextSceneId}</span>}
+          {contextPageNumber && <span>Page {contextPageNumber}</span>}
+          <span class="links-context__hint">
+            This context is not saved; add it to your rationale if needed.
+          </span>
+        </div>
+      )}
+      <form id="link-form" class="link-form">
+        <label>
+          Target story
+          <select name="toStoryId" required>
+            <option value="">Select a story</option>
+            {otherStories.map((s) => (
+              <option value={s.id}>{s.title}</option>
+            ))}
+          </select>
+        </label>
+        <label>
+          Link type
+          <select name="linkType" required>
+            <option value="adjacency">Adjacency</option>
+            <option value="thematic">Thematic</option>
+            <option value="causal">Causal</option>
+            <option value="contrast">Contrast</option>
+          </select>
+        </label>
+        <label>
+          Target scene id (optional)
+          <input type="number" name="toSceneId" min="1" />
+        </label>
+        <label>
+          Target page number (optional)
+          <input type="number" name="toPageNumber" min="1" />
+        </label>
+        <label>
+          Rationale
+          <textarea name="rationale" rows="4" required></textarea>
+        </label>
+        <button type="submit">Propose link</button>
+        <p class="link-form__status" id="link-form-status"></p>
+      </form>
+    </section>
+  </main>
+
+  <script is:inline>
+    const form = document.getElementById("link-form");
+    const status = document.getElementById("link-form-status");
+    const storyId = Number(window.location.pathname.split("/").at(-2));
+
+    const updateCard = (card, status) => {
+      if (!card) return;
+      card.className = `link-card link-card--${status}`;
+      const statusEl = card.querySelector(".link-status");
+      if (statusEl) statusEl.textContent = status;
+      const disabled = status === "retired";
+      card.querySelectorAll("button[data-vote]").forEach((btn) => {
+        btn.disabled = disabled;
+      });
+      const retireButton = card.querySelector("button[data-retire]");
+      if (retireButton) {
+        retireButton.textContent = status === "retired" ? "Unretire" : "Retire";
+      }
+    };
+
+    const sendVote = async (linkId, vote, card) => {
+      const res = await fetch(`/api/links/${linkId}/vote`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ vote }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        updateCard(card, data.link.status);
+      }
+    };
+
+    const retireLink = async (linkId, card) => {
+      const res = await fetch(`/api/links/${linkId}/retire`, { method: "POST" });
+      if (res.ok) {
+        const data = await res.json();
+        updateCard(card, data.status);
+      }
+    };
+
+    document.addEventListener("click", (event) => {
+      if (!(event.target instanceof Element)) return;
+      const button = event.target.closest("button[data-link-id]");
+      if (!button) return;
+      const linkId = button.dataset.linkId;
+      if (!linkId) return;
+      const card = button.closest(".link-card");
+      if (button.dataset.vote) {
+        sendVote(linkId, button.dataset.vote, card);
+      }
+      if (button.dataset.retire !== undefined) {
+        retireLink(linkId, card);
+      }
+    });
+
+    form?.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const formData = new FormData(form);
+      const payload = {
+        toStoryId: Number(formData.get("toStoryId")),
+        toSceneId: formData.get("toSceneId")
+          ? Number(formData.get("toSceneId"))
+          : undefined,
+        toPageNumber: formData.get("toPageNumber")
+          ? Number(formData.get("toPageNumber"))
+          : undefined,
+        linkType: formData.get("linkType"),
+        rationale: formData.get("rationale"),
+      };
+
+      status.textContent = "Submitting...";
+      const res = await fetch(`/api/story/${storyId}/links`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (res.ok) {
+        status.textContent = "Link proposed.";
+        window.location.reload();
+      } else {
+        status.textContent = "Failed to propose link.";
+      }
+    });
+  </script>
+</Layout>
+
+<style>
+  .links-page {
+    max-width: 980px;
+    margin: 2rem auto;
+    padding: 0 1.5rem 3rem;
+  }
+
+  .links-header {
+    display: flex;
+    justify-content: space-between;
+    gap: 1.5rem;
+    align-items: flex-start;
+    margin-bottom: 2rem;
+  }
+
+  .links-kicker {
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: 0.75rem;
+  }
+
+  .links-help {
+    font-style: italic;
+  }
+
+  .links-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .links-actions a {
+    color: inherit;
+  }
+
+  .links-section {
+    margin-top: 2rem;
+  }
+
+  .links-list {
+    list-style: none;
+    padding: 0;
+    display: grid;
+    gap: 1rem;
+  }
+
+  .link-card {
+    border: 1px solid #222;
+    padding: 1rem;
+    border-radius: 0.75rem;
+    background: #fff;
+  }
+
+  .link-meta {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .link-main {
+    margin-top: 0.5rem;
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+  }
+
+  .link-arrow {
+    font-weight: bold;
+  }
+
+  .link-rationale {
+    margin-top: 0.5rem;
+  }
+
+  .link-target {
+    margin-top: 0.35rem;
+    display: flex;
+    gap: 0.75rem;
+    font-size: 0.85rem;
+    opacity: 0.8;
+  }
+
+  .link-actions {
+    margin-top: 0.75rem;
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .links-note {
+    margin-top: 1rem;
+    font-size: 0.9rem;
+    opacity: 0.7;
+  }
+
+  .links-prompt {
+    border: 1px dashed #1f4d7a;
+    padding: 0.75rem;
+    border-radius: 0.75rem;
+    background: #eef6ff;
+  }
+
+  .links-prompt__hint {
+    margin-top: 0.35rem;
+    font-size: 0.9rem;
+    opacity: 0.75;
+  }
+
+  .links-context {
+    border: 1px dashed #1f4d7a;
+    padding: 0.6rem 0.75rem;
+    border-radius: 0.75rem;
+    background: #eef6ff;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+  }
+
+  .links-context__hint {
+    width: 100%;
+    font-size: 0.85rem;
+    opacity: 0.7;
+  }
+
+  .link-action {
+    border: 1px solid #1f4d7a;
+    padding: 0.35rem 0.65rem;
+    border-radius: 999px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    background: #e7f2ff;
+    color: #1f4d7a;
+  }
+
+  .link-action:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .link-action--retire {
+    border-color: #7a1f1f;
+    background: #ffecec;
+    color: #7a1f1f;
+  }
+
+  .link-form {
+    display: grid;
+    gap: 1rem;
+    max-width: 520px;
+  }
+
+  .link-form textarea,
+  .link-form select {
+    width: 100%;
+    padding: 0.5rem;
+  }
+
+  .link-form__status {
+    font-size: 0.9rem;
+  }
+
+  /* Status-colored card backgrounds */
+  .link-card--accepted {
+    background: #f0f7ff;
+  }
+
+  .link-card--rejected {
+    background: #fff5f5;
+  }
+
+  .link-card--proposed {
+    background: #fffef0;
+  }
+
+  /* Card hover effects */
+  .link-card {
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .link-card:hover {
+    border-color: #1f4d7a;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  }
+
+  /* Button hover states */
+  .link-action {
+    transition: background 0.2s ease;
+  }
+
+  .link-action:hover:not(:disabled) {
+    background: #cce3ff;
+  }
+
+  .link-action--retire:hover:not(:disabled) {
+    background: #ffd6d6;
+  }
+
+  /* Button focus-visible outlines */
+  .link-action:focus-visible {
+    outline: 2px solid #1f4d7a;
+    outline-offset: 2px;
+  }
+
+  .link-action--retire:focus-visible {
+    outline-color: #7a1f1f;
+  }
+
+  /* Form container styling */
+  .link-form {
+    background: #f9f9f9;
+    padding: 1.5rem;
+    border: 1px solid #ddd;
+    border-radius: 0.75rem;
+  }
+
+  /* Label font-weight */
+  .link-form label {
+    font-weight: 600;
+  }
+
+  /* Input/select/textarea focus states */
+  .link-form input:focus,
+  .link-form select:focus,
+  .link-form textarea:focus {
+    outline: 2px solid #1f4d7a;
+    outline-offset: 1px;
+    border-color: #1f4d7a;
+  }
+
+  /* Submit button as primary pill */
+  .link-form button[type="submit"] {
+    background: #e7f2ff;
+    color: #1f4d7a;
+    border: 1px solid #1f4d7a;
+    border-radius: 999px;
+    padding: 0.5rem 1.25rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s ease;
+  }
+
+  .link-form button[type="submit"]:hover {
+    background: #cce3ff;
+  }
+
+  .link-form button[type="submit"]:focus-visible {
+    outline: 2px solid #1f4d7a;
+    outline-offset: 2px;
+  }
+</style>

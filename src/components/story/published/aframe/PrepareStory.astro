@@ -35,8 +35,7 @@ const serializedStory = DOMPurify.sanitize(
 
   import changePage from "./changePage";
   import { EVENT_LINK_ACTIVATED } from "./linkActivated";
-  import { isTitleCardScene, titleCardSceneFor } from "./titleCardSceneFor";
-  import type { Current, RenderOptions } from "./types";
+  import type { Current } from "./types";
 
   /**
    * The maximum width of the text (fiction) content.
@@ -69,7 +68,7 @@ const serializedStory = DOMPurify.sanitize(
     color: {
       primary: {
         background: "#2C3E50",
-        text: "#ECF0F1",
+        text: "white",
       },
       fiction: {
         background: "#E0E0E0",
@@ -78,30 +77,17 @@ const serializedStory = DOMPurify.sanitize(
       link: {
         background: "#2C3E50",
         backgroundActive: "#3C5976",
-        text: "#ECF0F1",
+        text: "white",
       },
     },
   });
 
   AFRAME.registerComponent("story", {
     init: function () {
-      const openingScene = openingSceneFor(window.current.story);
-      const openingPage = openingPageFor(openingScene);
+      window.current.scene = openingSceneFor(window.current.story);
+      window.current.page = openingPageFor(window.current.scene);
 
-      if (!!openingScene.audio) {
-        const [titleCardScene, titleCardPage] = titleCardSceneFor(
-          window.current.story.title,
-          openingScene,
-          openingPage.link,
-        );
-        window.current.scene = titleCardScene;
-        window.current.page = titleCardPage;
-      } else {
-        window.current.scene = openingScene;
-        window.current.page = openingPage;
-      }
-
-      this.render(window.current, { isSceneChange: false });
+      this.render(window.current);
     },
     events: {
       [EVENT_LINK_ACTIVATED]: function (e: CustomEvent<LinkTarget>) {
@@ -119,11 +105,17 @@ const serializedStory = DOMPurify.sanitize(
             window.current.scene = change.toScene;
           }
 
-          this.render(window.current, { isSceneChange: !!change.toScene });
+          this.render(window.current);
+        }
+      },
+      pointermove: function () {
+        const sound = this.el.components.sound;
+        if (!sound?.isPlaying) {
+          sound.playSound();
         }
       },
     },
-    render: function (current: Current, options: RenderOptions) {
+    render: function (current: Current) {
       const sky = document.querySelector("a-sky");
       if (sky) {
         if (current.scene.image) {
@@ -133,105 +125,98 @@ const serializedStory = DOMPurify.sanitize(
         }
       }
 
-      if (options.isSceneChange) {
-        const existingSound = this.el.components.sound;
-
-        if (existingSound?.isPlaying) {
-          existingSound.stopSound();
-        }
-
-        if (current.scene.audio) {
-          this.el.setAttribute(
-            "sound",
-            `src: #audio-${current.scene.audio.id}; autoplay: true; positional: false`,
-          );
-        } else {
-          this.el.removeAttribute("sound");
-        }
+      const existingSound = this.el.components.sound;
+      if (existingSound?.isPlaying) {
+        existingSound.stopSound();
+      }
+      if (current.scene.audio) {
+        this.el.setAttribute(
+          "sound",
+          `src: #audio-${current.scene.audio.id}; autoplay: false; positional: false`,
+        );
+      } else {
+        this.el.removeAttribute("sound");
       }
 
       const fiction = document.getElementById("fiction");
       if (fiction) {
         removeAllChildNodes(fiction);
 
-        if (isTitleCardScene(current.scene)) {
-          const linkToOpeningPage =
-            current.page.content.find(isLinkBlock)?.link || "";
+        const heading = (() => {
+          const text = current.page.content.find(isHeadingBlock)?.text || "";
 
-          const titleCard = document.createElement("a-entity");
-          titleCard.setAttribute(
-            "title-card",
-            `title: ${window.current.story.title}; link: ${linkToOpeningPage}`,
+          const entity = document.createElement("a-entity");
+          entity.setAttribute(
+            "block-heading",
+            `text: ${text}; lineCount: ${countLines(text)}`,
           );
-          titleCard.setAttribute("position", "0 1 0");
 
-          fiction.appendChild(titleCard);
-        } else {
-          const heading = (() => {
-            const text = current.page.content.find(isHeadingBlock)?.text || "";
+          return entity;
+        })();
 
+        const [content, lineCount] = (() => {
+          const text = current.page.content
+            .filter(isPlaintextBlock)
+            .map((block) => block.text)
+            .join("\n\n");
+
+          // we add one so that we always have at least 2 lines;
+          // this gives the fiction some room to breathe.
+          const lineCount = countLines(text) + 1;
+
+          const entity = document.createElement("a-entity");
+          entity.setAttribute(
+            "block-plaintext",
+            `text: ${text}; lineCount: ${lineCount}`,
+          );
+
+          return [entity, lineCount];
+        })();
+
+        const links = (() => {
+          const linkBlocks = current.page.content.filter(isLinkBlock);
+
+          const height = lineCount == 1 ? 1 : 1 + lineCount * 0.25;
+
+          const elements = linkBlocks.map((block, index) => {
             const entity = document.createElement("a-entity");
             entity.setAttribute(
-              "block-heading",
-              `text: ${text}; lineCount: ${countLines(text)}`,
+              "block-link",
+              `text: ${block.text}; link: ${block.link}`,
             );
+
+            const y = FICTION_Y - height - (index + 1);
+            entity.setAttribute("position", `0 ${y} 0`);
 
             return entity;
-          })();
+          });
 
-          const [content, lineCount] = (() => {
-            const text = current.page.content
-              .filter(isPlaintextBlock)
-              .map((block) => block.text)
-              .join("\n\n");
+          return elements;
+        })();
 
-            // we add one so that we always have at least 2 lines;
-            // this gives the fiction some room to breathe.
-            const lineCount = countLines(text) + 1;
-
-            const entity = document.createElement("a-entity");
-            entity.setAttribute(
-              "block-plaintext",
-              `text: ${text}; lineCount: ${lineCount}`,
-            );
-
-            return [entity, lineCount];
-          })();
-
-          const links = (() => {
-            const linkBlocks = current.page.content.filter(isLinkBlock);
-
-            const height = lineCount == 1 ? 1 : 1 + lineCount * 0.25;
-
-            const elements = linkBlocks.map((block, index) => {
-              const entity = document.createElement("a-entity");
-              entity.setAttribute(
-                "block-link",
-                `text: ${block.text}; link: ${block.link}`,
-              );
-
-              const y = FICTION_Y - height - (index + 1);
-              entity.setAttribute("position", `0 ${y} 0`);
-
-              return entity;
-            });
-
-            return elements;
-          })();
-
-          links.forEach((link) => fiction.appendChild(link));
-          fiction.appendChild(content);
-          fiction.appendChild(heading);
-        }
+        links.forEach((link) => fiction.appendChild(link));
+        fiction.appendChild(content);
+        fiction.appendChild(heading);
       }
+
+      const contextDetail = {
+        sceneId: current.scene.id,
+        sceneTitle: current.scene.title,
+        pageNumber: current.page.number,
+      };
+      window.vsatStoryContext = contextDetail;
+      window.dispatchEvent(
+        new CustomEvent("vsat:story-context", {
+          detail: contextDetail,
+        }),
+      );
     },
   });
 
   AFRAME.registerComponent("block-heading", {
     schema: {
       text: { type: "string", default: "" },
-      lineCount: { type: "number", default: 1 },
-      fontSize: { type: "number", default: 0.25 },
+      lineCount: { type: "number", default: "1" },
     },
     init: function () {
       const y =
@@ -242,7 +227,7 @@ const serializedStory = DOMPurify.sanitize(
 
       const theText = ((el) => {
         el.setAttribute("value", this.data.text);
-        el.setAttribute("font-size", this.data.fontSize);
+        el.setAttribute("font-size", "0.25");
         el.setAttribute("color", THEME.color.primary.text);
         el.setAttribute("max-width", MAX_WIDTH);
         el.setAttribute("anchor", "left");
@@ -256,6 +241,7 @@ const serializedStory = DOMPurify.sanitize(
       })(document.createElement("a-troika-text"));
 
       const theBackground = ((el) => {
+        el.setAttribute("class", "clickable");
         el.setAttribute("color", THEME.color.primary.background);
         el.setAttribute("width", MAX_WIDTH + 1);
         el.setAttribute("depth", FICTION_TEXT_Z);
@@ -276,7 +262,7 @@ const serializedStory = DOMPurify.sanitize(
   AFRAME.registerComponent("block-plaintext", {
     schema: {
       text: { type: "string", default: "" },
-      lineCount: { type: "number", default: 1 },
+      lineCount: { type: "number", default: "1" },
     },
     init: function () {
       this.el.setAttribute("position", `0 ${FICTION_Y - 1} 0`);
@@ -345,54 +331,6 @@ const serializedStory = DOMPurify.sanitize(
 
       this.el.appendChild(theButton);
       this.el.appendChild(theText);
-    },
-    events: {
-      click: function () {
-        this.el.emit(EVENT_LINK_ACTIVATED, this.data.link);
-      },
-    },
-  });
-
-  AFRAME.registerComponent("title-card", {
-    schema: {
-      title: { type: "string" },
-      link: { type: "string" },
-    },
-    init: function () {
-      const theHeading = (() => {
-        const el = document.createElement("a-entity");
-        el.setAttribute("block-heading", `text: ${this.data.title}`);
-        return el;
-      })();
-
-      const theButton = (() => {
-        const box = document.createElement("a-box");
-        box.setAttribute("color", "#079C0F");
-        box.setAttribute("width", 1.8);
-        box.setAttribute("height", 1.5);
-        box.setAttribute("depth", 0.3);
-        box.setAttribute("data-raycastable", "");
-        box.setAttribute("opacity", OPACITY);
-        box.setAttribute(
-          "animation",
-          "property: color; from: #079C0F; to: #0DC414; easing: easeInOutSine; dir: alternate; loop: true; delay: 1000;",
-        );
-
-        const triangle = document.createElement("a-triangle");
-        triangle.setAttribute("color", "#FFFFFF");
-        triangle.setAttribute("rotation", "0 0 -90");
-        triangle.setAttribute("position", "0.1 0 0.2");
-
-        const container = document.createElement("a-entity");
-        container.setAttribute("position", "-0.25 0.75 0.5");
-        container.appendChild(box);
-        container.appendChild(triangle);
-
-        return container;
-      })();
-
-      this.el.appendChild(theHeading);
-      this.el.appendChild(theButton);
     },
     events: {
       click: function () {
