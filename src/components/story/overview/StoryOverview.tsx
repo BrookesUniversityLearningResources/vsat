@@ -49,6 +49,13 @@ type DiagramArc = {
   isGhost: boolean;
 };
 
+type RenderArc = {
+  sourceIndex: number;
+  targetIndex: number;
+  isGhost: boolean;
+  isBidirectional: boolean;
+};
+
 const StoryOverview: FC<StoryOverviewProps> = ({ story, onSceneSelected }) => {
   const { t } = useTranslation();
 
@@ -242,6 +249,26 @@ const StoryArcDiagram: FC<StoryArcDiagramProps> = ({
     return spanB - spanA;
   });
 
+  const directionalKeys = new Set(
+    arcs.map((a) => `${a.sourceIndex}-${a.targetIndex}`),
+  );
+  const seenCanonical = new Set<string>();
+  const renderArcs: RenderArc[] = [];
+
+  arcs.forEach((arc) => {
+    const { sourceIndex: s, targetIndex: t, isGhost } = arc;
+    const hasReverse = directionalKeys.has(`${t}-${s}`);
+    const canonical = `${Math.min(s, t)}-${Math.max(s, t)}`;
+
+    if (hasReverse) {
+      if (seenCanonical.has(canonical)) return;
+      seenCanonical.add(canonical);
+      renderArcs.push({ sourceIndex: s, targetIndex: t, isGhost, isBidirectional: true });
+    } else {
+      renderArcs.push({ sourceIndex: s, targetIndex: t, isGhost, isBidirectional: false });
+    }
+  });
+
   const width = 800;
   const paddingX = 32;
   const nodeRadius = 16;
@@ -280,12 +307,12 @@ const StoryArcDiagram: FC<StoryArcDiagramProps> = ({
   const pathForArc = (
     startX: number,
     endX: number,
-    options?: { endIsGhost?: boolean },
+    options?: { trimStart?: boolean },
   ) => {
     const horizontalRadius = Math.abs(endX - startX) / 2;
     const sweepFlag = startX < endX ? 1 : 0;
-    const endY = options?.endIsGhost ? baselineY - nodeRadius : baselineY;
-    return `M ${startX} ${baselineY} A ${horizontalRadius} ${horizontalRadius} 0 0 ${sweepFlag} ${endX} ${endY}`;
+    const startY = options?.trimStart ? baselineY - nodeRadius : baselineY;
+    return `M ${startX} ${startY} A ${horizontalRadius} ${horizontalRadius} 0 0 ${sweepFlag} ${endX} ${baselineY - nodeRadius}`;
   };
 
   return (
@@ -297,8 +324,35 @@ const StoryArcDiagram: FC<StoryArcDiagramProps> = ({
           aria-label={t("overview.label")}
         >
           <title>{t("overview.label")}</title>
+          <defs>
+            <marker
+              id="arc-arrow"
+              markerUnits="strokeWidth"
+              markerWidth="4"
+              markerHeight="4"
+              refX="4"
+              refY="2"
+              orient="auto-start-reverse"
+            >
+              <path d="M 0 0 L 4 2 L 0 4 Z" className="story-overview__arc-arrowhead" />
+            </marker>
+            <marker
+              id="arc-arrow-ghost"
+              markerUnits="strokeWidth"
+              markerWidth="4"
+              markerHeight="4"
+              refX="4"
+              refY="2"
+              orient="auto-start-reverse"
+            >
+              <path
+                d="M 0 0 L 4 2 L 0 4 Z"
+                className="story-overview__arc-arrowhead--ghost"
+              />
+            </marker>
+          </defs>
           <g className="story-overview__arc-paths">
-            {arcs.map((arc, index) => {
+            {renderArcs.map((arc, index) => {
               const startNode = positionedNodes[arc.sourceIndex];
               const endNode = positionedNodes[arc.targetIndex];
               const startX = startNode?.x;
@@ -308,15 +362,20 @@ const StoryArcDiagram: FC<StoryArcDiagramProps> = ({
                 return null;
               }
 
+              const markerId = arc.isGhost ? "arc-arrow-ghost" : "arc-arrow";
+              const markerUrl = `url(#${markerId})`;
+
               return (
                 <path
                   key={`${arc.sourceIndex}-${arc.targetIndex}-${index}`}
                   d={pathForArc(startX, endX, {
-                    endIsGhost: endNode?.isGhost ?? false,
+                    trimStart: arc.isBidirectional,
                   })}
                   className={`story-overview__arc-path${
                     arc.isGhost ? " story-overview__arc-path--ghost" : ""
                   }`}
+                  markerEnd={markerUrl}
+                  markerStart={arc.isBidirectional ? markerUrl : undefined}
                 />
               );
             })}
