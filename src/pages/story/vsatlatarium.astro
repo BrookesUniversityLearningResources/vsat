@@ -71,17 +71,25 @@ const layoutFingerprint = [
   ...interStoryLinks.map((l) => `L${l.id}`),
 ].join("|");
 
-// Scale dome to content: count total scenes across all stories
+// Scale the whole layout to content, then scale each story cluster by
+// its scene count so dense stories have more readable local spacing.
 const totalScenes = fullStories.reduce((sum, s) => sum + (s?.scenes.length ?? 0), 0);
-const storyCount = fullStories.length;
-// Base radius 18 for ~10 scenes, grows with sqrt of scene count for diminishing returns
 const clusterRadius = isPlanetarium
   ? Math.max(18, Math.round(10 + 4 * Math.sqrt(totalScenes)))
-  : 10;
-const localRadius = isPlanetarium ? Math.min(clusterRadius * 0.2, 6) : 2.5;
-const geomViewCameraDefaultZ = 30;
+  : Math.max(12, Math.round(5 + 3 * Math.sqrt(totalScenes)));
+const localRadiusForSceneCount = (sceneCount: number) => {
+  const sceneRoot = Math.sqrt(Math.max(sceneCount, 1));
+  const radius = isPlanetarium ? 4.5 + sceneRoot * 1.6 : 2.2 + sceneRoot * 0.72;
+  const maxRadius = isPlanetarium
+    ? Math.max(9, clusterRadius * 0.42)
+    : Math.max(4, clusterRadius * 0.28);
+  return Number(Math.min(radius, maxRadius).toFixed(3));
+};
+const geomViewCameraDefaultZ = isPlanetarium
+  ? 30
+  : Math.max(30, Math.round(clusterRadius * 2.4));
 const geomViewCameraMinZ = 2;
-const geomViewCameraMaxZ = 70;
+const geomViewCameraMaxZ = Math.max(70, geomViewCameraDefaultZ + 35);
 const goldenAngle = Math.PI * (3 - Math.sqrt(5));
 const normalizeLabelText = (value: string) =>
   value
@@ -109,6 +117,7 @@ type StoryCluster = {
   storyId: number;
   title: string;
   center: Vec3;
+  localRadius: number;
   storyNodeId: string;
   storyNodePos: Vec3;
   scenes: SceneNode[];
@@ -149,6 +158,7 @@ for (let i = 0; i < fullStories.length; i++) {
   };
 
   const scenes = story.scenes;
+  const localRadius = localRadiusForSceneCount(scenes.length);
 
   // Layout scenes around the cluster center using a local golden spiral
   const sceneNodes: SceneNode[] = scenes.map((scene, si) => {
@@ -363,6 +373,7 @@ for (let i = 0; i < fullStories.length; i++) {
     storyId: story.id,
     title: story.title,
     center,
+    localRadius,
     storyNodeId,
     storyNodePos,
     scenes: sceneNodes,
@@ -717,7 +728,7 @@ const clientData = {
                 class="cluster-wireframe"
                 visible="false"
                 position={`${cluster.center.x} ${cluster.center.y} ${cluster.center.z}`}
-                geometry={`primitive: sphere; radius: ${localRadius + 0.3}; segmentsWidth: 12; segmentsHeight: 8`}
+                geometry={`primitive: sphere; radius: ${cluster.localRadius + 0.3}; segmentsWidth: 12; segmentsHeight: 8`}
                 material={`color: #1a2244; opacity: ${isPlanetarium ? "0.08" : "0.08"}; transparent: true; wireframe: true; side: double`}
               ></a-entity>
 
