@@ -3,7 +3,10 @@
     "port": "PORT"
   },
   "database": {
-    "connectionString": "DATABASE_URL"
+    "connectionString": "DATABASE_URL",
+    "import": {
+      "connectionString": "DATABASE_IMPORT_URL"
+    }
   },
   "cloudinary": {
     "url": "CLOUDINARY_URL"
