@@ -32,7 +32,7 @@ function initializeI18n(overrides: Partial<InitOptions> = {}) {
     fallbackLng: LOCALE_DEFAULT,
     preload: [LOCALE_DEFAULT, "pt-BR"],
     supportedLngs: [LOCALE_DEFAULT, "pt-BR"],
-    initImmediate: false, // eagerly—and synchronously—load the translations
+    initAsync: false, // eagerly—and synchronously—load the translations
     backend: {
       loadPath: "src/i18n/locales/{{lng}}/{{ns}}.json",
     },
