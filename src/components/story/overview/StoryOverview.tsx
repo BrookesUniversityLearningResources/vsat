@@ -330,7 +330,7 @@ const StoryArcDiagram: FC<StoryArcDiagramProps> = ({
               markerUnits="strokeWidth"
               markerWidth="4"
               markerHeight="4"
-              refX="4"
+              refX="5"
               refY="2"
               orient="auto-start-reverse"
             >
@@ -341,7 +341,7 @@ const StoryArcDiagram: FC<StoryArcDiagramProps> = ({
               markerUnits="strokeWidth"
               markerWidth="4"
               markerHeight="4"
-              refX="4"
+              refX="5"
               refY="2"
               orient="auto-start-reverse"
             >
