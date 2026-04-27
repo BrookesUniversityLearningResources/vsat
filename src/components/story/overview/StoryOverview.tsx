@@ -261,11 +261,23 @@ const StoryArcDiagram: FC<StoryArcDiagramProps> = ({
     const canonical = `${Math.min(s, t)}-${Math.max(s, t)}`;
 
     if (hasReverse) {
-      if (seenCanonical.has(canonical)) return;
+      if (seenCanonical.has(canonical)) {
+        return;
+      }
       seenCanonical.add(canonical);
-      renderArcs.push({ sourceIndex: s, targetIndex: t, isGhost, isBidirectional: true });
+      renderArcs.push({
+        sourceIndex: s,
+        targetIndex: t,
+        isGhost,
+        isBidirectional: true,
+      });
     } else {
-      renderArcs.push({ sourceIndex: s, targetIndex: t, isGhost, isBidirectional: false });
+      renderArcs.push({
+        sourceIndex: s,
+        targetIndex: t,
+        isGhost,
+        isBidirectional: false,
+      });
     }
   });
 
@@ -304,15 +316,28 @@ const StoryArcDiagram: FC<StoryArcDiagramProps> = ({
   );
   const height = Math.max(baselineY + nodeRadius + bottomPadding, minHeight);
 
-  const pathForArc = (
-    startX: number,
-    endX: number,
-    options?: { trimStart?: boolean },
-  ) => {
+  const pathForArc = (startX: number, endX: number) => {
     const horizontalRadius = Math.abs(endX - startX) / 2;
     const sweepFlag = startX < endX ? 1 : 0;
-    const startY = options?.trimStart ? baselineY - nodeRadius : baselineY;
-    return `M ${startX} ${startY} A ${horizontalRadius} ${horizontalRadius} 0 0 ${sweepFlag} ${endX} ${baselineY - nodeRadius}`;
+    return `M ${startX} ${baselineY} A ${horizontalRadius} ${horizontalRadius} 0 0 ${sweepFlag} ${endX} ${baselineY}`;
+  };
+
+  const arcPointAt = (startX: number, endX: number, t: number) => {
+    const cx = (startX + endX) / 2;
+    const r = Math.abs(endX - startX) / 2;
+    const direction = startX < endX ? 1 : -1;
+    return {
+      x: cx - direction * r * Math.cos(t * Math.PI),
+      y: baselineY - r * Math.sin(t * Math.PI),
+    };
+  };
+
+  const arcAngleDeg = (startX: number, endX: number, t: number) => {
+    const direction = startX < endX ? 1 : -1;
+    return (
+      Math.atan2(-Math.cos(t * Math.PI), direction * Math.sin(t * Math.PI)) *
+      (180 / Math.PI)
+    );
   };
 
   return (
@@ -324,33 +349,6 @@ const StoryArcDiagram: FC<StoryArcDiagramProps> = ({
           aria-label={t("overview.label")}
         >
           <title>{t("overview.label")}</title>
-          <defs>
-            <marker
-              id="arc-arrow"
-              markerUnits="strokeWidth"
-              markerWidth="4"
-              markerHeight="4"
-              refX="5"
-              refY="2"
-              orient="auto-start-reverse"
-            >
-              <path d="M 0 0 L 4 2 L 0 4 Z" className="story-overview__arc-arrowhead" />
-            </marker>
-            <marker
-              id="arc-arrow-ghost"
-              markerUnits="strokeWidth"
-              markerWidth="4"
-              markerHeight="4"
-              refX="5"
-              refY="2"
-              orient="auto-start-reverse"
-            >
-              <path
-                d="M 0 0 L 4 2 L 0 4 Z"
-                className="story-overview__arc-arrowhead--ghost"
-              />
-            </marker>
-          </defs>
           <g className="story-overview__arc-paths">
             {renderArcs.map((arc, index) => {
               const startNode = positionedNodes[arc.sourceIndex];
@@ -362,21 +360,36 @@ const StoryArcDiagram: FC<StoryArcDiagramProps> = ({
                 return null;
               }
 
-              const markerId = arc.isGhost ? "arc-arrow-ghost" : "arc-arrow";
-              const markerUrl = `url(#${markerId})`;
+              const arrowClass = arc.isGhost
+                ? "story-overview__arc-arrowhead--ghost"
+                : "story-overview__arc-arrowhead";
+
+              const fwdPos = arcPointAt(startX, endX, 0.75);
+              const fwdAngle = arcAngleDeg(startX, endX, 0.75);
+              const bwdPos = arcPointAt(startX, endX, 0.25);
+              const bwdAngle = arcAngleDeg(startX, endX, 0.25) + 180;
 
               return (
-                <path
-                  key={`${arc.sourceIndex}-${arc.targetIndex}-${index}`}
-                  d={pathForArc(startX, endX, {
-                    trimStart: arc.isBidirectional,
-                  })}
-                  className={`story-overview__arc-path${
-                    arc.isGhost ? " story-overview__arc-path--ghost" : ""
-                  }`}
-                  markerEnd={markerUrl}
-                  markerStart={arc.isBidirectional ? markerUrl : undefined}
-                />
+                <g key={`${arc.sourceIndex}-${arc.targetIndex}-${index}`}>
+                  <path
+                    d={pathForArc(startX, endX)}
+                    className={`story-overview__arc-path${
+                      arc.isGhost ? " story-overview__arc-path--ghost" : ""
+                    }`}
+                  />
+                  <polygon
+                    points="-20,-10 0,0 -20,10"
+                    transform={`translate(${fwdPos.x},${fwdPos.y}) rotate(${fwdAngle})`}
+                    className={arrowClass}
+                  />
+                  {arc.isBidirectional && (
+                    <polygon
+                      points="-20,-10 0,0 -20,10"
+                      transform={`translate(${bwdPos.x},${bwdPos.y}) rotate(${bwdAngle})`}
+                      className={arrowClass}
+                    />
+                  )}
+                </g>
               );
             })}
           </g>
