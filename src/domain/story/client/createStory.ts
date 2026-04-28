@@ -1,17 +1,11 @@
 "use client";
 
+import { type ErrorCodedContext, ErrorCodes } from "@domain/error/errorCode";
 import { z } from "zod";
 
-import { ErrorCodeModel, ErrorCodes } from "@domain/error/errorCode";
-
-const CreateStoryResponseErrorModel = z.object({
-  errorCode: ErrorCodeModel,
-  context: z.record(z.string(), z.unknown()).optional(),
+export const CreateStoryResponseModel = z.object({
+  id: z.number().int(),
 });
-
-export type CreateStoryResponseError = z.infer<
-  typeof CreateStoryResponseErrorModel
->;
 
 export type StoryCreated = {
   kind: "storyCreated";
@@ -20,7 +14,7 @@ export type StoryCreated = {
 
 export type StoryCreationError = {
   kind: "error";
-  error: CreateStoryResponseError;
+  error: ErrorCodedContext<unknown>;
 };
 
 export type CreateStoryResult = StoryCreated | StoryCreationError;
@@ -34,54 +28,48 @@ async function createStory(): Promise<CreateStoryResult> {
     });
 
     if (!response.ok) {
-      return errorResult(response);
-    }
-
-    if (!response.headers.has("Location")) {
-      console.warn('Response is missing the "Location" header');
-
       return {
         kind: "error",
         error: {
           errorCode: ErrorCodes.Error,
+          context: `Error creating story: "${response.statusText}"`,
         },
       };
     }
 
-    const maybeUrl = response.headers.get("Location");
-
-    if (!maybeUrl) {
-      console.warn(
-        'The "Location" header with the URL of the created story is blank',
-      );
-
+    if (response.status !== 200) {
       return {
         kind: "error",
         error: {
           errorCode: ErrorCodes.Error,
+          context: `Error creating story: expecting 200, got ${response.status}`,
         },
       };
     }
 
-    try {
-      const url = new URL(maybeUrl).href;
+    const result = CreateStoryResponseModel.safeParse(await response.json());
 
-      return {
-        kind: "storyCreated",
-        url,
-      };
-    } catch {
-      console.warn(
-        'The "Location" header with the URL of the created story is malformed',
-      );
-
+    if (result.error) {
       return {
         kind: "error",
         error: {
           errorCode: ErrorCodes.Error,
+          context: `Error creating story, malformed response: ${result.error.format()}`,
         },
       };
     }
+
+    const story = result.data;
+
+    const url = new URL(
+      `/author/story/${story.id}`,
+      new URL(window.location.toString()).origin,
+    ).href;
+
+    return {
+      kind: "storyCreated",
+      url,
+    };
   } catch (err) {
     return {
       kind: "error",
@@ -96,23 +84,3 @@ async function createStory(): Promise<CreateStoryResult> {
 }
 
 export default createStory;
-
-async function errorResult(response: Response): Promise<StoryCreationError> {
-  const body = await response.json();
-
-  const error = CreateStoryResponseErrorModel.safeParse(body);
-
-  if (error.success) {
-    return {
-      kind: "error",
-      error: error.data,
-    };
-  }
-
-  return {
-    kind: "error",
-    error: {
-      errorCode: ErrorCodes.Error,
-    },
-  };
-}
