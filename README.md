@@ -8,10 +8,10 @@ Note that you'll need some:
 ```shell
 $ git clone https://github.com/BrookesUniversityLearningResources/vsat.git
 $ cd vsat
-$ nvm use 24
+$ nvm use
 $ npm install
 $ docker compose up --detach db
-$ npm run dev
+$ npm run dev:hot
 ```
 
-[Open the home page.](http://localhost:3000/)
+[Open the home page.](http://localhost:4321/)
