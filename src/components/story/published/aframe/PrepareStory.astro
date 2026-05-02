@@ -63,6 +63,11 @@ const serializedStory = DOMPurify.sanitize(
    */
   const FICTION_TEXT_Z = 0.25;
 
+  // Panel right edge is at x = (MAX_WIDTH + 1) / 2 = 3.5; tray (width 1.0)
+  // centred at 4.0 sits flush against that edge with no gap.
+  const TRAY_X = 4.0;
+  const TRAY_WIDTH = 1.0;
+
   const OPACITY = 0.75;
 
   const THEME = Object.freeze({
@@ -79,6 +84,11 @@ const serializedStory = DOMPurify.sanitize(
         background: "#2C3E50",
         backgroundActive: "#3C5976",
         text: "#ECF0F1",
+      },
+      audio: {
+        background: "#079C0F",
+        backgroundActive: "#09C312",
+        icon: "#ECF0F1",
       },
     },
   });
@@ -167,13 +177,14 @@ const serializedStory = DOMPurify.sanitize(
 
           fiction.appendChild(titleCard);
         } else {
+          const headingText =
+            current.page.content.find(isHeadingBlock)?.text || "";
+          const headingLineCount = countLines(headingText);
           const heading = (() => {
-            const text = current.page.content.find(isHeadingBlock)?.text || "";
-
             const entity = document.createElement("a-entity");
             entity.setAttribute(
               "block-heading",
-              `text: ${text}; lineCount: ${countLines(text)}`,
+              `text: ${headingText}; lineCount: ${headingLineCount}`,
             );
 
             return entity;
@@ -222,6 +233,20 @@ const serializedStory = DOMPurify.sanitize(
           links.forEach((link) => fiction.appendChild(link));
           fiction.appendChild(content);
           fiction.appendChild(heading);
+
+          if (current.scene.audio) {
+            const storyEl = document.querySelector("[story]");
+            const isPlaying = options.isSceneChange
+              ? true
+              : (storyEl?.components?.sound?.isPlaying ?? true);
+
+            const panel = document.createElement("a-entity");
+            panel.setAttribute(
+              "control-panel",
+              `headingLineCount: ${headingLineCount}; isPlaying: ${isPlaying}`,
+            );
+            fiction.appendChild(panel);
+          }
         }
       }
     },
@@ -406,4 +431,134 @@ const serializedStory = DOMPurify.sanitize(
       parent.removeChild(parent.firstChild);
     }
   }
+
+  AFRAME.registerComponent("play-pause-toggle", {
+    schema: {
+      isPlaying: { type: "boolean", default: true },
+    },
+    init: function () {
+      const box = document.createElement("a-box");
+      box.setAttribute("color", "#079C0F");
+      box.setAttribute("width", 0.9);
+      box.setAttribute("height", 0.9);
+      box.setAttribute("depth", 0.3);
+      box.setAttribute("data-raycastable", "");
+      box.setAttribute("opacity", OPACITY);
+
+      box.setAttribute(
+        "event-set__mouseenter",
+        `color: ${THEME.color.audio.backgroundActive}`,
+      );
+      box.setAttribute(
+        "event-set__mouseleave",
+        `color: ${THEME.color.audio.background}`,
+      );
+
+      // a play button ▶️
+      const playIcon = document.createElement("a-triangle");
+      playIcon.setAttribute("color", `${THEME.color.audio.icon}`);
+      playIcon.setAttribute("rotation", "0 0 -90");
+      playIcon.setAttribute("position", "0.05 0 0.2");
+      playIcon.setAttribute("scale", "0.6 0.6 0.6");
+
+      // a pause button ⏸️
+      const pauseIcon = document.createElement("a-entity");
+      const barL = document.createElement("a-box");
+      barL.setAttribute("color", `${THEME.color.audio.icon}`);
+      barL.setAttribute("width", 0.14);
+      barL.setAttribute("height", 0.48);
+      barL.setAttribute("depth", 0.05);
+      barL.setAttribute("position", "-0.14 0 0.2");
+      const barR = document.createElement("a-box");
+      barR.setAttribute("color", `${THEME.color.audio.icon}`);
+      barR.setAttribute("width", 0.14);
+      barR.setAttribute("height", 0.48);
+      barR.setAttribute("depth", 0.05);
+      barR.setAttribute("position", "0.14 0 0.2");
+      pauseIcon.appendChild(barL);
+      pauseIcon.appendChild(barR);
+
+      this.playIcon = playIcon;
+      this.pauseIcon = pauseIcon;
+
+      this.el.appendChild(box);
+      this.el.appendChild(playIcon);
+      this.el.appendChild(pauseIcon);
+
+      this._syncIcons();
+
+      const storyEl = document.querySelector("[story]");
+      if (storyEl) {
+        this._onSoundEnded = () => {
+          this.el.setAttribute("play-pause-toggle", "isPlaying", false);
+        };
+        storyEl.addEventListener("sound-ended", this._onSoundEnded);
+      }
+    },
+    remove: function () {
+      const storyEl = document.querySelector("[story]");
+      if (storyEl && this._onSoundEnded) {
+        storyEl.removeEventListener("sound-ended", this._onSoundEnded);
+      }
+    },
+    update: function () {
+      if (this.playIcon) {
+        this._syncIcons();
+      }
+    },
+    _syncIcons: function () {
+      this.playIcon.setAttribute("visible", String(!this.data.isPlaying));
+      this.pauseIcon.setAttribute("visible", String(this.data.isPlaying));
+    },
+    events: {
+      click: function () {
+        const storyEl = document.querySelector("[story]");
+        const sound = storyEl?.components?.sound;
+        if (!sound) {
+          return;
+        }
+
+        if (sound.isPlaying) {
+          sound.pauseSound();
+          this.el.setAttribute("play-pause-toggle", "isPlaying", false);
+        } else {
+          sound.playSound();
+          this.el.setAttribute("play-pause-toggle", "isPlaying", true);
+        }
+      },
+    },
+  });
+
+  AFRAME.registerComponent("control-panel", {
+    schema: {
+      headingLineCount: { type: "number", default: 1 },
+      isPlaying: { type: "boolean", default: true },
+    },
+    init: function () {
+      const headingY =
+        this.data.headingLineCount === 1
+          ? FICTION_Y
+          : FICTION_Y + this.data.headingLineCount * 0.125;
+
+      this.el.setAttribute("position", `${TRAY_X} ${headingY} 0`);
+
+      const trayHeight =
+        this.data.headingLineCount === 1
+          ? 1
+          : 1 + this.data.headingLineCount * 0.25;
+
+      const trayBackground = document.createElement("a-box");
+      trayBackground.setAttribute("color", THEME.color.primary.background);
+      trayBackground.setAttribute("width", TRAY_WIDTH);
+      trayBackground.setAttribute("height", trayHeight);
+      trayBackground.setAttribute("depth", FICTION_TEXT_Z);
+      trayBackground.setAttribute("opacity", OPACITY);
+
+      const toggle = document.createElement("a-entity");
+      toggle.setAttribute("play-pause-toggle", `isPlaying: ${this.data.isPlaying}`);
+
+      this.el.appendChild(trayBackground);
+      this.el.appendChild(toggle);
+    },
+  });
 </script>
