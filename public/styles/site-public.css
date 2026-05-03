@@ -7,7 +7,7 @@
 * {
   margin: 0;
 
-  --color-bg: #ececec;
+  --color-bg: #f6f3ee;
   --color-action-primary: #4e6378;
   --color-text: #ecf0f1;
 
@@ -20,6 +20,12 @@
 
 body {
   background-color: var(--color-bg);
+  background-position:
+    0px 0px,
+    50px 50px;
+  background-size: 30px 30px;
+  background-repeat: repeat;
+  background-image: radial-gradient(rgba(0, 0, 0, 0.23) 5%, transparent 5%);
   font-family: "Source Sans Pro", system-ui, sans-serif;
   display: flex;
   flex-direction: column;
