@@ -295,7 +295,7 @@
         "label": "Virtual Storytelling Application Toolkit",
         "strapline": "Write interactive stories.",
         "logo": {
-          "alt-text": "VSAT logo"
+          "alt-text": "A scene in VSAT"
         }
       },
       "cta": {
@@ -342,6 +342,6 @@
     "logout": {
       "label": "Log out"
     },
-    "copyright": "Copyright © 2025 Oxford Brookes University • Learning Resources"
+    "copyright": "Copyright © 2026 Oxford Brookes University • Learning Resources"
   }
 }
