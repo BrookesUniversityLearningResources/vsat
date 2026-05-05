@@ -1565,7 +1565,216 @@ const clientData = {
       prevHighlightSphere = node;
     };
 
+    const escAttr = (value) =>
+      String(value)
+        .replace(/&/g, "&amp;")
+        .replace(/"/g, "&quot;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+
+    // --- In-planetarium "Propose link" flow ---
+    // States: null (idle) | { phase: "pickTarget" | "fillForm" | "submitting"
+    //   | "success" | "error" | "needsAuth", from..., to..., message? }
+    let linkingState = null;
+
+    const nodeMeta = (node) => {
+      const sceneId = node.getAttribute("data-scene-id") || "";
+      const isHub = sceneId.endsWith("-hub");
+      const storyId = node.getAttribute("data-story-id") || "";
+      const dbSceneId = node.getAttribute("data-db-scene-id") || "";
+      const sceneTitle = node.getAttribute("data-scene-title") || "";
+      const storyTitle = node.getAttribute("data-story-title") || "";
+      return { sceneId, isHub, storyId, dbSceneId, sceneTitle, storyTitle };
+    };
+
+    const renderLinkingPanel = () => {
+      if (!linkingState) return;
+      const { from, to, phase, message } = linkingState;
+      const fromLabel = from.isHub
+        ? from.storyTitle
+        : from.sceneTitle + ' · ' + from.storyTitle;
+      const toLabel = to
+        ? (to.isHub ? to.storyTitle : to.sceneTitle + ' · ' + to.storyTitle)
+        : "";
+
+      let html = '<div class="vsatlatarium__linking">';
+      html += '<p class="vsatlatarium__linking-title">Proposing a link</p>';
+      html += '<p class="vsatlatarium__linking-pair">';
+      html += '<span class="vsatlatarium__linking-from">' + escAttr(fromLabel) + '</span>';
+      html += '<span class="vsatlatarium__linking-arrow">&rarr;</span>';
+      html += to
+        ? '<span class="vsatlatarium__linking-to">' + escAttr(toLabel) + '</span>'
+        : '<span class="vsatlatarium__linking-to vsatlatarium__linking-to--placeholder">pick a target node</span>';
+      html += '</p>';
+
+      if (phase === "pickTarget") {
+        html += '<p class="vsatlatarium__linking-hint">Click another node to set the target. Press Esc or Cancel to back out.</p>';
+        html += '<button type="button" class="vsatlatarium__linking-btn vsatlatarium__linking-btn--ghost" data-linking-cancel>Cancel</button>';
+      } else if (phase === "fillForm" || phase === "submitting") {
+        html += '<form class="vsatlatarium__linking-form" data-linking-form>';
+        html += '<label class="vsatlatarium__linking-label">Link type'
+          + '<select name="linkType">'
+          + '<option value="adjacency">Adjacency</option>'
+          + '<option value="thematic" selected>Thematic</option>'
+          + '<option value="causal">Causal</option>'
+          + '<option value="contrast">Contrast</option>'
+          + '</select></label>';
+        html += '<label class="vsatlatarium__linking-label">Rationale'
+          + '<textarea name="rationale" rows="3" required '
+          + 'placeholder="Why are these stories connected?"></textarea></label>';
+        const submitting = phase === "submitting";
+        html += '<div class="vsatlatarium__linking-actions">';
+        html += '<button type="submit" class="vsatlatarium__linking-btn"' + (submitting ? ' disabled' : '') + '>'
+          + (submitting ? 'Submitting…' : 'Propose') + '</button>';
+        html += '<button type="button" class="vsatlatarium__linking-btn vsatlatarium__linking-btn--ghost" data-linking-cancel>Cancel</button>';
+        html += '</div>';
+        html += '</form>';
+      } else if (phase === "success") {
+        html += '<p class="vsatlatarium__linking-msg vsatlatarium__linking-msg--ok">Proposed. Reload the planetarium to see the new arc.</p>';
+        html += '<div class="vsatlatarium__linking-actions">';
+        html += '<button type="button" class="vsatlatarium__linking-btn" data-linking-reload>Reload</button>';
+        html += '<button type="button" class="vsatlatarium__linking-btn vsatlatarium__linking-btn--ghost" data-linking-cancel>Close</button>';
+        html += '</div>';
+      } else if (phase === "needsAuth") {
+        html += '<p class="vsatlatarium__linking-msg vsatlatarium__linking-msg--warn">Log in to propose a link.</p>';
+        html += '<div class="vsatlatarium__linking-actions">';
+        html += '<a class="vsatlatarium__linking-btn" href="/login" target="_blank" rel="noopener">Log in</a>';
+        html += '<button type="button" class="vsatlatarium__linking-btn vsatlatarium__linking-btn--ghost" data-linking-cancel>Close</button>';
+        html += '</div>';
+      } else if (phase === "error") {
+        html += '<p class="vsatlatarium__linking-msg vsatlatarium__linking-msg--err">' + escAttr(message || 'Something went wrong.') + '</p>';
+        html += '<div class="vsatlatarium__linking-actions">';
+        html += '<button type="button" class="vsatlatarium__linking-btn" data-linking-retry>Try again</button>';
+        html += '<button type="button" class="vsatlatarium__linking-btn vsatlatarium__linking-btn--ghost" data-linking-cancel>Cancel</button>';
+        html += '</div>';
+      }
+
+      html += '</div>';
+      infoEl.innerHTML = html;
+    };
+
+    const enterLinkingMode = (fromNode) => {
+      const from = nodeMeta(fromNode);
+      if (!from.storyId) return;
+      linkingState = { from, to: null, phase: "pickTarget" };
+      canvas.style.cursor = "crosshair";
+      renderLinkingPanel();
+    };
+
+    const exitLinkingMode = () => {
+      const wasLinking = !!linkingState;
+      linkingState = null;
+      if (wasLinking) {
+        canvas.style.cursor = "";
+        if (hoveredNode) showInfo(hoveredNode);
+        else infoEl.innerHTML = "";
+      }
+    };
+
+    const submitProposal = async () => {
+      if (!linkingState || !linkingState.to) return;
+      const form = infoEl.querySelector("[data-linking-form]");
+      if (!form) return;
+      const data = new FormData(form);
+      const rationale = String(data.get("rationale") || "").trim();
+      const linkType = String(data.get("linkType") || "thematic");
+      if (!rationale) return;
+
+      linkingState.phase = "submitting";
+      renderLinkingPanel();
+
+      const body = {
+        toStoryId: Number(linkingState.to.storyId),
+        linkType,
+        rationale,
+      };
+      if (linkingState.to.dbSceneId) {
+        body.toSceneId = Number(linkingState.to.dbSceneId);
+      }
+
+      try {
+        const res = await fetch(
+          "/api/story/" + encodeURIComponent(linkingState.from.storyId) + "/links",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+            credentials: "same-origin",
+          },
+        );
+        if (res.ok) {
+          linkingState.phase = "success";
+        } else if (res.status === 401 || res.status === 403) {
+          linkingState.phase = "needsAuth";
+        } else {
+          linkingState.phase = "error";
+          linkingState.message = "Server returned " + res.status + ".";
+        }
+      } catch (err) {
+        linkingState.phase = "error";
+        linkingState.message = "Network error: " + (err?.message || err);
+      }
+      renderLinkingPanel();
+    };
+
+    // Delegated handlers for the panel buttons / form (panel HTML is
+    // rebuilt on each transition, so direct listeners would be lost).
+    infoEl.addEventListener("click", (e) => {
+      const target = e.target instanceof Element ? e.target : null;
+      if (!target) return;
+      if (target.closest("[data-linking-cancel]")) {
+        exitLinkingMode();
+        return;
+      }
+      if (target.closest("[data-linking-reload]")) {
+        window.location.reload();
+        return;
+      }
+      if (target.closest("[data-linking-retry]")) {
+        if (linkingState) {
+          linkingState.phase = "fillForm";
+          linkingState.message = undefined;
+          renderLinkingPanel();
+        }
+        return;
+      }
+      const proposeBtn = target.closest("[data-propose-from]");
+      if (proposeBtn) {
+        e.preventDefault();
+        const fromStoryId = proposeBtn.getAttribute("data-from-story-id") || "";
+        const fromSceneId = proposeBtn.getAttribute("data-from-db-scene-id") || "";
+        const fromIsHub = proposeBtn.getAttribute("data-from-is-hub") === "1";
+        const fromSceneTitle = proposeBtn.getAttribute("data-from-scene-title") || "";
+        const fromStoryTitle = proposeBtn.getAttribute("data-from-story-title") || "";
+        linkingState = {
+          from: {
+            storyId: fromStoryId,
+            dbSceneId: fromSceneId,
+            isHub: fromIsHub,
+            sceneTitle: fromSceneTitle,
+            storyTitle: fromStoryTitle,
+          },
+          to: null,
+          phase: "pickTarget",
+        };
+        canvas.style.cursor = "crosshair";
+        renderLinkingPanel();
+      }
+    });
+
+    infoEl.addEventListener("submit", (e) => {
+      const form = e.target instanceof Element ? e.target.closest("[data-linking-form]") : null;
+      if (!form) return;
+      e.preventDefault();
+      submitProposal();
+    });
+
+    window.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && linkingState) exitLinkingMode();
+    });
+
     const showInfo = (node) => {
+      if (linkingState) return; // panel locked while linking
       const sceneTitle = node.getAttribute("data-scene-title");
       const storyTitle = node.getAttribute("data-story-title");
       const pageCount = node.getAttribute("data-page-count");
@@ -1573,6 +1782,7 @@ const clientData = {
       const sceneId = node.getAttribute("data-scene-id") || "";
       const storyId = node.getAttribute("data-story-id");
       const isHub = sceneId.endsWith("-hub");
+      const dbSceneId = node.getAttribute("data-db-scene-id") || "";
 
       let html = '<p class="vsatlatarium__info-story">' + storyTitle + '</p>';
       if (isHub) {
@@ -1602,13 +1812,21 @@ const clientData = {
       }
 
       if (storyId) {
-        const dbSceneId = node.getAttribute("data-db-scene-id") || "";
         const proposeHref = "/author/story/" + storyId + "/links"
           + (dbSceneId ? ("?contextSceneId=" + encodeURIComponent(dbSceneId)) : "")
           + "#propose";
-        html += '<a class="vsatlatarium__info-propose" href="' + proposeHref
-          + '" target="_blank" rel="noopener">Propose link from this '
-          + (isHub ? 'story' : 'scene') + ' &rarr;</a>';
+        html += '<div class="vsatlatarium__info-actions">';
+        html += '<button type="button" class="vsatlatarium__info-propose" '
+          + 'data-propose-from '
+          + 'data-from-story-id="' + escAttr(storyId) + '" '
+          + 'data-from-db-scene-id="' + escAttr(dbSceneId) + '" '
+          + 'data-from-is-hub="' + (isHub ? "1" : "0") + '" '
+          + 'data-from-scene-title="' + escAttr(sceneTitle || "") + '" '
+          + 'data-from-story-title="' + escAttr(storyTitle || "") + '">'
+          + 'Propose link from this ' + (isHub ? 'story' : 'scene') + ' &rarr;</button>';
+        html += '<a class="vsatlatarium__info-propose-alt" href="' + proposeHref
+          + '" target="_blank" rel="noopener">open form &#x2197;</a>';
+        html += '</div>';
       }
 
       infoEl.innerHTML = html;
@@ -1618,18 +1836,21 @@ const clientData = {
     const initInteraction = () => {
       collectNodes();
 
+      // Sticky info panel: clear the highlight ring and cursor when the
+      // mouse leaves a node, but keep the last-shown info panel visible
+      // so its propose-link button stays reachable in the sidebar.
+      const linkingCursor = () =>
+        linkingState && linkingState.phase === "pickTarget" ? "crosshair" : "";
       window.addEventListener("mousemove", (e) => {
         if (isDragging) return;
         if (!sceneEl.canvas) return;
         const rect = sceneEl.canvas.getBoundingClientRect();
-        // Only process if mouse is over the canvas area
         if (e.clientX < rect.left || e.clientX > rect.right ||
             e.clientY < rect.top || e.clientY > rect.bottom) {
           if (hoveredNode) {
             hoveredNode = null;
             highlightNode(null);
-            infoEl.innerHTML = '';
-            canvas.style.cursor = "";
+            canvas.style.cursor = linkingCursor();
           }
           return;
         }
@@ -1639,10 +1860,11 @@ const clientData = {
           highlightNode(hit);
           if (hit) {
             showInfo(hit);
-            canvas.style.cursor = "pointer";
+            canvas.style.cursor = linkingState && linkingState.phase === "pickTarget"
+              ? "crosshair"
+              : "pointer";
           } else {
-            infoEl.innerHTML = '';
-            canvas.style.cursor = "";
+            canvas.style.cursor = linkingCursor();
           }
         }
       });
@@ -1650,15 +1872,30 @@ const clientData = {
       canvas.addEventListener("click", (e) => {
         if (dragTotal > 5) return;
         const hit = findNearest(e.clientX, e.clientY);
-        if (hit) {
-          const storyId = hit.getAttribute("data-story-id");
-          if (storyId) {
-            const dbSceneId = hit.getAttribute("data-db-scene-id") || "";
-            const sceneQuery = dbSceneId
-              ? "?scene=" + encodeURIComponent(dbSceneId)
-              : "";
-            window.location.href = "/story/" + storyId + sceneQuery;
-          }
+        if (!hit) return;
+
+        // Linking-mode pick: capture target and switch to form phase
+        if (linkingState && linkingState.phase === "pickTarget") {
+          const to = nodeMeta(hit);
+          if (!to.storyId) return;
+          // Disallow self-link (same scene). Allow same-story different-scene
+          // and story↔story (hub↔hub) for now.
+          const fromKey = linkingState.from.storyId + ":" + linkingState.from.dbSceneId;
+          const toKey = to.storyId + ":" + to.dbSceneId;
+          if (fromKey === toKey) return;
+          linkingState.to = to;
+          linkingState.phase = "fillForm";
+          renderLinkingPanel();
+          return;
+        }
+
+        const storyId = hit.getAttribute("data-story-id");
+        if (storyId) {
+          const dbSceneId = hit.getAttribute("data-db-scene-id") || "";
+          const sceneQuery = dbSceneId
+            ? "?scene=" + encodeURIComponent(dbSceneId)
+            : "";
+          window.location.href = "/story/" + storyId + sceneQuery;
         }
       });
     };
@@ -2177,9 +2414,16 @@ const clientData = {
     font-style: italic;
   }
 
+  :global(.vsatlatarium__info-actions) {
+    margin-top: 0.55rem;
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
   :global(.vsatlatarium__info-propose) {
     display: inline-block;
-    margin-top: 0.55rem;
     padding: 0.3rem 0.6rem;
     border: 1px solid #4cc9f0;
     border-radius: 999px;
@@ -2187,13 +2431,163 @@ const clientData = {
     color: #4cc9f0;
     font-size: 0.78rem;
     font-weight: 600;
+    font-family: inherit;
     text-decoration: none;
+    cursor: pointer;
     transition: background 0.15s ease, color 0.15s ease;
   }
 
   :global(.vsatlatarium__info-propose:hover) {
     background: #4cc9f0;
     color: #07103a;
+  }
+
+  :global(.vsatlatarium__info-propose-alt) {
+    color: #88a8c8;
+    font-size: 0.7rem;
+    text-decoration: none;
+    opacity: 0.75;
+  }
+
+  :global(.vsatlatarium__info-propose-alt:hover) {
+    opacity: 1;
+    text-decoration: underline;
+  }
+
+  :global(.vsatlatarium__linking) {
+    display: grid;
+    gap: 0.55rem;
+  }
+
+  :global(.vsatlatarium__linking-title) {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #f06292;
+    margin: 0;
+  }
+
+  :global(.vsatlatarium__linking-pair) {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    align-items: baseline;
+    font-size: 0.85rem;
+    color: #e2eaff;
+    margin: 0;
+  }
+
+  :global(.vsatlatarium__linking-from),
+  :global(.vsatlatarium__linking-to) {
+    font-weight: 600;
+  }
+
+  :global(.vsatlatarium__linking-arrow) {
+    color: #f06292;
+  }
+
+  :global(.vsatlatarium__linking-to--placeholder) {
+    color: #88a8c8;
+    font-weight: 400;
+    font-style: italic;
+  }
+
+  :global(.vsatlatarium__linking-hint) {
+    font-size: 0.75rem;
+    color: #aabbcc;
+    margin: 0;
+  }
+
+  :global(.vsatlatarium__linking-form) {
+    display: grid;
+    gap: 0.5rem;
+  }
+
+  :global(.vsatlatarium__linking-label) {
+    display: grid;
+    gap: 0.25rem;
+    font-size: 0.7rem;
+    color: #aabbcc;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  :global(.vsatlatarium__linking-label select),
+  :global(.vsatlatarium__linking-label textarea) {
+    background: rgba(10, 14, 42, 0.6);
+    color: #e2eaff;
+    border: 1px solid #2a3360;
+    border-radius: 0.4rem;
+    padding: 0.35rem 0.5rem;
+    font-family: inherit;
+    font-size: 0.85rem;
+    text-transform: none;
+    letter-spacing: normal;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  :global(.vsatlatarium__linking-label textarea) {
+    resize: vertical;
+    min-height: 3.5rem;
+  }
+
+  :global(.vsatlatarium__linking-actions) {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  :global(.vsatlatarium__linking-btn) {
+    display: inline-block;
+    padding: 0.35rem 0.7rem;
+    border: 1px solid #f06292;
+    border-radius: 999px;
+    background: #f06292;
+    color: #1a1033;
+    font-size: 0.78rem;
+    font-weight: 600;
+    font-family: inherit;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease, opacity 0.15s ease;
+  }
+
+  :global(.vsatlatarium__linking-btn:hover) {
+    background: #ff8ab0;
+    border-color: #ff8ab0;
+  }
+
+  :global(.vsatlatarium__linking-btn:disabled) {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  :global(.vsatlatarium__linking-btn--ghost) {
+    background: transparent;
+    color: #f06292;
+  }
+
+  :global(.vsatlatarium__linking-btn--ghost:hover) {
+    background: rgba(240, 98, 146, 0.15);
+    color: #ff8ab0;
+  }
+
+  :global(.vsatlatarium__linking-msg) {
+    font-size: 0.8rem;
+    margin: 0;
+  }
+
+  :global(.vsatlatarium__linking-msg--ok) {
+    color: #6cd39c;
+  }
+
+  :global(.vsatlatarium__linking-msg--warn) {
+    color: #ffd166;
+  }
+
+  :global(.vsatlatarium__linking-msg--err) {
+    color: #ef476f;
   }
 
   .vsatlatarium__list {
