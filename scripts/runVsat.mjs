@@ -33,8 +33,26 @@ const DATABASE_URL =
 const dbUrl = new URL(DATABASE_URL);
 const dbHost = dbUrl.hostname;
 const dbPort = Number(dbUrl.port || "5432");
+const dbName = decodeURIComponent(dbUrl.pathname.replace(/^\//, ""));
 const astroPort = 4321;
 const apiPort = Number(env.DEV_API_PORT ?? "3001");
+
+const readProfileForDatabase = (databaseName) => {
+  const profilesPath = path.resolve(process.cwd(), "data/vsat-profiles.json");
+  if (!existsSync(profilesPath)) return null;
+
+  const profileConfig = JSON.parse(readFileSync(profilesPath, "utf8"));
+  for (const [name, profile] of Object.entries(profileConfig.profiles ?? {})) {
+    if (profile.database === databaseName) {
+      return { name, ...profile };
+    }
+  }
+
+  return null;
+};
+
+const activeProfile = readProfileForDatabase(dbName);
+const skipDevelopmentSeed = activeProfile?.source?.type === "generated";
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -147,13 +165,19 @@ if (!existsSync(migrateScriptPath)) {
 console.log("[run-vsat] Running local database migrations...");
 runCommand("npm", ["run", "db:migrate:local"], "npm run db:migrate:local");
 
-if (!existsSync(seedScriptPath)) {
-  console.log("[run-vsat] Building server artifacts for seed...");
-  runCommand("npm", ["run", "build:server"], "npm run build:server");
-}
+if (skipDevelopmentSeed) {
+  console.log(
+    `[run-vsat] Skipping development seed for generated profile ${activeProfile.name} (${dbName}).`,
+  );
+} else {
+  if (!existsSync(seedScriptPath)) {
+    console.log("[run-vsat] Building server artifacts for seed...");
+    runCommand("npm", ["run", "build:server"], "npm run build:server");
+  }
 
-console.log("[run-vsat] Seeding database (idempotent)...");
-runCommand("npm", ["run", "db:seed:local"], "npm run db:seed:local");
+  console.log("[run-vsat] Seeding database (idempotent)...");
+  runCommand("npm", ["run", "db:seed:local"], "npm run db:seed:local");
+}
 
 console.log("[run-vsat] Starting VSAT dev stack...");
 const child = startCommand("npm", ["run", "dev:hot"]);
