@@ -871,8 +871,12 @@ const clientData = {
     const turntable = document.getElementById("vsat-turntable");
     const { isPlanetarium } = clientData;
 
-    let rotY = 0; // yaw in degrees
-    let rotX = 0; // pitch in degrees
+    // Trackball-style rotation: a quaternion accumulator on the
+    // turntable lets the user rotate the world around any screen-space
+    // axis, no Euler-clamp at ±85° pitch and no missing roll. Drags
+    // are pre-multiplied so the rotation axes stay camera-fixed (the
+    // "sphere supported by water" feel).
+    const turntableQuat = new THREE.Quaternion();
     let camZ = isPlanetarium ? 0 : geomViewCameraDefaultZ; // camera distance along Z
     const camZDefault = camZ;
     const camZMin = isPlanetarium
@@ -885,9 +889,10 @@ const clientData = {
     let dragTotal = 0;
     let lastMouse = { x: 0, y: 0 };
 
-    // In planetarium mode, drag direction is inverted (you're inside the sphere)
+    // In planetarium mode, drag direction is inverted (you're inside the sphere).
     const dragSign = isPlanetarium ? -1 : 1;
-    const dragSpeed = isPlanetarium ? 0.2 : 0.3;
+    // Radians of rotation per pixel of drag.
+    const dragAngleScale = isPlanetarium ? 0.005 : 0.008;
 
     const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
@@ -895,7 +900,9 @@ const clientData = {
 
     const applyTransform = () => {
       if (!turntable) return;
-      turntable.setAttribute("rotation", `${rotX} ${rotY} 0`);
+      if (turntable.object3D) {
+        turntable.object3D.quaternion.copy(turntableQuat);
+      }
       // Move camera rig along Z axis (toward/away from dome)
       if (camRig) {
         camRig.setAttribute("position", `0 0 ${camZ}`);
@@ -933,14 +940,28 @@ const clientData = {
 
     canvas.addEventListener("contextmenu", (e) => e.preventDefault());
 
+    // Reusable buffers so we don't allocate on every mousemove tick.
+    const _dragAxis = new THREE.Vector3();
+    const _dragDelta = new THREE.Quaternion();
+
     window.addEventListener("mousemove", (e) => {
       if (!isDragging) return;
       const dx = e.clientX - lastMouse.x;
       const dy = e.clientY - lastMouse.y;
       dragTotal += Math.abs(dx) + Math.abs(dy);
       lastMouse = { x: e.clientX, y: e.clientY };
-      rotY += dx * dragSpeed * dragSign;
-      rotX = clamp(rotX + dy * dragSpeed * dragSign, -85, 85);
+      const len = Math.hypot(dx, dy);
+      if (len < 0.01) return;
+      // Rotation axis is perpendicular to the drag in screen space:
+      // horizontal drag → camera-up axis (yaw), vertical drag →
+      // camera-right axis (pitch). Diagonal drags rotate around an
+      // intermediate axis, which is what gives the trackball feel.
+      _dragAxis.set(dy, dx, 0).normalize();
+      const angle = len * dragAngleScale * dragSign;
+      _dragDelta.setFromAxisAngle(_dragAxis, angle);
+      // Pre-multiply: the new rotation is applied in the camera frame,
+      // so the axes don't drift as the world rotates underneath.
+      turntableQuat.premultiply(_dragDelta).normalize();
       applyTransform();
     });
 
@@ -1016,8 +1037,7 @@ const clientData = {
 
     // Reset button
     document.getElementById("vsat-reset-cam")?.addEventListener("click", () => {
-      rotY = 0;
-      rotX = 0;
+      turntableQuat.identity();
       camZ = camZDefault;
       applyTransform();
     });
@@ -1915,15 +1935,20 @@ const clientData = {
     }
 
     // --- Story list: rotate turntable to face cluster toward camera ---
+    const _facingFrom = new THREE.Vector3();
+    const _facingTo = new THREE.Vector3(0, 0, 1);
     document.querySelectorAll(".vsatlatarium__story").forEach((button) => {
       button.addEventListener("click", () => {
         const storyId = Number(button.getAttribute("data-story-id"));
         const cluster = clientData.clusters.find((c) => c.storyId === storyId);
         if (!cluster) return;
         const c = cluster.center;
-        // Rotate so this cluster faces the camera (camera is at +Z)
-        rotY = -Math.atan2(c.x, c.z) * (180 / Math.PI);
-        rotX = Math.asin(clamp(c.y / (Math.sqrt(c.x*c.x + c.y*c.y + c.z*c.z) || 1), -1, 1)) * (180 / Math.PI);
+        // Build a quaternion that rotates the cluster's centre direction
+        // onto the camera's forward axis (+Z), regardless of the
+        // turntable's current orientation.
+        _facingFrom.set(c.x, c.y, c.z).normalize();
+        if (_facingFrom.lengthSq() < 1e-6) _facingFrom.set(0, 0, 1);
+        turntableQuat.setFromUnitVectors(_facingFrom, _facingTo);
         // Move camera partway toward the cluster
         camZ = isPlanetarium ? -12 : 18;
         applyTransform();
@@ -2042,12 +2067,19 @@ const clientData = {
         });
       });
 
-      // Thumbstick rotation — either controller rotates the turntable
+      // Thumbstick rotation — same trackball composition as the
+      // mouse-drag path, just driven by joystick deflection.
+      const _vrAxis = new THREE.Vector3();
+      const _vrDelta = new THREE.Quaternion();
       const onThumbstick = (evt) => {
         const { x, y } = evt.detail;
         if (Math.abs(x) < 0.15 && Math.abs(y) < 0.15) return; // dead zone
-        rotY += x * 1.5 * dragSign;
-        rotX = clamp(rotX + y * 1.5 * dragSign, -85, 85);
+        const len = Math.hypot(x, y);
+        // Same screen-space → world axis mapping as mouse drag.
+        _vrAxis.set(y, x, 0).normalize();
+        const angle = len * 0.04 * dragSign; // tuned for thumbstick units
+        _vrDelta.setFromAxisAngle(_vrAxis, angle);
+        turntableQuat.premultiply(_vrDelta).normalize();
         applyTransform();
       };
 
