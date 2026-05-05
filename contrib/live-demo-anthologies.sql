@@ -51,17 +51,22 @@ INSERT INTO pilot_story (pilot_id, story_id) VALUES
   ((SELECT id FROM pilot WHERE title = 'Lived Experience'), 409),
   ((SELECT id FROM pilot WHERE title = 'Lived Experience'), 154);
 
--- Interpretive links. Eight total: six accepted (preseeded with one
--- accept vote each so the audit trail is honest), two left as
--- proposed so they can be demoed live.
+-- Interpretive links. Eleven total: eight accepted (preseeded with
+-- one accept vote each so the audit trail is honest), three left as
+-- proposed so they can be demoed live. Cities is intentionally
+-- denser (7 links) than Lived Experience (4) so the talk has both
+-- a "well-populated" example and a "sparse" example side by side.
 INSERT INTO story_link (from_story_id, to_story_id, link_type, rationale, status, created_by) VALUES
-  -- Anthology A (Cities & Public Space)
+  -- Anthology A (Cities & Public Space) — densely linked
   (109,  196, 'adjacency', 'Both ground community storytelling in Oxford streets and public space; Building Bridges as civic project, Street Art as situated knowledge claim.', 'accepted', 1001),
   (1070, 196, 'thematic',  'Mobility risk and street life; commuting violence and street-art readings of urban marginalisation share an epistemics-of-the-street register.', 'accepted', 1001),
   (411,  398, 'thematic',  'Nature-culture entanglement; the dichotomy reconstruction reframes the sinking city as more-than-human predicament.', 'accepted', 1001),
+  (411,  196, 'thematic',  'Nature-culture dichotomy and street art''s epistemic claim share a critique of who gets to author urban knowledge; both refuse a clean inside/outside divide between expertise and lived practice.', 'accepted', 1001),
+  (398,  1070,'causal',    'Sinking City to Dangerous Commutes: collapsing infrastructure (and the political failure to maintain it) becomes the daily-mobility risk that commuters absorb; environmental decline is metabolised as personal hazard.', 'accepted', 1001),
   (109,  1070,'adjacency', 'Oxford civic storytelling adjacent to the dangerous-commute project; both treat embodied movement through built environment as data.', 'proposed', 1001),
+  (109,  398, 'contrast',  'Building Bridges Oxford reaches for civic mending through community storytelling; Sinking City inhabits the opposite register — what remains when the civic fabric is unmaintained, ironic and apocalyptic against the constructive frame.', 'proposed', 1001),
 
-  -- Anthology B (Lived Experience)
+  -- Anthology B (Lived Experience) — sparser, paired
   (134,  165, 'causal',    'Endless Night Part 1 → Part 2: an explicit narrative continuation, same author, same protagonist arc.', 'accepted', 1001),
   (407,  409, 'thematic',  'Love In Motion / Amor em Movimento: the same story rendered in English and Portuguese — paired translations.', 'accepted', 1001),
   (188,  379, 'thematic',  'Both inhabit lived-experience accounts of education and neurodivergence; Autism reframes classroom return through a different sensory map.', 'accepted', 1001),
