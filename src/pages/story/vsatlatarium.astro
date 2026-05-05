@@ -1463,9 +1463,15 @@ const clientData = {
 
     // Find the nearest inter-story arc segment to the cursor in
     // screen space. Returns the arc-id of the closest arc within
-    // arcHoverRadiusPx, or null. Arc segments are tagged with
-    // data-arc-id by drawArc/renderArcsAtBlend.
-    const arcHoverRadiusPx = 12;
+    // arcHoverRadiusPx, or null. We measure the proper point-to-
+    // line-segment distance in screen space (each cylinder segment
+    // is oriented along its local Y axis, so the world endpoints
+    // are midpoint ± height/2 * worldDir).
+    const arcHoverRadiusPx = 18;
+    const _segP0 = new THREE.Vector3();
+    const _segP1 = new THREE.Vector3();
+    const _segDir = new THREE.Vector3();
+    const _segUp = new THREE.Vector3(0, 1, 0);
     const findNearestArc = (clientX, clientY) => {
       const aCanvas = sceneEl.canvas;
       if (!aCanvas || !sceneEl.camera || !turntable) return null;
@@ -1482,12 +1488,41 @@ const clientData = {
       for (const seg of segments) {
         if (!seg.object3D) continue;
         if (seg.getAttribute("data-arc-type") === "internal") continue;
-        seg.object3D.getWorldPosition(_worldPos);
-        _projected.copy(_worldPos).project(cam);
-        if (_projected.z > 1) continue;
-        const sx = (_projected.x + 1) * hw;
-        const sy = (-_projected.y + 1) * hh;
-        const dist = Math.sqrt((mx - sx) ** 2 + (my - sy) ** 2);
+        // Read the cylinder's height from its geometry component.
+        // A-Frame returns parsed component data here, not the raw
+        // string we set, so we read .height directly.
+        const geomAttr = seg.getAttribute("geometry");
+        const height = typeof geomAttr === "object" && geomAttr
+          ? Number(geomAttr.height) || 0
+          : (typeof geomAttr === "string"
+              ? parseFloat((geomAttr.match(/height:\s*([0-9.]+)/) || [])[1] || "0")
+              : 0);
+        if (!height) continue;
+        // World endpoints: midpoint ± dir * height/2
+        seg.object3D.getWorldPosition(_segP0);
+        _segDir.copy(_segUp).applyQuaternion(seg.object3D.getWorldQuaternion(new THREE.Quaternion()));
+        _segP1.copy(_segP0).addScaledVector(_segDir, height / 2);
+        _segP0.addScaledVector(_segDir, -height / 2);
+        // Project both to screen.
+        const proj0 = _segP0.clone().project(cam);
+        const proj1 = _segP1.clone().project(cam);
+        if (proj0.z > 1 || proj1.z > 1) continue;
+        const sx0 = (proj0.x + 1) * hw;
+        const sy0 = (-proj0.y + 1) * hh;
+        const sx1 = (proj1.x + 1) * hw;
+        const sy1 = (-proj1.y + 1) * hh;
+        // Point-to-segment distance in 2D.
+        const vx = sx1 - sx0;
+        const vy = sy1 - sy0;
+        const wx = mx - sx0;
+        const wy = my - sy0;
+        const segLen2 = vx * vx + vy * vy;
+        let t = segLen2 > 0 ? (vx * wx + vy * wy) / segLen2 : 0;
+        if (t < 0) t = 0;
+        else if (t > 1) t = 1;
+        const cx = sx0 + t * vx;
+        const cy = sy0 + t * vy;
+        const dist = Math.sqrt((mx - cx) ** 2 + (my - cy) ** 2);
         if (dist < bestDist) {
           bestDist = dist;
           bestId = Number(seg.getAttribute("data-arc-id"));
@@ -2043,19 +2078,22 @@ const clientData = {
             canvas.style.cursor = linkingState && linkingState.phase === "pickTarget"
               ? "crosshair"
               : "pointer";
-          } else {
-            // No node hit — try arc hover. Don't override if we
-            // already showed the same arc (avoids re-rendering on
-            // every pixel of motion).
-            const arcId = findNearestArc(e.clientX, e.clientY);
-            if (arcId !== hoveredArcId) {
-              hoveredArcId = arcId;
-              if (arcId !== null && !linkingState) {
-                showArcInfo(arcId);
-                canvas.style.cursor = "pointer";
-              } else {
-                canvas.style.cursor = linkingCursor();
-              }
+            return;
+          }
+          // Node hover ended; fall through to arc check below.
+        }
+        // Always check arcs when no node is hovered. (Without this,
+        // moving the cursor over the arcs after leaving a node never
+        // re-runs detection.)
+        if (!hit) {
+          const arcId = findNearestArc(e.clientX, e.clientY);
+          if (arcId !== hoveredArcId) {
+            hoveredArcId = arcId;
+            if (arcId !== null && !linkingState) {
+              showArcInfo(arcId);
+              canvas.style.cursor = "pointer";
+            } else {
+              canvas.style.cursor = linkingCursor();
             }
           }
         }
