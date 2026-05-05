@@ -77,6 +77,12 @@ const totalScenes = fullStories.reduce((sum, s) => sum + (s?.scenes.length ?? 0)
 const clusterRadius = isPlanetarium
   ? Math.max(18, Math.round(10 + 4 * Math.sqrt(totalScenes)))
   : Math.max(12, Math.round(5 + 3 * Math.sqrt(totalScenes)));
+// In planetarium mode the visible dome sphere is enlarged so the
+// "sky disk" zoom-out keeps the camera inside the sphere instead of
+// popping out into a globe-from-outside view. Cluster placement
+// stays at clusterRadius — only the visible shell and zoom-out
+// limit move outward.
+const domeShellRadius = clusterRadius + 30;
 const localRadiusForSceneCount = (sceneCount: number) => {
   const sceneRoot = Math.sqrt(Math.max(sceneCount, 1));
   const radius = isPlanetarium ? 4.5 + sceneRoot * 1.6 : 2.2 + sceneRoot * 0.72;
@@ -439,6 +445,7 @@ const clientData = {
   interArcs,
   isPlanetarium,
   clusterRadius,
+  domeShellRadius,
   geomViewStoryEnvelopeRadius,
 };
 ---
@@ -663,13 +670,13 @@ const clientData = {
             <a-entity>
               {/* Deep indigo base wash */}
               <a-entity
-                geometry={`primitive: sphere; radius: ${clusterRadius + 10}; segmentsWidth: 32; segmentsHeight: 32`}
+                geometry={`primitive: sphere; radius: ${domeShellRadius}; segmentsWidth: 32; segmentsHeight: 32`}
                 material="color: #0a0a1e; emissive: #1a1a3a; emissiveIntensity: 0.3; opacity: 0.1; transparent: true; side: back; shader: flat; depthWrite: false"
               ></a-entity>
               {/* Pink vaporwave glow layer */}
               <a-entity
                 id="vsat-vapor"
-                geometry={`primitive: sphere; radius: ${clusterRadius + 9}; segmentsWidth: 32; segmentsHeight: 32`}
+                geometry={`primitive: sphere; radius: ${domeShellRadius - 1}; segmentsWidth: 32; segmentsHeight: 32`}
                 material="color: #1a0a1e; emissive: #ff69b4; emissiveIntensity: 0.35; opacity: 0.12; transparent: true; side: back; shader: flat; depthWrite: false"
               ></a-entity>
             </a-entity>
@@ -680,7 +687,7 @@ const clientData = {
             <a-entity
               class="dome-wireframe"
               visible="false"
-              geometry={`primitive: sphere; radius: ${clusterRadius + 8}; segmentsWidth: 32; segmentsHeight: 32`}
+              geometry={`primitive: sphere; radius: ${domeShellRadius - 2}; segmentsWidth: 32; segmentsHeight: 32`}
               material="color: #0a0e2a; opacity: 0.15; transparent: true; wireframe: true; side: back"
             ></a-entity>
           )}
@@ -882,9 +889,13 @@ const clientData = {
     const camZMin = isPlanetarium
       ? -(clientData.clusterRadius * 0.8)
       : geomViewCameraMinZ;
-    // In planetarium mode, allow scrolling back past origin to pull away
-    // from the dome — at max distance it becomes a "sky disk" overview
-    const camZMax = isPlanetarium ? clientData.clusterRadius * 1.5 : geomViewCameraMaxZ;
+    // In planetarium mode, allow scrolling back past origin for a
+    // "sky disk" overview, but cap the camera just inside the visible
+    // dome shell so the user never pops out into a globe-from-outside
+    // view of the constellation.
+    const camZMax = isPlanetarium
+      ? clientData.domeShellRadius - 4
+      : geomViewCameraMaxZ;
     let isDragging = false;
     let dragTotal = 0;
     let lastMouse = { x: 0, y: 0 };
@@ -910,19 +921,33 @@ const clientData = {
       updateGeomViewLabelMode();
     };
 
-    let geomViewSceneLabelsVisible = isPlanetarium;
+    let geomViewSceneLabelsVisible = true;
     const updateGeomViewLabelMode = () => {
-      if (isPlanetarium || !camRig?.object3D) return;
-      const camDist = camRig.object3D.position.length();
-      const revealBelow = clientData.geomViewStoryEnvelopeRadius + 3;
-      const hideAbove = clientData.geomViewStoryEnvelopeRadius + 6;
+      if (!camRig?.object3D) return;
 
-      if (geomViewSceneLabelsVisible) {
-        if (camDist >= hideAbove) {
-          geomViewSceneLabelsVisible = false;
+      let revealBelow;
+      let hideAbove;
+      if (isPlanetarium) {
+        // Sky-disk territory: once camZ has pulled past the cluster
+        // envelope, scene labels start to pile up. Hide them; story
+        // names alone read fine.
+        const camDist = camZ;
+        revealBelow = clientData.clusterRadius * 0.85;
+        hideAbove = clientData.clusterRadius * 1.0;
+        if (geomViewSceneLabelsVisible) {
+          if (camDist >= hideAbove) geomViewSceneLabelsVisible = false;
+        } else if (camDist <= revealBelow) {
+          geomViewSceneLabelsVisible = true;
         }
-      } else if (camDist <= revealBelow) {
-        geomViewSceneLabelsVisible = true;
+      } else {
+        const camDist = camRig.object3D.position.length();
+        revealBelow = clientData.geomViewStoryEnvelopeRadius + 3;
+        hideAbove = clientData.geomViewStoryEnvelopeRadius + 6;
+        if (geomViewSceneLabelsVisible) {
+          if (camDist >= hideAbove) geomViewSceneLabelsVisible = false;
+        } else if (camDist <= revealBelow) {
+          geomViewSceneLabelsVisible = true;
+        }
       }
 
       document.querySelectorAll(".scene-label").forEach((label) => {
