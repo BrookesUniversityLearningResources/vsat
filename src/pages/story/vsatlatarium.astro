@@ -133,6 +133,7 @@ type InterStoryArc = {
   id: number;
   status: string;
   linkType: string;
+  rationale: string;
   fromPos: Vec3;
   toPos: Vec3;
   fromStoryTitle: string;
@@ -420,6 +421,7 @@ for (const link of interStoryLinks) {
     id: link.id,
     status: link.status,
     linkType: link.linkType,
+    rationale: link.rationale ?? "",
     fromPos,
     toPos,
     fromStoryTitle: link.fromStory.title,
@@ -1295,11 +1297,11 @@ const clientData = {
     const arcDefs = [];
     let currentBlend = 0;
 
-    const drawArc = (from, to, controlPoint, color, opacity, thickness, arcType) => {
+    const drawArc = (from, to, controlPoint, color, opacity, thickness, arcType, arcId) => {
       const radius = thickness || 0.04;
       // Store definition for later redraw on zoom
       if (domeRadius) {
-        arcDefs.push({ from, to, controlPoint, color, opacity, radius, arcType });
+        arcDefs.push({ from, to, controlPoint, color, opacity, radius, arcType, arcId });
       }
       for (let i = 0; i < segments; i++) {
         const t0 = i / segments;
@@ -1331,6 +1333,9 @@ const clientData = {
 
         el.classList.add("arc-segment");
         if (arcType) el.setAttribute("data-arc-type", arcType);
+        if (arcId !== undefined && arcId !== null) {
+          el.setAttribute("data-arc-id", String(arcId));
+        }
         turntable.appendChild(el);
       }
     };
@@ -1357,7 +1362,7 @@ const clientData = {
       for (const arc of interArcs) {
         const { color, opacity, bowFactor } = arcVisualForLink(arc);
         const cp = arcControlPoint(arc.fromPos, arc.toPos, bowFactor);
-        drawArc(arc.fromPos, arc.toPos, cp, color, opacity, 0.05, arc.linkType);
+        drawArc(arc.fromPos, arc.toPos, cp, color, opacity, 0.05, arc.linkType, arc.id);
       }
     };
 
@@ -1372,7 +1377,9 @@ const clientData = {
     const { interArcs: arcData } = clientData;
 
     const arcsByStory = new Map();
+    const arcMetaById = new Map();
     for (const arc of arcData) {
+      arcMetaById.set(arc.id, arc);
       for (const title of [arc.fromStoryTitle, arc.toStoryTitle]) {
         if (!arcsByStory.has(title)) arcsByStory.set(title, []);
         arcsByStory.get(title).push(arc);
@@ -1452,6 +1459,41 @@ const clientData = {
         }
       }
       return best;
+    };
+
+    // Find the nearest inter-story arc segment to the cursor in
+    // screen space. Returns the arc-id of the closest arc within
+    // arcHoverRadiusPx, or null. Arc segments are tagged with
+    // data-arc-id by drawArc/renderArcsAtBlend.
+    const arcHoverRadiusPx = 12;
+    const findNearestArc = (clientX, clientY) => {
+      const aCanvas = sceneEl.canvas;
+      if (!aCanvas || !sceneEl.camera || !turntable) return null;
+      const rect = aCanvas.getBoundingClientRect();
+      const mx = clientX - rect.left;
+      const my = clientY - rect.top;
+      const hw = rect.width / 2;
+      const hh = rect.height / 2;
+      const cam = sceneEl.camera;
+
+      let bestId = null;
+      let bestDist = arcHoverRadiusPx;
+      const segments = turntable.querySelectorAll(".arc-segment[data-arc-id]");
+      for (const seg of segments) {
+        if (!seg.object3D) continue;
+        if (seg.getAttribute("data-arc-type") === "internal") continue;
+        seg.object3D.getWorldPosition(_worldPos);
+        _projected.copy(_worldPos).project(cam);
+        if (_projected.z > 1) continue;
+        const sx = (_projected.x + 1) * hw;
+        const sy = (-_projected.y + 1) * hh;
+        const dist = Math.sqrt((mx - sx) ** 2 + (my - sy) ** 2);
+        if (dist < bestDist) {
+          bestDist = dist;
+          bestId = Number(seg.getAttribute("data-arc-id"));
+        }
+      }
+      return bestId;
     };
 
     // 2D highlight ring — a CSS circle overlay that tracks the node's screen position
@@ -1754,12 +1796,14 @@ const clientData = {
         id: link.id,
         status: link.status,
         linkType: link.linkType,
+        rationale: link.rationale ?? "",
         fromPos,
         toPos,
         fromStoryTitle: link.fromStory.title,
         toStoryTitle: link.toStory.title,
       };
       clientData.interArcs.push(arc);
+      arcMetaById.set(arc.id, arc);
 
       const { color, opacity, bowFactor } = arcVisualForLink(arc);
       const cp = arcControlPoint(fromPos, toPos, bowFactor);
@@ -1771,6 +1815,7 @@ const clientData = {
         opacity,
         radius: 0.05,
         arcType: arc.linkType,
+        arcId: arc.id,
       });
       refreshArcs();
 
@@ -1942,6 +1987,30 @@ const clientData = {
       infoEl.innerHTML = html;
     };
 
+    // Render the info panel for an inter-story arc. Looks up the arc
+    // by id and shows from → to titles, link type, status, rationale.
+    let hoveredArcId = null;
+    const showArcInfo = (arcId) => {
+      if (linkingState) return; // panel locked while linking
+      const arc = arcMetaById.get(arcId);
+      if (!arc) return;
+      let html = '<p class="vsatlatarium__info-story">Interpretive link</p>';
+      html += '<p class="vsatlatarium__info-arc-pair">';
+      html += '<span>' + escAttr(arc.fromStoryTitle) + '</span>';
+      html += '<span class="vsatlatarium__info-arc-arrow">&rarr;</span>';
+      html += '<span>' + escAttr(arc.toStoryTitle) + '</span>';
+      html += '</p>';
+      html += '<p class="vsatlatarium__info-meta vsatlatarium__info-arc-meta">';
+      html += '<span class="vsatlatarium__info-link-type">' + escAttr(arc.linkType) + '</span>';
+      html += ' &middot; <span class="vsatlatarium__info-arc-status vsatlatarium__info-arc-status--'
+        + escAttr(arc.status) + '">' + escAttr(arc.status) + '</span>';
+      html += '</p>';
+      if (arc.rationale) {
+        html += '<p class="vsatlatarium__info-arc-rationale">' + escAttr(arc.rationale) + '</p>';
+      }
+      infoEl.innerHTML = html;
+    };
+
     // Hover + click: use window-level events (reliable across browsers)
     const initInteraction = () => {
       collectNodes();
@@ -1969,12 +2038,25 @@ const clientData = {
           hoveredNode = hit;
           highlightNode(hit);
           if (hit) {
+            hoveredArcId = null;
             showInfo(hit);
             canvas.style.cursor = linkingState && linkingState.phase === "pickTarget"
               ? "crosshair"
               : "pointer";
           } else {
-            canvas.style.cursor = linkingCursor();
+            // No node hit — try arc hover. Don't override if we
+            // already showed the same arc (avoids re-rendering on
+            // every pixel of motion).
+            const arcId = findNearestArc(e.clientX, e.clientY);
+            if (arcId !== hoveredArcId) {
+              hoveredArcId = arcId;
+              if (arcId !== null && !linkingState) {
+                showArcInfo(arcId);
+                canvas.style.cursor = "pointer";
+              } else {
+                canvas.style.cursor = linkingCursor();
+              }
+            }
           }
         }
       });
@@ -2534,6 +2616,49 @@ const clientData = {
     font-size: 0.7rem;
     color: #4cc9f0;
     font-style: italic;
+  }
+
+  :global(.vsatlatarium__info-arc-pair) {
+    margin: 0.4rem 0 0.2rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+    align-items: baseline;
+    font-size: 0.95rem;
+    color: #e2eaff;
+    font-weight: 600;
+  }
+
+  :global(.vsatlatarium__info-arc-arrow) {
+    color: #c084fc;
+    font-weight: 700;
+  }
+
+  :global(.vsatlatarium__info-arc-meta) {
+    margin: 0.1rem 0 0.4rem;
+    font-size: 0.75rem;
+  }
+
+  :global(.vsatlatarium__info-arc-status) {
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-size: 0.7rem;
+  }
+
+  :global(.vsatlatarium__info-arc-status--accepted) { color: #6cd39c; }
+  :global(.vsatlatarium__info-arc-status--proposed) { color: #ffd166; }
+  :global(.vsatlatarium__info-arc-status--rejected) { color: #ef476f; }
+  :global(.vsatlatarium__info-arc-status--retired)  { color: #88a8c8; }
+
+  :global(.vsatlatarium__info-arc-rationale) {
+    margin: 0.3rem 0 0;
+    padding: 0.45rem 0.5rem;
+    background: rgba(192, 132, 252, 0.08);
+    border-left: 2px solid #c084fc;
+    border-radius: 0.25rem;
+    font-size: 0.8rem;
+    line-height: 1.4;
+    color: #d8e0f5;
   }
 
   :global(.vsatlatarium__info-actions) {
