@@ -32,3 +32,6 @@ pnpm-debug.log*
 
 # Heroku Postgres dumps
 *.dump
+
+# Playwright test artifacts
+test-results/
