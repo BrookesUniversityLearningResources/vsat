@@ -992,20 +992,16 @@ const clientData = {
 
     window.addEventListener("mouseup", () => { isDragging = false; });
 
-    // Redraw all arcs at a blended dome radius (full dome → flat)
-    const redrawArcsAtBlend = (blend) => {
+    // Render all arcs in arcDefs at a given blend, replacing any
+    // existing segments. Used by both the zoom-blend redraw and the
+    // hot-add path (force redraw at currentBlend after appending a
+    // new def).
+    const renderArcsAtBlend = (blend) => {
       if (!isPlanetarium || arcDefs.length === 0) return;
-      if (blend === currentBlend) return;
-      currentBlend = blend;
-
-      // Remove existing arc segments
       turntable.querySelectorAll(".arc-segment").forEach((el) => el.remove());
-
       const blendedRadius = domeRadius * (1 - blend);
-
       for (const def of arcDefs) {
         const { from, to, controlPoint, color, opacity, radius, arcType } = def;
-        // Check if this arc type is currently hidden by legend toggle
         if (hiddenArcTypes.has(arcType)) continue;
         for (let i = 0; i < segments; i++) {
           const t0 = i / segments;
@@ -1037,6 +1033,19 @@ const clientData = {
           turntable.appendChild(el);
         }
       }
+    };
+
+    // Zoom-blend redraw: short-circuits if the blend hasn't changed.
+    const redrawArcsAtBlend = (blend) => {
+      if (blend === currentBlend) return;
+      currentBlend = blend;
+      renderArcsAtBlend(blend);
+    };
+
+    // Force a full re-render at the current blend (used after the
+    // hot-add path appends a new arcDef).
+    const refreshArcs = () => {
+      renderArcsAtBlend(currentBlend);
     };
 
     // Debounce the redraw so rapid scrolling doesn't thrash the DOM
@@ -1221,6 +1230,25 @@ const clientData = {
       return { x: v.x / len, y: v.y / len, z: v.z / len };
     };
 
+    const linkTypeColors = {
+      thematic: "#c084fc",  // purple
+      causal: "#ef4444",    // red
+      adjacency: "#34d399", // green
+      contrast: "#f472b6",  // pink
+    };
+
+    const arcVisualForLink = (arc) => {
+      const color = linkTypeColors[arc.linkType] ?? "#7286ff";
+      const opacity =
+        arc.status === "retired" ? 0.15 :
+        arc.status === "accepted" ? 0.8 :
+        arc.status === "rejected" ? 0.2 : 0.5;
+      const bowFactor = isPlanetarium
+        ? (arc.status === "accepted" ? 0.5 : 0.3)
+        : (arc.status === "accepted" ? 3.5 : 2.5);
+      return { color, opacity, bowFactor };
+    };
+
     // For inter-story arcs: in planetarium mode bow inward (toward viewer),
     // in geomview mode bow outward (away from origin)
     const arcControlPoint = (a, b, bowFactor) => {
@@ -1326,23 +1354,8 @@ const clientData = {
         }
       }
 
-      // Inter-story arcs
-      const linkTypeColors = {
-        thematic: "#c084fc",  // purple
-        causal: "#ef4444",    // red (was orange — collided with narrative arcs)
-        adjacency: "#34d399", // green
-        contrast: "#f472b6",  // pink
-      };
-
       for (const arc of interArcs) {
-        const color = linkTypeColors[arc.linkType] ?? "#7286ff";
-        const opacity =
-          arc.status === "retired" ? 0.15 :
-          arc.status === "accepted" ? 0.8 :
-          arc.status === "rejected" ? 0.2 : 0.5;
-        const bowFactor = isPlanetarium
-          ? (arc.status === "accepted" ? 0.5 : 0.3)
-          : (arc.status === "accepted" ? 3.5 : 2.5);
+        const { color, opacity, bowFactor } = arcVisualForLink(arc);
         const cp = arcControlPoint(arc.fromPos, arc.toPos, bowFactor);
         drawArc(arc.fromPos, arc.toPos, cp, color, opacity, 0.05, arc.linkType);
       }
@@ -1675,10 +1688,11 @@ const clientData = {
         html += '</div>';
         html += '</form>';
       } else if (phase === "success") {
-        html += '<p class="vsatlatarium__linking-msg vsatlatarium__linking-msg--ok">Proposed. Reload the planetarium to see the new arc.</p>';
+        html += '<p class="vsatlatarium__linking-msg vsatlatarium__linking-msg--ok">Proposed — arc added to the planetarium.</p>';
+        const linksHref = "/author/story/" + encodeURIComponent(linkingState.from.storyId) + "/links";
         html += '<div class="vsatlatarium__linking-actions">';
-        html += '<button type="button" class="vsatlatarium__linking-btn" data-linking-reload>Reload</button>';
-        html += '<button type="button" class="vsatlatarium__linking-btn vsatlatarium__linking-btn--ghost" data-linking-cancel>Close</button>';
+        html += '<a class="vsatlatarium__linking-btn vsatlatarium__linking-btn--ghost" href="' + linksHref + '" target="_blank" rel="noopener">View on links page</a>';
+        html += '<button type="button" class="vsatlatarium__linking-btn" data-linking-cancel>Close</button>';
         html += '</div>';
       } else if (phase === "needsAuth") {
         html += '<p class="vsatlatarium__linking-msg vsatlatarium__linking-msg--warn">Log in to propose a link.</p>';
@@ -1716,6 +1730,57 @@ const clientData = {
       }
     };
 
+    // Append a new arc to the live planetarium. Called after a
+    // successful POST so the user can see their proposal land
+    // immediately instead of having to reload.
+    const addArcLive = (link) => {
+      if (!isPlanetarium) return;
+      const fromCluster = clientData.clusters.find(
+        (c) => c.storyId === link.fromStory.id,
+      );
+      const toCluster = clientData.clusters.find(
+        (c) => c.storyId === link.toStory.id,
+      );
+      if (!fromCluster || !toCluster) return;
+
+      const fromPos = fromCluster.storyNodePos;
+      let toPos = toCluster.storyNodePos;
+      if (link.toScene) {
+        const targetScene = toCluster.scenes.find((s) => s.sceneId === link.toScene.id);
+        if (targetScene) toPos = targetScene.position;
+      }
+
+      const arc = {
+        id: link.id,
+        status: link.status,
+        linkType: link.linkType,
+        fromPos,
+        toPos,
+        fromStoryTitle: link.fromStory.title,
+        toStoryTitle: link.toStory.title,
+      };
+      clientData.interArcs.push(arc);
+
+      const { color, opacity, bowFactor } = arcVisualForLink(arc);
+      const cp = arcControlPoint(fromPos, toPos, bowFactor);
+      arcDefs.push({
+        from: fromPos,
+        to: toPos,
+        controlPoint: cp,
+        color,
+        opacity,
+        radius: 0.05,
+        arcType: arc.linkType,
+      });
+      refreshArcs();
+
+      // Update the per-story arc index used by the hover panel.
+      for (const title of [arc.fromStoryTitle, arc.toStoryTitle]) {
+        if (!arcsByStory.has(title)) arcsByStory.set(title, []);
+        arcsByStory.get(title).push(arc);
+      }
+    };
+
     const submitProposal = async () => {
       if (!linkingState || !linkingState.to) return;
       const form = infoEl.querySelector("[data-linking-form]");
@@ -1748,6 +1813,10 @@ const clientData = {
           },
         );
         if (res.ok) {
+          try {
+            const link = await res.json();
+            addArcLive(link);
+          } catch {}
           linkingState.phase = "success";
         } else if (res.status === 401 || res.status === 403) {
           linkingState.phase = "needsAuth";
@@ -1769,10 +1838,6 @@ const clientData = {
       if (!target) return;
       if (target.closest("[data-linking-cancel]")) {
         exitLinkingMode();
-        return;
-      }
-      if (target.closest("[data-linking-reload]")) {
-        window.location.reload();
         return;
       }
       if (target.closest("[data-linking-retry]")) {
