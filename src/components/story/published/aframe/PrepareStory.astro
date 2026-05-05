@@ -84,7 +84,13 @@ const serializedStory = DOMPurify.sanitize(
 
   AFRAME.registerComponent("story", {
     init: function () {
-      window.current.scene = openingSceneFor(window.current.story);
+      const params = new URLSearchParams(window.location.search);
+      const requestedSceneId = Number(params.get("scene"));
+      const requestedScene = Number.isFinite(requestedSceneId) && requestedSceneId > 0
+        ? window.current.story.scenes.find((s: { id: number }) => s.id === requestedSceneId)
+        : undefined;
+
+      window.current.scene = requestedScene ?? openingSceneFor(window.current.story);
       window.current.page = openingPageFor(window.current.scene);
 
       this.render(window.current);

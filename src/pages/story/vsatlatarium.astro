@@ -737,6 +737,7 @@ const clientData = {
                 <a-entity
                   class="scene-node"
                   data-scene-id={scene.id}
+                  data-db-scene-id={scene.sceneId}
                   data-story-id={cluster.storyId}
                   data-scene-title={scene.title}
                   data-story-title={cluster.title}
@@ -1570,6 +1571,7 @@ const clientData = {
       const pageCount = node.getAttribute("data-page-count");
       const isOpening = node.getAttribute("data-is-opening");
       const sceneId = node.getAttribute("data-scene-id") || "";
+      const storyId = node.getAttribute("data-story-id");
       const isHub = sceneId.endsWith("-hub");
 
       let html = '<p class="vsatlatarium__info-story">' + storyTitle + '</p>';
@@ -1598,6 +1600,17 @@ const clientData = {
         }
         html += '</div>';
       }
+
+      if (storyId) {
+        const dbSceneId = node.getAttribute("data-db-scene-id") || "";
+        const proposeHref = "/author/story/" + storyId + "/links"
+          + (dbSceneId ? ("?contextSceneId=" + encodeURIComponent(dbSceneId)) : "")
+          + "#propose";
+        html += '<a class="vsatlatarium__info-propose" href="' + proposeHref
+          + '" target="_blank" rel="noopener">Propose link from this '
+          + (isHub ? 'story' : 'scene') + ' &rarr;</a>';
+      }
+
       infoEl.innerHTML = html;
     };
 
@@ -1640,7 +1653,11 @@ const clientData = {
         if (hit) {
           const storyId = hit.getAttribute("data-story-id");
           if (storyId) {
-            window.location.href = "/story/" + storyId;
+            const dbSceneId = hit.getAttribute("data-db-scene-id") || "";
+            const sceneQuery = dbSceneId
+              ? "?scene=" + encodeURIComponent(dbSceneId)
+              : "";
+            window.location.href = "/story/" + storyId + sceneQuery;
           }
         }
       });
@@ -2158,6 +2175,25 @@ const clientData = {
     font-size: 0.7rem;
     color: #4cc9f0;
     font-style: italic;
+  }
+
+  :global(.vsatlatarium__info-propose) {
+    display: inline-block;
+    margin-top: 0.55rem;
+    padding: 0.3rem 0.6rem;
+    border: 1px solid #4cc9f0;
+    border-radius: 999px;
+    background: rgba(76, 201, 240, 0.1);
+    color: #4cc9f0;
+    font-size: 0.78rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+
+  :global(.vsatlatarium__info-propose:hover) {
+    background: #4cc9f0;
+    color: #07103a;
   }
 
   .vsatlatarium__list {
