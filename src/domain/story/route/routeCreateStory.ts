@@ -1,5 +1,3 @@
-import url from "node:url";
-
 import { Router } from "express";
 import type { Logger } from "pino";
 
@@ -23,11 +21,7 @@ export default function routeCreateStory(
       author: req.user,
     })
       .then((story) => {
-        const location = url.format({
-          protocol: req.protocol,
-          host: req.get("host"),
-          pathname: `/author/story/${story.id}`,
-        });
+        const location = `/author/story/${story.id}`;
 
         log.info({ location, story }, "Created story");
 

@@ -64,7 +64,7 @@ async function createStory(): Promise<CreateStoryResult> {
     }
 
     try {
-      const url = new URL(maybeUrl).href;
+      const url = new URL(maybeUrl, window.location.origin).href;
 
       return {
         kind: "storyCreated",
