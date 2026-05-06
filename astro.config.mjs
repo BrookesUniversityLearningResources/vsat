@@ -44,8 +44,10 @@ export default defineConfig({
 
   vite: {
     server: {
+      host: "127.0.0.1",
       port: 4321,
       strictPort: true,
+      allowedHosts: ["172-236-28-208.ip.linodeusercontent.com"],
       hmr: {
         overlay: !disableViteOverlay,
       },
