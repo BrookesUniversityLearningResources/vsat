@@ -2185,6 +2185,12 @@ const clientData = {
       const cam = document.querySelector("a-camera");
       if (cam) cam.setAttribute("look-controls", "enabled: true");
 
+      // Browser-VR fallback (no headset): A-Frame's fullscreen canvas hides
+      // the OS cursor by default. Force it back so the user has visible
+      // mouse feedback over the constellation.
+      const canvasEl = document.querySelector(".a-canvas");
+      if (canvasEl) canvasEl.style.cursor = "default";
+
       // Disable frustum culling on turntable children — stereo VR cameras
       // can incorrectly cull small objects (nodes, arcs) while large-bounding-
       // sphere objects (particles) survive
@@ -2208,6 +2214,10 @@ const clientData = {
       // Restore desktop camera mode (turntable controls, no look-controls)
       const cam = document.querySelector("a-camera");
       if (cam) cam.setAttribute("look-controls", "enabled: false");
+
+      // Restore canvas cursor management to the desktop hover code
+      const canvasEl = document.querySelector(".a-canvas");
+      if (canvasEl) canvasEl.style.cursor = "";
 
       // Re-enable frustum culling for desktop performance
       if (turntable?.object3D) {
