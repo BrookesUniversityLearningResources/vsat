@@ -20,6 +20,7 @@
     "dev:api": "node --env-file=.env --import tsx ./src/dev/apiServer.ts",
     "dev:hot": "node ./scripts/devHot.mjs",
     "test:e2e": "PLAYWRIGHT=1 playwright test",
+    "export:story:publish": "node --env-file=.env --import tsx ./src/database/export/publishStoryToJson.ts",
     "db:import": "node --env-file=.env ./dist/build/src/database/import/import.js",
     "db:migrate": "node ./dist/build/src/database/migrate/migrate.js",
     "db:migrate:local": "node --env-file=.env ./dist/build/src/database/migrate/migrate.js",
