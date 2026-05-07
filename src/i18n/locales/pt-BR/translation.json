@@ -157,6 +157,18 @@
           "prompt": "Add audio…"
         },
         "action": {
+          "play-audio": {
+            "label": "Play"
+          },
+          "pause-audio": {
+            "label": "Pause"
+          },
+          "mute-audio": {
+            "label": "Mute"
+          },
+          "unmute-audio": {
+            "label": "Unmute"
+          },
           "delete-audio": {
             "label": "Delete"
           },

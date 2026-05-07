@@ -2,9 +2,6 @@ import { useMutation } from "@tanstack/react-query";
 import type { FC } from "react";
 import { useTranslation } from "react-i18next";
 import BarLoader from "react-spinners/BarLoader.js";
-
-import styles from "./ExistingAudio.module.css";
-
 import type {
   PersistentAudio,
   PersistentScene,
@@ -12,11 +9,13 @@ import type {
 } from "../../../../../domain/index.js";
 import unsupported from "../../../../../domain/story/client/unsupportedResult.js";
 import {
+  useEnvironment,
   type WithDeleteSceneAudio,
   type WithFeedback,
-  useEnvironment,
 } from "../../context/ClientContext.js";
 import type { OnSceneChanged } from "../types.js";
+import AudioPlayer from "./AudioPlayer.js";
+import styles from "./ExistingAudio.module.css";
 
 type ExistingAudioProps = {
   audio: PersistentAudio;
@@ -62,14 +61,7 @@ const ExistingAudio: FC<ExistingAudioProps> = ({
 
   return (
     <div className={styles.existingAudio}>
-      <audio
-        src={audio.url}
-        controls
-        controlsList="nodownload"
-        crossOrigin="anonymous"
-      >
-        <div>{audio.id}</div>
-      </audio>
+      <AudioPlayer src={audio.url} />
 
       <div className={styles.actionBar}>
         <div className={styles.loadingContainer}>

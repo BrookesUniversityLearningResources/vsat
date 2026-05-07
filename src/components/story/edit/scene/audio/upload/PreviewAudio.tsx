@@ -2,6 +2,7 @@ import type { FC } from "react";
 import { useTranslation } from "react-i18next";
 import BarLoader from "react-spinners/BarLoader";
 
+import AudioPlayer from "../AudioPlayer.js";
 import styles from "./PreviewAudio.module.css";
 
 type PreviewAudioProps = Readonly<{
@@ -21,14 +22,7 @@ const PreviewAudio: FC<PreviewAudioProps> = ({
 
   return (
     <div className={styles.previewAudioContainer}>
-      <audio
-        src={URL.createObjectURL(audio)}
-        controls
-        controlsList="nodownload"
-        crossOrigin="anonymous"
-      >
-        <div>{audio.name}</div>
-      </audio>
+      <AudioPlayer src={URL.createObjectURL(audio)} />
 
       <div className={styles.actionBar}>
         {!isUploading && (
