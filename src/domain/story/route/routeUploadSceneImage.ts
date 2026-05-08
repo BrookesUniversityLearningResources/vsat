@@ -76,6 +76,7 @@ function routeUploadSceneImage(
           return res.status(400).json(
             errorCodedContext(ErrorCodes.ErrorUploadingImageExceedsSizeLimit, {
               err,
+              limit: `${limit.maxBytes / 1_000_000}MB`,
             }),
           );
         }
