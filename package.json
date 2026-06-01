@@ -51,7 +51,7 @@
     "express": "^5.2.1",
     "express-session": "^1.19.0",
     "i18next": "^26.0.4",
-    "i18next-fs-backend": "^2.6.3",
+    "i18next-fs-backend": "^2.6.5",
     "isomorphic-dompurify": "^2.35.0",
     "kysely": "^0.28.11",
     "magic-sdk": "^30.0.0",
