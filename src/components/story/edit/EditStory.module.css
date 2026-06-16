@@ -1,6 +1,104 @@
 .story {
   width: 1000px;
   margin: 1rem auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.editor {
+  min-width: 0;
+}
+
+.linkPanel {
+  position: static;
+  border: 1px solid #222;
+  border-radius: var(--border-radius-medium);
+  padding: 1rem;
+  background: #fff;
+  font-size: 0.9rem;
+  display: grid;
+  gap: 1rem;
+}
+
+.linkPanelHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.linkPanelRefresh {
+  border: 1px solid #1f4d7a;
+  border-radius: 999px;
+  padding: 0.2rem 0.6rem;
+  background: #e7f2ff;
+  color: #1f4d7a;
+  cursor: pointer;
+}
+
+.linkPanelManage {
+  text-decoration: none;
+  color: inherit;
+  border: 1px solid #222;
+  border-radius: 999px;
+  padding: 0.3rem 0.6rem;
+  text-align: center;
+}
+
+.linkPanelSection h3 {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 0.5rem;
+}
+
+.linkPanelSection ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.linkStatus {
+  display: inline-block;
+  border: 1px solid #222;
+  border-radius: 999px;
+  padding: 0.1rem 0.5rem;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.linkTitle {
+  margin-top: 0.2rem;
+  font-weight: 600;
+}
+
+.linkMeta {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  opacity: 0.7;
+}
+
+.empty {
+  font-style: italic;
+  opacity: 0.7;
+}
+
+@media screen and (max-width: 1200px) {
+  .story {
+    width: min(1000px, 95vw);
+  }
+}
+
+@media screen and (max-width: 960px) {
+  .story {
+    grid-template-columns: 1fr;
+  }
 }
 
 .noScenes {

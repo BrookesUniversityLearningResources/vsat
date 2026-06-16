@@ -22,6 +22,11 @@ export interface Database {
   audio: TableAudio;
   author: TableAuthor;
   authorToStory: TableAuthorToStory;
+  storyLink: TableStoryLink;
+  linkVote: TableLinkVote;
+  pilot: TablePilot;
+  pilotStory: TablePilotStory;
+  interpretiveNote: TableInterpretiveNote;
 }
 
 // #region Author
@@ -147,6 +152,76 @@ export interface TableAuthorToStory {
   authorId: number;
   storyId: number;
 }
+
+// #region StoryLink
+
+export interface TableStoryLink {
+  id: Generated<number>;
+  fromStoryId: number;
+  toStoryId: number;
+  toSceneId: number | null;
+  toPageNumber: number | null;
+  linkType: string;
+  rationale: string;
+  status: string;
+  createdBy: number;
+  createdAt: Generated<Date>;
+}
+
+export type StoryLinkDto = Selectable<TableStoryLink>;
+export type StoryLinkInsert = Insertable<TableStoryLink>;
+
+export interface TableLinkVote {
+  id: Generated<number>;
+  linkId: number;
+  userId: number;
+  vote: string;
+  comment: string | null;
+  createdAt: Generated<Date>;
+}
+
+export type LinkVoteDto = Selectable<TableLinkVote>;
+export type LinkVoteInsert = Insertable<TableLinkVote>;
+
+// #endregion StoryLink
+
+// #region Pilot
+
+export interface TablePilot {
+  id: Generated<number>;
+  title: string;
+  question: string;
+  partner: string | null;
+  status: string;
+  startAt: Date | null;
+  endAt: Date | null;
+  createdAt: Generated<Date>;
+}
+
+export type PilotDto = Selectable<TablePilot>;
+export type PilotInsert = Insertable<TablePilot>;
+
+export interface TablePilotStory {
+  pilotId: number;
+  storyId: number;
+}
+
+export type PilotStoryDto = Selectable<TablePilotStory>;
+export type PilotStoryInsert = Insertable<TablePilotStory>;
+
+export interface TableInterpretiveNote {
+  id: Generated<number>;
+  pilotId: number;
+  storyId: number;
+  authorId: number;
+  note: string;
+  createdAt: Generated<Date>;
+}
+
+export type InterpretiveNoteDto = Selectable<TableInterpretiveNote>;
+export type InterpretiveNoteInsert = Insertable<TableInterpretiveNote>;
+
+// #endregion Pilot
 
 // #region Scene
 

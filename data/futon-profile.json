@@ -1,0 +1,556 @@
+{
+  "profile": "futon-stack-geometry",
+  "authors": [
+    {
+      "ref": "agent",
+      "name": "FUTON Agent (Stack Geometry)",
+      "email": "stack-geometry@futon.localhost"
+    }
+  ],
+  "stories": [
+    {
+      "ref": "leaf-0",
+      "title": "The Exotype Move",
+      "authorRef": "agent",
+      "publish": true,
+      "scenes": [
+        {
+          "ref": "overview",
+          "title": "Overview",
+          "isOpeningScene": true,
+          "image": {
+            "url": "https://example.test/stack-geometry/scene.jpg",
+            "thumbnailUrl": "https://example.test/stack-geometry/scene-thumb.jpg"
+          },
+          "content": "# Overview\n\nAn *exotype* in futon vocabulary is an abstract wiring diagram \u2014 a\nspecification of how some set of concepts relate, at a level of generality\nthat can be instantiated across many domains. A *xenotype*, one level\nfurther out, is the derivation procedure that produces exotypes from\nother exotypes. The social-exotype is the one that gave this whole\nfamily its name: a wiring diagram for how multi-agent work actually\ncooperates, with slots for the concrete agents, transports, and\ncoordination rules to be filled in per target domain.\n\nThe seven missions gathered here are the result of that derivation at\ndifferent moments and in different domains. Some are the *instantiation*\nsteps \u2014 agency-refactor and peripheral-model each being the INSTANTIATE\nphase of applying a social-exotype derivation to a specific layer of\nthe futon3c stack. Some are *further exotypes* derived from the\nsocial-exotype skeleton \u2014 coordination-exotype, evidence-landscape-exotype\n\u2014 each a mission whose purpose is to produce *another* wiring diagram\nfor *another* domain. And one is a bridge: pattern-exotype-bridge, which\nembeds the 791-pattern library itself into the exotype space so that any\nlibrary pattern becomes executable in any exotype-compatible domain.\n\nIf you came from the [Stack Geometry](stack-geometry) mission wondering\nhow any wiring diagram gets *reusable* at all, this is the cluster that\nanswers.\n\n[Social Exotype (futon3c)](social-exotype-futon3c) \u2014 the source-of-truth wiring diagram  \n[Agency Refactor](agency-refactor) \u2014 INSTANTIATE of social-exotype at the agency layer  \n[Peripheral Model](peripheral-model) \u2014 INSTANTIATE of social-exotype at the peripheral layer  \n[Pattern-Exotype Bridge](pattern-exotype-bridge) \u2014 embedding the library into exotype space  \n[Social Exotype (futon5)](social-exotype-futon5) \u2014 the cross-repo composition target  \n[Coordination Exotype](coordination-exotype) \u2014 derivation in progress  \n[Evidence-Landscape Exotype](evidence-landscape-exotype) \u2014 derivation in progress\n"
+        },
+        {
+          "ref": "social-exotype-futon3c",
+          "title": "Social Exotype (futon3c)",
+          "isOpeningScene": false,
+          "image": {
+            "url": "https://example.test/stack-geometry/scene.jpg",
+            "thumbnailUrl": "https://example.test/stack-geometry/scene-thumb.jpg"
+          },
+          "content": "# Social Exotype (futon3c)\n\nThe *social-exotype* in futon3c is the canonical wiring diagram for\nsocial coordination in the futon sense. Its authorship note is brief\nto the point of terseness: \"Claude (+ Codex for futon5 composition\nextension).\" But the artefact beneath that line is substantial:\n`social-exotype.edn` with eight core components (8/8 verified), a\nverified standalone composition, a verified composed-with-futon5\ncomposition merged into main on commit `d5ae681`, and the bootstrap\nclosure demonstration from Part III of the M-social-exotype mission.\n\nIn concrete terms this wiring diagram specifies: how agents of\ndifferent kinds work together on a shared surface, how\ncoordination-talk is distinguished from action-talk (the `mode-gate`\ncomponent), how evidence is attributed across agents, how\ndiscussions decompose, and how all of this composes across repos.\nThe abstractness is intentional. Most of the slots are empty. Fill\nthem in for one repo and you get an *instantiation* \u2014 which is what\nAgency Refactor and Peripheral Model each are.\n\n[\u2190 Overview](overview) \u00b7 [Agency Refactor \u2192](agency-refactor)\n"
+        },
+        {
+          "ref": "agency-refactor",
+          "title": "Agency Refactor",
+          "isOpeningScene": false,
+          "image": {
+            "url": "https://example.test/stack-geometry/scene.jpg",
+            "thumbnailUrl": "https://example.test/stack-geometry/scene-thumb.jpg"
+          },
+          "content": "# Agency Refactor\n\nAgency Refactor is the INSTANTIATE step of the social-exotype\nderivation xenotype, applied to the agency layer. The predecessor\nartefacts make the move concrete: an `ARGUMENT.flexiarg` with\nrequirements R1\u2013R11 derived from agency and realtime patterns;\n`social-exotype.edn` with all eight components verified; the\n`compose-parallel` operation merged into futon5 main. With those in\nplace, the refactor becomes specific work: port the existing agency\nimplementation onto the slots the wiring diagram exposes, and check\nthat the bootstrap closure from Part III of M-social-exotype still\nholds.\n\nFor a reader this scene matters because it illustrates the payoff of\nthe exotype discipline. Agency is not redesigned from scratch; it is\n*re-instantiated* from an already-verified wiring diagram. The work\nis translation, not invention. The invariants were checked once, at\nthe social-exotype level, and every instantiation inherits them.\n\n[\u2190 Social Exotype (futon3c)](social-exotype-futon3c) \u00b7 [Peripheral Model \u2192](peripheral-model)\n"
+        },
+        {
+          "ref": "peripheral-model",
+          "title": "Peripheral Model",
+          "isOpeningScene": false,
+          "image": {
+            "url": "https://example.test/stack-geometry/scene.jpg",
+            "thumbnailUrl": "https://example.test/stack-geometry/scene-thumb.jpg"
+          },
+          "content": "# Peripheral Model\n\nPeripheral Model is the sibling instantiation at the peripheral\nlayer. Where Agency Refactor applies the social-exotype wiring\ndiagram to agencies, Peripheral Model applies the same diagram \u2014 with\na specific focus on the `mode-gate` component from\n\u00a7S-mode of `social-exotype.edn` (lines 151\u2013162) \u2014 to peripherals. The\nprior artefacts are analogous: ARGUMENT.flexiarg R10 (the\ncoordination-vs-action distinction as a first-class constraint),\n`peripheral-spec.md` with five core peripherals (explore, edit, test,\ndeploy, reflect), and the DISCUSS \u2192 DIAGNOSE \u2192 EXECUTE transition\nprotocol encoded in `mode-gate.flexiarg`.\n\nThe agency layer and the peripheral layer are not the only layers the\nexotype can be applied to. They are the first two, and they work.\nThat is the empirical evidence that the exotype move scales.\n\n[\u2190 Agency Refactor](agency-refactor) \u00b7 [Pattern-Exotype Bridge \u2192](pattern-exotype-bridge)\n"
+        },
+        {
+          "ref": "pattern-exotype-bridge",
+          "title": "Pattern-Exotype Bridge",
+          "isOpeningScene": false,
+          "image": {
+            "url": "https://example.test/stack-geometry/scene.jpg",
+            "thumbnailUrl": "https://example.test/stack-geometry/scene-thumb.jpg"
+          },
+          "content": "# Pattern-Exotype Bridge\n\nPattern-Exotype Bridge is the mission that crosses the exotype family\nwith the pattern library. There are 791 flexiarg patterns in futon3's\nlibrary, each a structured-argument artefact that applies in some\nspecific context. The bridge mission's claim: all of them can be\nprojected into the 8-bit exotype space, using the sixty-four hexagrams\nof the futon exotype system as anchors.\n\nThe method is concrete: PCA-reduce the embedding space to 32\ndimensions, ridge-regress onto 320 anchor points (64 hexagrams + 256\nexotypes), measure bit-accuracy on a hexagram holdout set (57.9% \u2014\nabove chance, below determinism). Domain coherence scored separately:\ncorps domain scores 1.07, vsat domain scores 0.40.\n\nThe point is not that the embedding is perfect. The point is that\n*any pattern from the library can be re-expressed in exotype terms*,\nwhich means any pattern can be applied in any domain the exotype\nsystem covers. The pattern library stops being a futon-local\ncollection and becomes a cross-domain substrate.\n\n[\u2190 Peripheral Model](peripheral-model) \u00b7 [Social Exotype (futon5) \u2192](social-exotype-futon5)\n"
+        },
+        {
+          "ref": "social-exotype-futon5",
+          "title": "Social Exotype (futon5)",
+          "isOpeningScene": false,
+          "image": {
+            "url": "https://example.test/stack-geometry/scene.jpg",
+            "thumbnailUrl": "https://example.test/stack-geometry/scene-thumb.jpg"
+          },
+          "content": "# Social Exotype (futon5)\n\nThis scene is terse because its mission is terse. In futon5, the\nsocial-exotype has a named mission-doc but very little written\ncontent beyond the name itself. You can treat this as a *placeholder*\n\u2014 the intent is to carry the social-exotype derivation from futon3c\ninto futon5's composition context, but the work has not yet been\narticulated in a durable mission document.\n\nFor a reader arriving here from the Pattern-Exotype Bridge: yes, the\nfuton5 side has fewer furnishings than the futon3c side. No, that does\nnot mean the work is not real \u2014 the composed `compose-parallel`\nartefact cited under Agency Refactor is evidence that the cross-repo\ncomposition already works. What is missing here is the *writing* of\nthat work into a mission-document shape.\n\n[\u2190 Pattern-Exotype Bridge](pattern-exotype-bridge) \u00b7 [Coordination Exotype \u2192](coordination-exotype)\n"
+        },
+        {
+          "ref": "coordination-exotype",
+          "title": "Coordination Exotype",
+          "isOpeningScene": false,
+          "image": {
+            "url": "https://example.test/stack-geometry/scene.jpg",
+            "thumbnailUrl": "https://example.test/stack-geometry/scene-thumb.jpg"
+          },
+          "content": "# Coordination Exotype\n\nCoordination Exotype is another placeholder-style mission in futon5,\nnamed but minimally written. Its purpose is clear from context: apply\nthe social-exotype derivation procedure to a specifically\ncoordination-flavoured domain. Multi-agent coordination has its own\nsub-language \u2014 handoffs, synchronisation, race-avoidance, consensus \u2014\nand producing a coordination-specific exotype from the social-exotype\nskeleton means filling the mode-gate and transport-adapter slots with\ncoordination-primitives.\n\nThe mission is not yet sketched out; its presence in this anthology is\nits presence in the corpus. Among the seven members of this cluster,\nthis is one of the scenes where you the reader should feel free to\npencil in your own sentence about what the exotype *will be*.\n\n[\u2190 Social Exotype (futon5)](social-exotype-futon5) \u00b7 [Evidence-Landscape Exotype \u2192](evidence-landscape-exotype)\n"
+        },
+        {
+          "ref": "evidence-landscape-exotype",
+          "title": "Evidence-Landscape Exotype",
+          "isOpeningScene": false,
+          "image": {
+            "url": "https://example.test/stack-geometry/scene.jpg",
+            "thumbnailUrl": "https://example.test/stack-geometry/scene-thumb.jpg"
+          },
+          "content": "# Evidence-Landscape Exotype\n\nThe Evidence-Landscape Exotype, named in futon5 alongside the\ncoordination-exotype, is another open slot for a derivation that has\nnot yet been filled in. The intent \u2014 visible from title and context \u2014\nis to produce an exotype for the *landscape-intelligence* workflow:\nhow evidence is gathered across distributed sources, how it is\nevaluated for relevance, how it is composed into landscapes (the\nworking vocabulary of futon7's lead-report work), and how the pipeline\nfrom raw evidence to landscape claim is made trust-worthy.\n\nLike the other placeholder-style missions in this anthology, its\ncontent remains to be authored. What its *existence* says is that the\nexotype derivation procedure is expected to apply here. The derivation\nitself awaits a mission-doc-scale investment.\n\n[\u2190 Coordination Exotype](coordination-exotype) \u00b7 [Return to Overview](overview)\n"
+        }
+      ]
+    },
+    {
+      "ref": "leaf-2",
+      "title": "Inhabitable Surfaces",
+      "authorRef": "agent",
+      "publish": true,
+      "scenes": [
+        {
+          "ref": "overview",
+          "title": "Overview",
+          "isOpeningScene": true,
+          "image": {
+            "url": "https://example.test/stack-geometry/scene.jpg",
+            "thumbnailUrl": "https://example.test/stack-geometry/scene-thumb.jpg"
+          },
+          "content": "# Overview\n\nThe stack's reflection missions (see the [Portfolio and Sorry](portfolio-and-sorry)\nanthology) ask what the stack *thinks* about itself. This anthology asks a\ndifferent question: *where do people meet inside the stack?* The family\ngathered here is the set of missions that build inhabitable collaborative\nsurfaces \u2014 places where two people can co-create rather than handing text\nback and forth through tools that were not designed for shared thinking.\n\nFuton began as a single-operator Emacs system. Over time the infrastructure\naccreted around that operator: lab notebooks, forum threads, pattern\nlibraries, cursor peripherals, an evidence browser, a MUSN coordination\nmesh. Each was inhabitable by one person at a time. The missions in this\ncluster name a consistent pressure outward: *the surface must be shared*.\nWebArxana is the browser-side manifestation; graph-unification is the\ndata-layer unification; the cursor and forum and lab missions are the\nsmall-scale UX components that hold the whole.\n\nIf you came here from Stack Geometry or from the Portfolio/Sorry\nanthology, note the pairing: that anthology's missions watch the stack;\nthis anthology's missions make the stack liveable for more than one\nperson. Both are necessary.\n\n[WebArxana](webarxana) \u2014 the collaborative hypergraph browser  \n[Graph Unification](graph-unification) \u2014 one graph under forum + lab + patterns + code  \n[Arxana Graph Persistence](arxana-graph-persistence) \u2014 graph-structured lab notebooks  \n[Sliding Blackboard](sliding-blackboard) \u2014 code blocks as first-class side panels  \n[Emacs Cursor Peripheral](emacs-cursor-peripheral) \u2014 the cursor as peripheral  \n[Labs Integration](labs-integration) \u2014 the lab peripheral, polished  \n[Agency + Forum](agency-forum) \u2014 multi-agent routing meets threaded discussion  \n[Forum Organization](forum-organization) \u2014 tags-first forum structure  \n[PAR Session Punctuation](par-session-punctuation) \u2014 closing-the-session as a peripheral\n"
+        },
+        {
+          "ref": "webarxana",
+          "title": "WebArxana",
+          "isOpeningScene": false,
+          "image": {
+            "url": "https://example.test/stack-geometry/scene.jpg",
+            "thumbnailUrl": "https://example.test/stack-geometry/scene-thumb.jpg"
+          },
+          "content": "# WebArxana\n\nWebArxana is the most inhabited edge of this family. The Arxana knowledge\ngraph has rich structure \u2014 entities, relations, hyperedges, typed\nevidence \u2014 but its primary interface has always been an Emacs browser.\nThat is powerful for the person at the keyboard and closed to everyone\nelse. There is no shared workspace in which two people can co-create\nwithin the same hypertext.\n\nThe mission proposes a browser-based surface. Collaborators add short\ntexts, draw typed connections between them, inspect what each person has\ncontributed, and gradually build a shared structured world \u2014 a replay of\nthe chorus/song/chapbook workflow Joe has long favoured, but\nhypergraph-native and web-reachable. Today WebArxana runs at localhost\nand will soon be the rendering target of this anthology itself. If you\nare reading this inside VSAT, the content still came from the same\nfuton1a source WebArxana reads.\n\nFor a contributor who is not Joe, this mission is the first door. You\ncannot walk into Emacs. You can walk into a URL.\n\n[\u2190 Overview](overview) \u00b7 [Graph Unification \u2192](graph-unification)\n"
+        },
+        {
+          "ref": "graph-unification",
+          "title": "Graph Unification",
+          "isOpeningScene": false,
+          "image": {
+            "url": "https://example.test/stack-geometry/scene.jpg",
+            "thumbnailUrl": "https://example.test/stack-geometry/scene-thumb.jpg"
+          },
+          "content": "# Graph Unification\n\nGraph Unification is the data-layer counterpart to WebArxana's UX move.\nToday the stack stores the same sorts of things in four separate places:\nforum threads live in local EDN, lab activity in MUSN session files,\npatterns in a TSV sigil index, code and docs in filesystem paths with\nno graph representation at all. These four vocabularies describe the\nsame underlying world \u2014 claims, connections, evidence, attribution \u2014\nbut cannot be queried as one thing.\n\nFuton1a's graph-memory provides what is needed: a Datascript runtime\nbacked by an event log, persisted to XTDB, with entity/relation model\nand temporal queries (\"what did we know on date X?\"). This mission\ntakes the four data stores and projects them into that runtime so the\nunified view is available to any collaborator and any query.\n\nThe practical result for a reader: when you search in WebArxana or\nclick through to a pattern, you are traversing one connected graph\nthat was until recently four disconnected islands.\n\n[\u2190 WebArxana](webarxana) \u00b7 [Arxana Graph Persistence \u2192](arxana-graph-persistence)\n"
+        },
+        {
+          "ref": "arxana-graph-persistence",
+          "title": "Arxana Graph Persistence",
+          "isOpeningScene": false,
+          "image": {
+            "url": "https://example.test/stack-geometry/scene.jpg",
+            "thumbnailUrl": "https://example.test/stack-geometry/scene-thumb.jpg"
+          },
+          "content": "# Arxana Graph Persistence\n\nThe persistence layer beneath Arxana was for a long time a\nwhat-works-until-it-breaks affair. Lab notebooks, annotations, links\ndrawn between them \u2014 stored somewhere, serialised somehow, reloaded\nwhen possible. This mission was the move to put that layer on a firm\nfoundation: graph-structured persistence with real invariants, real\nround-trip guarantees, real timestamps.\n\nThe mission's content is short because the work is largely\n*completed*. The implementation landed, the persistence layer works,\nand the surface above it (the Arxana browser, WebArxana, the forthcoming\ncollaborative editor) can trust that what gets saved comes back as it\nwent in. That trust is what makes the inhabitable-surface missions\ndownstream viable at all.\n\nTreat this scene as a foundation stone you are meant to walk over, not\nstop on.\n\n[\u2190 Graph Unification](graph-unification) \u00b7 [Sliding Blackboard \u2192](sliding-blackboard)\n"
+        },
+        {
+          "ref": "sliding-blackboard",
+          "title": "Sliding Blackboard",
+          "isOpeningScene": false,
+          "image": {
+            "url": "https://example.test/stack-geometry/scene.jpg",
+            "thumbnailUrl": "https://example.test/stack-geometry/scene-thumb.jpg"
+          },
+          "content": "# Sliding Blackboard\n\nThe sliding blackboard is a small move with an outsized effect on how\nEmacs chat feels to a user. Before this mission, code blocks in the\n`*claude-repl*` buffer rendered inline and mixed with the chat prose \u2014\nfunctional, but cramped. After this mission, code blocks slide out to\ntheir own panels: stacked, properly fontified, navigable as separate\nobjects, leaving the chat buffer lean and readable.\n\nIf you have read the Portfolio/Sorry anthology's scene on Stack\nInhabitation, this is one of the patterns that mission argues for:\n*the surface must earn inhabitation*. The chat buffer earning\ninhabitation means stripping out what does not belong there.\nCode blocks belong somewhere else; the sliding blackboard is where.\n\n[\u2190 Arxana Graph Persistence](arxana-graph-persistence) \u00b7 [Emacs Cursor Peripheral \u2192](emacs-cursor-peripheral)\n"
+        },
+        {
+          "ref": "emacs-cursor-peripheral",
+          "title": "Emacs Cursor Peripheral",
+          "isOpeningScene": false,
+          "image": {
+            "url": "https://example.test/stack-geometry/scene.jpg",
+            "thumbnailUrl": "https://example.test/stack-geometry/scene-thumb.jpg"
+          },
+          "content": "# Emacs Cursor Peripheral\n\nThis mission takes a concept that the stack has been circling \u2014 *the\nperipheral* \u2014 and applies it to the cursor. A peripheral, in the futon\nvocabulary, is a constrained environment in which an agent can do a\nspecific kind of work, with a shape that earns inhabitation rather\nthan simply existing. The cursor is, in that sense, the original and\nmost-used peripheral in Emacs: a little window on the text through\nwhich every other operation is mediated.\n\nThe mission is at the assign-an-owner stage \u2014 Claude for UX, probably\nCodex for the service plumbing \u2014 and its exact scope depends on\nwhich parts of the cursor's work become peripheral-shaped and which\nremain diffuse. As a reader you should expect this scene to be thinner\nthan most; what matters here is that the cursor itself has been\nrecognised as peripheral material.\n\n[\u2190 Sliding Blackboard](sliding-blackboard) \u00b7 [Labs Integration \u2192](labs-integration)\n"
+        },
+        {
+          "ref": "labs-integration",
+          "title": "Labs Integration",
+          "isOpeningScene": false,
+          "image": {
+            "url": "https://example.test/stack-geometry/scene.jpg",
+            "thumbnailUrl": "https://example.test/stack-geometry/scene-thumb.jpg"
+          },
+          "content": "# Labs Integration\n\nLabs Integration is this anthology's busiest scene: a catch-all for\nimprovements to the lab peripheral \u2014 completed work and open follow-ups\nintermingled \u2014 that the current mission owner has flagged for splitting\nbefore continuing. Treat it as a holding pattern rather than a coherent\nproject. Somewhere in its pending-work list is the next thing that\nshould become its own mission.\n\nIf you are an incoming contributor looking for a place to pick up work\nthat is neither trivial nor yet committed to someone, this is the list\nto scan.\n\n[\u2190 Emacs Cursor Peripheral](emacs-cursor-peripheral) \u00b7 [Agency and Forum \u2192](agency-forum)\n"
+        },
+        {
+          "ref": "agency-forum",
+          "title": "Agency and Forum",
+          "isOpeningScene": false,
+          "image": {
+            "url": "https://example.test/stack-geometry/scene.jpg",
+            "thumbnailUrl": "https://example.test/stack-geometry/scene-thumb.jpg"
+          },
+          "content": "# Agency and Forum\n\nAgency and Forum brings two things together that have lived\nseparately: the multi-agent routing apparatus (Agency) and the\nthreaded discussion surface (Forum). Agency routes a message to a\nspecific agent or group of agents based on its content, intent, and\ncontext; Forum holds the ongoing discussion record between\ncontributors. Joining them is conceptually simple and practically\nslow: every place that mentions \"who said what, and who responds\nnext\" has to understand both layers.\n\nThe mission is in the same holding pattern as Labs Integration \u2014\nit spans two layers, and will likely split into separate\nAgency-focused and Forum-focused sub-missions before any of the\nwork advances meaningfully. The scene is here to mark the\nrecognition that the split is needed, not yet to mark the split.\n\n[\u2190 Labs Integration](labs-integration) \u00b7 [Forum Organization \u2192](forum-organization)\n"
+        },
+        {
+          "ref": "forum-organization",
+          "title": "Forum Organization",
+          "isOpeningScene": false,
+          "image": {
+            "url": "https://example.test/stack-geometry/scene.jpg",
+            "thumbnailUrl": "https://example.test/stack-geometry/scene-thumb.jpg"
+          },
+          "content": "# Forum Organization\n\nForum Organization is the tags-first proposal for structuring the\nforum surface. Rather than hierarchical channels or free-form chat,\nthe forum is organised around a tag taxonomy that contributors can\nextend over time. This scales better than fixed structure and\ndecays more gracefully than flat chat. It also plays naturally with\nthe graph-unification mission upstream: tags become entities, tag\napplication becomes a typed relation, and querying the forum\nbecomes graph-queryable.\n\nThe mission is owned by Claude and is in the sort of state where\nconcrete implementation follows a relatively clear plan. As a\nreader arriving here for the first time, note that \"tags-first\"\nis opinionated rather than default \u2014 many forum systems grow\nchannels instead. The futon stack has chosen tags.\n\n[\u2190 Agency and Forum](agency-forum) \u00b7 [PAR Session Punctuation \u2192](par-session-punctuation)\n"
+        },
+        {
+          "ref": "par-session-punctuation",
+          "title": "PAR Session Punctuation",
+          "isOpeningScene": false,
+          "image": {
+            "url": "https://example.test/stack-geometry/scene.jpg",
+            "thumbnailUrl": "https://example.test/stack-geometry/scene-thumb.jpg"
+          },
+          "content": "# PAR Session Punctuation\n\nPAR \u2014 *Problem\u2013Approach\u2013Result* \u2014 is a pattern the stack uses to\nclose a session. When an agent or a contributor stops work, they\nleave behind a small record: what was the problem being faced,\nwhat approach was taken, what was the result. That record is\nevidence. It is also, as this mission proposes, punctuation \u2014\nthe way a session signs its own close and makes itself legible to\nthe next person who picks up.\n\nThe mission would make PAR a first-class peripheral: a small UX\nflow that prompts for the three fields at a natural moment,\nrecords the result into the evidence stream, and gives the\ndeparting contributor a clean way to leave. That is how a\ncollaborative surface earns the right to hand off gracefully.\n\nAs a reader finishing this anthology, you are at a natural PAR\nmoment yourself. You have read nine scenes about making the stack\nshareable. What the stack *is* \u2014 after a contributor besides Joe\nuses it with these missions in place \u2014 is the result of a PAR\nthe mission authors have only partly written.\n\n[\u2190 Forum Organization](forum-organization) \u00b7 [Return to Overview](overview)\n"
+        }
+      ]
+    },
+    {
+      "ref": "leaf-6-4-2",
+      "title": "Proof and Problem",
+      "authorRef": "agent",
+      "publish": true,
+      "scenes": [
+        {
+          "ref": "overview",
+          "title": "Overview",
+          "isOpeningScene": true,
+          "image": {
+            "url": "https://example.test/stack-geometry/scene.jpg",
+            "thumbnailUrl": "https://example.test/stack-geometry/scene-thumb.jpg"
+          },
+          "content": "# Overview\n\nIf the [Portfolio and Sorry](portfolio-and-sorry) anthology is about how\nthe stack thinks about itself, and [Inhabitable Surfaces](inhabitable-\nsurfaces) is about where people meet inside it, this anthology is about\n*what the stack does when it tries to do mathematics*. Nine missions sit\nin this cluster. Together they are the stack's attempt to make the\n*production* of proofs a first-class activity \u2014 one with phases, gates,\nevidence, reviewers, and decision-traces, just as the rest of the stack\nhas for code.\n\nThe missions decompose into four groupings that you will recognise as you\nread. First there is the *infrastructure* \u2014 the general mission peripheral\nand the more specific proof peripheral, which define the machinery of a\nproof session: nine phases, fifteen tools, a ledger, a DAG of\nobligations, a gate-checklist from G5 through G0. Then there is the\n*calibration* \u2014 stepper-calibration and V-f6-thesis-verification, which\nboth ask \"does the infrastructure catch the mistakes it is supposed to\ncatch?\" Then there are the *applications* \u2014 diagramprover, which searches\nproof-space with pattern discipline, and three rational-reconstruction\nmissions (P3, P7, P8) that replay existing proofs with decision traces\nto see if pattern discipline would have caught the gaps reviewers found.\nAnd finally there is the *stress test* \u2014 distributed-frontiermath, which\nthrows the whole apparatus at a genuinely open problem and asks whether\nit holds together under pressure.\n\nAs a reader, the arc runs from definition to test to application to\nstress test \u2014 a natural mathematical discipline running in miniature on\nthe stack's own proof work.\n\n[Mission Peripheral](mission-peripheral) \u2014 the general cycle infrastructure  \n[Proof Peripheral](proof-peripheral) \u2014 FrontierMath-specific protocol  \n[DiagramProver](diagramprover) \u2014 pattern-driven proof search  \n[Stepper Calibration](stepper-calibration) \u2014 does the stepper catch errors?  \n[V-f6 Thesis Verification](v-f6-thesis-verification) \u2014 futon6 against the 2014 PhD thesis  \n[P3 Rational Reconstruction](p3-rational-reconstruction) \u2014 linear proof replay  \n[P7 Rational Reconstruction](p7-rational-reconstruction) \u2014 branching proof replay  \n[P8 Rational Reconstruction](p8-rational-reconstruction) \u2014 linear-with-kernel proof replay  \n[Distributed FrontierMath](distributed-frontiermath) \u2014 the stress test\n"
+        },
+        {
+          "ref": "mission-peripheral",
+          "title": "Mission Peripheral",
+          "isOpeningScene": false,
+          "image": {
+            "url": "https://example.test/stack-geometry/scene.jpg",
+            "thumbnailUrl": "https://example.test/stack-geometry/scene-thumb.jpg"
+          },
+          "content": "# Mission Peripheral\n\nThe mission peripheral is the general-purpose cycle machinery. The proof\nperipheral (commit `7d1a5d0`, fifteen tools, nine-phase cycle) works for\nmathematical proof development. But the same cycle structure applies to\n*code development missions*: observe the codebase, propose an approach,\nexecute the change, validate with tests, classify the outcome, integrate\ninto the evidence landscape, commit, and gate-review. The mission\nperipheral is the recognition of that isomorphism and the apparatus that\nexploits it.\n\nThe point is enforceability. Code missions today are tracked in markdown\nfiles (`holes/missions/M-*.md`), coordinated via the war room, and\nexecuted with ad hoc PSR/PUR discipline. This works until it doesn't;\nwhat the peripheral adds is *structural* enforcement \u2014 phase-gated\ntools, mandatory outputs per phase, DAG-tracked obligations, automatic\nevidence emission. Evidence when coding is not just \"unit tests pass\":\nit includes design decisions (why protocol-first?), corpus checks (what\ndid the pattern library say?), framing validations (is the decomposition\nright?), and the reasoning context around each step.\n\nThis is the scene to read first because every other mission in this\nanthology inherits its shape.\n\n[\u2190 Overview](overview) \u00b7 [Proof Peripheral \u2192](proof-peripheral)\n"
+        },
+        {
+          "ref": "proof-peripheral",
+          "title": "Proof Peripheral",
+          "isOpeningScene": false,
+          "image": {
+            "url": "https://example.test/stack-geometry/scene.jpg",
+            "thumbnailUrl": "https://example.test/stack-geometry/scene-thumb.jpg"
+          },
+          "content": "# Proof Peripheral\n\nThe proof peripheral is the first concrete instantiation of the\nmission-peripheral pattern, specialised for mathematical work. The\ninfrastructure from Mission Peripheral \u2014 nine-phase cycle machine,\nledger plus DAG, canonical statement management, the G5\u2013G0 gate\nchecklist \u2014 all of this exists and works. What the mission adds are the\n*FrontierMath-specific* protocol pieces needed for live use against\nopen research problems:\n\n1. Blackboard observability for proof sessions, so multiple agents or\n   observers can watch the proof unfold.\n2. A five-mode protocol \u2014 SPEC, FALSIFY, CONSTRUCT, VERIFY, MAP \u2014 that\n   structures the proof attempt.\n3. TryHarder licensing that gates persistence loops, preventing the\n   \"keep trying forever\" failure mode.\n4. Mandatory FALSIFY-before-CONSTRUCT enforcement, which closes one of\n   the most common proof-search anti-patterns.\n5. State snapshot evidence emission, so every intermediate state is\n   recoverable.\n\nThe five modes are worth noting because they encode a discipline many\nhuman mathematicians internalise slowly: before you try to construct,\ntry to break; before you verify, specify what you are verifying; and\nwhen the construct fails, map where you are rather than thrashing.\n\n[\u2190 Mission Peripheral](mission-peripheral) \u00b7 [DiagramProver \u2192](diagramprover)\n"
+        },
+        {
+          "ref": "diagramprover",
+          "title": "DiagramProver",
+          "isOpeningScene": false,
+          "image": {
+            "url": "https://example.test/stack-geometry/scene.jpg",
+            "thumbnailUrl": "https://example.test/stack-geometry/scene-thumb.jpg"
+          },
+          "content": "# DiagramProver\n\nDiagramProver is the stack's answer \u2014 or at least its proposal \u2014 to\nsystems like Axiom's AxiomProver, which achieved a perfect 12/12 Putnam\n2025 score and closed four previously open conjectures. Axiom's\narchitecture: natural-language problem statements parsed and translated\ninto Lean code with type-consistency checking, a custom transformer\nexploring proof-space with an RL loop rewarding progress and penalising\ndead ends, candidate proofs fed to Lean for formal verification, a data\nflywheel feeding verified proofs back into training.\n\nDiagramProver's claim is *complementary, not competitive*: pattern-driven\nproof search. Rather than a pure RL signal, the search is guided by\nstructural patterns \u2014 the accumulated wisdom of many proofs,\nexpressed as flexiargs in the library, each with known applicability\nconditions. A search step is a pattern application, not a token\ngeneration. Success is not only \"Lean accepted the proof\" but also\n\"the patterns used are legible to a reviewer as the moves of the proof.\"\n\nWhether this is faster, slower, or more reliable than Axiom's approach\nis an open empirical question. What the mission commits to is the\narchitecture \u2014 and the anthology beyond this scene is the calibration\nand application work that tests whether the architecture earns its\nkeep.\n\n[\u2190 Proof Peripheral](proof-peripheral) \u00b7 [Stepper Calibration \u2192](stepper-calibration)\n"
+        },
+        {
+          "ref": "stepper-calibration",
+          "title": "Stepper Calibration",
+          "isOpeningScene": false,
+          "image": {
+            "url": "https://example.test/stack-geometry/scene.jpg",
+            "thumbnailUrl": "https://example.test/stack-geometry/scene-thumb.jpg"
+          },
+          "content": "# Stepper Calibration\n\nStepper Calibration is where the infrastructure gets tested against\nknown ground truth. The proof stepper (the combination of the proof\nperipheral, the `:corpus-check` tool, and the evidence-facet engine)\nis designed to catch *framing errors* before they propagate into full\nproofs. First Proof provides ten problems with known official answers.\nThis mission traces each problem through the stepper and asks five\ndiagnostic questions:\n\n1. Would the stepper have caught the error (for the wrong answers, P1\n   and P7)?\n2. Would the stepper have prevented problem substitution (P3, where the\n   problem-as-stated was quietly replaced)?\n3. Would the stepper have surfaced the missing technique (P4 and P6)?\n4. What does a successful stepper trace look like (P2, P8, P9, P10)?\n5. What corpus data is needed to make each check effective?\n\nThe last question is doing double duty: it calibrates the stepper *and*\ndefines the requirements for the arXiv pipeline, so that when the\nFrontierMath work scales up, the corpus data already matches what the\nstepper needs. Calibration and specification in one mission.\n\n[\u2190 DiagramProver](diagramprover) \u00b7 [V-f6 Thesis Verification \u2192](v-f6-thesis-verification)\n"
+        },
+        {
+          "ref": "v-f6-thesis-verification",
+          "title": "V-f6 Thesis Verification",
+          "isOpeningScene": false,
+          "image": {
+            "url": "https://example.test/stack-geometry/scene.jpg",
+            "thumbnailUrl": "https://example.test/stack-geometry/scene-thumb.jpg"
+          },
+          "content": "# V-f6 Thesis Verification\n\nV-f6 Thesis Verification is an unusual mission: it verifies the present\nwork of futon6 against the Future Work section of Joe's 2014 PhD thesis.\nThe thesis described what a computational study following the doctoral\nwork would need \u2014 a reasonably large computer-accessible body of\nmathematical content, computational agents that navigate mathematical\nstructures, standard and social problem-solving heuristics, sufficient\nmetacognitive awareness to set and solve problems with design patterns,\nand the ability to annotate, reflect, diagnose, and extend the process.\n\nTwelve years later, futon6 exists. The mission decomposes each thesis\nclaim into a verifiable assertion and maps it to a futon6 component:\nthe math.SE corpus and NER kernel match the \"computer-accessible body\nof mathematical content\"; the agent infrastructure matches\n\"computational agents\"; the pattern library matches \"design patterns\";\nthe proof peripheral's reflection tools match \"annotate, reflect,\ndiagnose, extend.\"\n\nThis scene matters because it makes explicit what is otherwise implicit\nthroughout the proof-and-problem family: the work has a long horizon,\nthe design is older than the code, and the verification of the whole\nis as much against *Joe's original vision* as against any external\nbenchmark.\n\n[\u2190 Stepper Calibration](stepper-calibration) \u00b7 [P3 Rational Reconstruction \u2192](p3-rational-reconstruction)\n"
+        },
+        {
+          "ref": "p3-rational-reconstruction",
+          "title": "P3 Rational Reconstruction",
+          "isOpeningScene": false,
+          "image": {
+            "url": "https://example.test/stack-geometry/scene.jpg",
+            "thumbnailUrl": "https://example.test/stack-geometry/scene-thumb.jpg"
+          },
+          "content": "# P3 Rational Reconstruction\n\nP3 is one of the first problems where the rational-reconstruction method\nwas applied. The problem asks for the existence of a continuous-time\nMarkov chain whose stationary distribution is a modified Macdonald\npolynomial. A complete solution sketch already exists, along with a\nreviewer assessment (two major findings, one medium), a Mermaid wiring\ndiagram, Codex repair cycles, and eight synthetic question-answer pairs\ndecomposing the proof into sub-questions. The mathematical content is\nthere.\n\nWhat is missing \u2014 and what this mission produces \u2014 is the *decision\ntrace*. The original solution was developed ad hoc: steps were chosen,\ndecompositions made, notation bridges asserted. No record exists of\n*why* those moves were chosen, what alternatives were considered, what\npatterns (if any) governed the proof strategy. The reviewer found gaps\n\u2014 a star/non-star bridge asserted but not proved, irreducibility too\ncompressed, positivity needing a citation \u2014 but nobody can trace those\ngaps back to the decisions that produced them.\n\nRational reconstruction replays the proof with pattern discipline.\nVirtual PSRs are written at each decision point, as if the proof had\nbeen produced under the discipline from the start. The output: a\nreconstructed proof that is *legibly patterned* and a diagnostic that\nshows whether pattern discipline would have caught the reviewer's\nfindings the first time.\n\n[\u2190 V-f6 Thesis Verification](v-f6-thesis-verification) \u00b7 [P7 Rational Reconstruction \u2192](p7-rational-reconstruction)\n"
+        },
+        {
+          "ref": "p7-rational-reconstruction",
+          "title": "P7 Rational Reconstruction",
+          "isOpeningScene": false,
+          "image": {
+            "url": "https://example.test/stack-geometry/scene.jpg",
+            "thumbnailUrl": "https://example.test/stack-geometry/scene-thumb.jpg"
+          },
+          "content": "# P7 Rational Reconstruction\n\nP7 is the harder test case. Where P3 has a single linear proof path, P7\nexplores four distinct approaches \u2014 Wall surgery, equivariant surgery,\norbifold resolution, and the rotation-lattice route \u2014 encounters\nblocking obstructions, and settles on a conditional answer via the\nrotation-lattice construction. The reviewer identified four findings,\nthree critical.\n\nThis mission matters because P3's rational reconstruction validated the\nmethod on the easy case: virtual PSR and PUR replay caught three of\nthree reviewer findings through pattern discipline. P7 tests features\nP3 lacked. Multiple proof routes explored and abandoned \u2014 the *decision\nto abandon* Approaches I through III and pursue IV is a strategic move\nfor which no existing pattern covers. A conditional or partial answer \u2014\nP3 had a yes; P7 has a qualified yes. The rational reconstruction has\nto model not just the linear steps but the lateral motion across\napproaches.\n\nIf P7 succeeds in the reconstruction sense \u2014 if pattern discipline would\nhave caught its reviewer findings and represented its strategic choices\nlegibly \u2014 then the pattern library is demonstrating *coverage across\nproof shapes*, not just coverage of the easy linear case.\n\n[\u2190 P3 Rational Reconstruction](p3-rational-reconstruction) \u00b7 [P8 Rational Reconstruction \u2192](p8-rational-reconstruction)\n"
+        },
+        {
+          "ref": "p8-rational-reconstruction",
+          "title": "P8 Rational Reconstruction",
+          "isOpeningScene": false,
+          "image": {
+            "url": "https://example.test/stack-geometry/scene.jpg",
+            "thumbnailUrl": "https://example.test/stack-geometry/scene-thumb.jpg"
+          },
+          "content": "# P8 Rational Reconstruction\n\nP8 is a third shape of test. The problem asks whether a polyhedral\nLagrangian surface in four dimensions, with four faces per vertex,\nadmits a Lagrangian smoothing. The proof is *mostly* linear \u2014 setup,\nlocal structure, key decomposition, consequences, smoothing, assembly\n\u2014 but one step, the symplectic direct sum at step s3, is the\n*structural kernel* of the whole argument. Get that step right and the\nrest follows; get it wrong and the proof collapses.\n\nThe solution has incorporated repairs from the reviewer \u2014 a vertex\nspanning lemma, edge crease smoothing, a global Hamiltonian argument \u2014\nbut the rational reconstruction works from the *original* decision\ntrace, asking whether pattern discipline would have surfaced those\nrepairs from the start. This tests the library against symplectic\ngeometry specifically, a domain relatively underrepresented in the\ncorpus, and with a linear-with-kernel proof architecture distinct from\nP3's pure linearity and P7's branching.\n\nThree shapes tested is weak generalisation evidence but non-zero. If\nthe library handles all three \u2014 linear (P3), branching (P7),\nlinear-with-kernel (P8) \u2014 then the claim that patterns generalise\nacross proof shapes has its first empirical support.\n\n[\u2190 P7 Rational Reconstruction](p7-rational-reconstruction) \u00b7 [Distributed FrontierMath \u2192](distributed-frontiermath)\n"
+        },
+        {
+          "ref": "distributed-frontiermath",
+          "title": "Distributed FrontierMath",
+          "isOpeningScene": false,
+          "image": {
+            "url": "https://example.test/stack-geometry/scene.jpg",
+            "thumbnailUrl": "https://example.test/stack-geometry/scene-thumb.jpg"
+          },
+          "content": "# Distributed FrontierMath\n\nDistributed FrontierMath is the stress test. The mission stress-tests\ndistributed agent coordination on a genuinely open FrontierMath problem,\nFM-001. Success is *not* defined as solving FM-001. Success is defined\nas: honest, high-integrity execution in which failure yields *named\nobstructions* and *reusable negative results*.\n\nThe discovery goals are fourfold. Where does the agents' mathematical\nreasoning break down? Does distributed coordination help, or does it\nmerely distribute confusion? Can the Mentor role detect and break\npersistence loops in real time? Do new patterns emerge from the proof\ndialogue that deserve admission to the library?\n\nAs the final scene in this anthology, Distributed FrontierMath inherits\nthe weight of everything before it. If Mission Peripheral is the\ninfrastructure, Proof Peripheral the specialisation, DiagramProver the\nsearch, Calibration the validation, V-f6 the historical verification,\nand P3/P7/P8 the applications at three shapes of proof \u2014 then\nDistributed FrontierMath is where *all of it is running against a real\nopen problem with the obstruction named honestly when it happens.* The\ndiscipline of treating failure as data, rather than as embarrassment,\nis the discipline the whole anthology quietly argues for.\n\n[\u2190 P8 Rational Reconstruction](p8-rational-reconstruction) \u00b7 [Return to Overview](overview)\n"
+        }
+      ]
+    },
+    {
+      "ref": "leaf-6-4-4",
+      "title": "The Stack Thinks About Itself",
+      "authorRef": "agent",
+      "publish": true,
+      "scenes": [
+        {
+          "ref": "overview",
+          "title": "Overview",
+          "isOpeningScene": true,
+          "image": {
+            "url": "https://example.test/stack-geometry/scene.jpg",
+            "thumbnailUrl": "https://example.test/stack-geometry/scene-thumb.jpg"
+          },
+          "content": "# Overview\n\nIf you walk through the futon stack mission by mission, you keep running\ninto a particular kind of work \u2014 missions that turn the stack's attention\nonto itself. Not features. Not infrastructure. Work whose subject is\n\"how does the stack know what it is doing, and why?\" Fifteen such\nmissions cluster together in the embedding-space geometry; five of them\nsit near the cluster's centre, the remaining ten fan out around them.\n\nWhy a whole family? Because a stack this size \u2014 one hundred and ten\nactive missions across seven repos, eight hundred and fifty patterns in\na shared library, forty-three missions in motion at any time \u2014 does\nnot understand itself accidentally. Self-understanding is a capacity\nthe stack has to grow on purpose. These missions are the apparatus\ndoing that growing: some declarative (what are we?), some observational\n(what is happening?), some inferential (what should we do next?), and\nsome recursive (how do we get better at answering?).\n\nYou can enter the family at any scene. If you want the single most\nrecent mission, start with [Stack Geometry](stack-geometry). If you\nwant the observational layer operational since February, go to\n[Mission Control](mission-control). If you want the thing Joe keeps\nreturning to \u2014 the reason this cluster exists at all \u2014 read\n[Self-Representing Stack](self-representing-stack) and then come\nback.\n\n[Stack Geometry](stack-geometry) \u2014 this anthology's author, in a sense  \n[Mission Control](mission-control) \u2014 the observational layer  \n[Portfolio Inference](portfolio-inference) \u2014 the decision layer  \n[Trip Journal](trip-journal) \u2014 the operator-capacity register  \n[Learning Loop](learning-loop) \u2014 the pattern-mining engine  \n[Hypergraph Operator](hypergraph-operator) \u2014 the Click/Tick machine  \n[A Sorry Enterprise](a-sorry-enterprise) \u2014 sorry as the stack's currency  \n[Self-Representing Stack](self-representing-stack) \u2014 the ur-mission  \n[Three-Column Stack](three-column-stack) \u2014 the three-column schema  \n[Structural Law](structural-law) \u2014 invariants that recur across domains  \n[Invariant Violations](invariant-violations) \u2014 when those laws break  \n[Stack Inhabitation](stack-inhabitation) \u2014 the question of use  \n[Fulab Logic](fulab-logic) \u2014 relational invariants beyond portfolio  \n[Tickle Overnight](tickle-overnight) \u2014 work that happens while you sleep  \n[Futon Enrichment](futon-enrichment) \u2014 the cross-column connective tissue\n"
+        },
+        {
+          "ref": "stack-geometry",
+          "title": "Stack Geometry",
+          "isOpeningScene": false,
+          "image": {
+            "url": "https://example.test/stack-geometry/scene.jpg",
+            "thumbnailUrl": "https://example.test/stack-geometry/scene-thumb.jpg"
+          },
+          "content": "# Stack Geometry\n\nThis mission was created on 2026-04-19, the day this anthology was first\ndrafted, and sits at the centroid of its own cluster. That is not a\ncoincidence. Its job is precisely to make the family of missions you are\nnow reading *visible* as a family \u2014 to take the three prior attempts at\nrationalising the stack (an Argument, a Mission Control, a Portfolio\nInference) and add the missing fourth thing: *topology*.\n\nWhat you are reading is the output of that topology. The embedding-based\nclustering, the recursive splits, the narrative handles, the\nrepresentative missions per leaf \u2014 all of it is this mission's apparatus\ndoing its job. The very fact that Stack Geometry appears as a scene in\nits own anthology is Criterion 7 of the mission being met in the most\ndirect way possible: it surfaced itself.\n\nIf you want to understand what the mission set out to do \u2014 why topology\ncompletes the stack's self-understanding, what the spatial synthesis\nmeans \u2014 [Self-Representing Stack](self-representing-stack) is where the\nquestion was first named. If you want to see what the mission *enables*\ndownstream, continue to [Mission Control](mission-control), its\nobservational sibling.\n\n[\u2190 Overview](overview) \u00b7 [Mission Control \u2192](mission-control)\n"
+        },
+        {
+          "ref": "mission-control",
+          "title": "Mission Control",
+          "isOpeningScene": false,
+          "image": {
+            "url": "https://example.test/stack-geometry/scene.jpg",
+            "thumbnailUrl": "https://example.test/stack-geometry/scene-thumb.jpg"
+          },
+          "content": "# Mission Control\n\nMission Control is the observational layer of the portfolio. Operational\nsince February 2026, it walks across repos, builds an inventory of\nmissions, tracks their status (`IDENTIFY`, `MAP`, `DERIVE`, `ARGUE`,\n`VERIFY`, `INSTANTIATE`, `DOCUMENT`), and surfaces a cross-repo view that\nno single mission doc would ever produce. When the stack wants to ask\n*what is in the portfolio right now?*, this is what it asks.\n\nBut observation is not inference. Mission Control can tell you that\nforty-three missions are active and how they are distributed across\nrepos; it cannot tell you which one to do next. That question belongs to\nits downstream sibling, [Portfolio Inference](portfolio-inference), which\nreads Mission Control's observations as sensory input to an Active\nInference loop.\n\nAs a reader arriving here from the overview, note the division: Mission\nControl is a peripheral the stack runs to watch itself work. Portfolio\nInference is a peripheral that *decides what to do* based on what\nMission Control saw. Together they are the stack's minimum viable\nself-governance. This anthology's existence depends on Mission Control's\ninventory as its canonical list.\n\n[\u2190 Stack Geometry](stack-geometry) \u00b7 [Portfolio Inference \u2192](portfolio-inference)\n"
+        },
+        {
+          "ref": "portfolio-inference",
+          "title": "Portfolio Inference",
+          "isOpeningScene": false,
+          "image": {
+            "url": "https://example.test/stack-geometry/scene.jpg",
+            "thumbnailUrl": "https://example.test/stack-geometry/scene-thumb.jpg"
+          },
+          "content": "# Portfolio Inference\n\nPortfolio Inference sits above Mission Control and does the second half\nof the reflexive move. Mission Control observes; this mission *infers*.\nSixteen sensory channels \u2014 mana-available, coverage-pct, blocked-ratio,\nstall-count, spinoff-pressure, gap-count, and ten more \u2014 feed a\ngenerative model in the Active Inference template that futon2 proved out\non cyberant ants. The model produces a belief state `\u03bc` and a precision\nvector `\u03c4`; it computes prediction error when observations disagree with\nexpectations; it selects next actions by Expected Free Energy rather\nthan by gut feeling.\n\nThree operating modes \u2014 BUILD, MAINTAIN, CONSOLIDATE \u2014 encode the\ndifferent stances the portfolio can take depending on gap-density and\nmana reserves. The mission also emits an *adjacent-possible boundary*:\nthe set of missions structurally enabled to advance next. That is the\nlayer the other missions in this family consume.\n\nIf you read this expecting live values, a note: at the time of writing\nthe AIF loop has step-count zero. Its ontology is in place; the\nmachinery runs when called; it has simply not been stepped lately. That\ngap is itself a portfolio-inference-level observation: the stack is not\ncurrently watching itself at this level of refinement, but it *could\nbe*, and the decision to start is one you can make.\n\n[\u2190 Mission Control](mission-control) \u00b7 [Trip Journal \u2192](trip-journal)\n"
+        },
+        {
+          "ref": "trip-journal",
+          "title": "Trip Journal",
+          "isOpeningScene": false,
+          "image": {
+            "url": "https://example.test/stack-geometry/scene.jpg",
+            "thumbnailUrl": "https://example.test/stack-geometry/scene-thumb.jpg"
+          },
+          "content": "# Trip Journal\n\nWhere Mission Control observes the portfolio and Portfolio Inference\ndecides what to do, Trip Journal is the mission that asks a harder\nquestion: *what is the operator learning while this all happens?* A\nfutonic mission is excellent at getting good work done, but has no\nbuilt-in mechanism ensuring the operator gains capacity from running\nit. In a failure mode the literature calls cognitive atrophy, AI does\nthe work and the human gets duller. In Joe's directly-lived opposite\nexperience, AI makes cross-scale thinking sharper, but the mechanism\nis opaque \u2014 which means it cannot be trained intentionally.\n\nTrip Journal installs a *parallel register* alongside each mission's\nledger: a sidecar file, a hinge-log, a question pool, an agent-scribe\nconvention. Entries appear at *hinges* \u2014 natural cleavages in a\nmission's structure, recognised rather than scheduled. The four-channel\nlearning loop (pattern library, operator vocabulary, connection graph,\nquestion pool) fires when a hinge produces a genuine update.\n\nThis mission is also the precursor of the very apparatus that made\nStack Geometry possible: the hinge-log ingestion bridge built on\n2026-04-18, which writes mission structure into futon1a so WebArxana\ncan render it. The pattern you are reading right now \u2014 data-turned-into-\nanthology \u2014 is downstream of the I-1-applied-to-humans discipline Trip\nJournal articulates.\n\n[\u2190 Portfolio Inference](portfolio-inference) \u00b7 [Learning Loop \u2192](learning-loop)\n"
+        },
+        {
+          "ref": "learning-loop",
+          "title": "Learning Loop",
+          "isOpeningScene": false,
+          "image": {
+            "url": "https://example.test/stack-geometry/scene.jpg",
+            "thumbnailUrl": "https://example.test/stack-geometry/scene-thumb.jpg"
+          },
+          "content": "# Learning Loop\n\nLearning Loop is Trip Journal's structural successor. If Trip Journal\ninstalls the apparatus by which hinges-and-articulations get captured,\nLearning Loop asks: *given all that captured evidence, what patterns\nshould we extract from it?* Specifically, this is the pattern-mining\npipeline for the operator side of the stack \u2014 the B\u2192A side, in the\ntagging-vs-mining framing: A\u2192B is pattern *tagging* (applying library\npatterns to agent turns); B\u2192A is pattern *mining* (discovering new\npatterns from operator turns and growing the library).\n\nThe mission's central bet is that the library `futon3/library/structure/`\ncan grow by mining operator B\u2192A pairs \u2014 agent-view summaries at hinges\npaired with operator articulations at those hinges \u2014 using an\nagent-proposes / operator-confirms discipline. The feedback loop closes\nwhen a new flexiarg enters the library, becomes available for A\u2192B\ntagging, and shapes what future mining will look for.\n\nA sibling argument is that *contrast is the signal*. Absolute counts of\nanything \u2014 pattern activations, operator-vocabulary hits, connection-graph\nupdates \u2014 are never signal on their own. Signal lives in deviations from\nbaseline. That methodological move is shared with this mission (Stack\nGeometry), which learned the lesson from an artefact-diagnostic done\non pattern-retrieval density two days before this anthology was written.\n\n[\u2190 Trip Journal](trip-journal) \u00b7 [Hypergraph Operator \u2192](hypergraph-operator)\n"
+        },
+        {
+          "ref": "hypergraph-operator",
+          "title": "Hypergraph Operator",
+          "isOpeningScene": false,
+          "image": {
+            "url": "https://example.test/stack-geometry/scene.jpg",
+            "thumbnailUrl": "https://example.test/stack-geometry/scene-thumb.jpg"
+          },
+          "content": "# Hypergraph Operator\n\nHypergraph Operator is where all of the above becomes *operational* in\nActive Inference terms. Three existing objects describe Joe's strategic\nsituation from different angles \u2014 the Grand Unified Placemat, the JSDQ\nTerminal Vocabulary, and the JSDQ Hypergraph \u2014 but they are descriptive\ndocuments. This mission is the attempt to make them tickable: a machine\ncan run Clicks (passive observations that update belief) and Ticks\n(constraint checks that fire when sorry conditions are violated).\n\nThe Click model started in futon0 with a Beta-binomial posterior over\nbucketed observables; one edge was built (commit-time \u2192 recording).\nHypergraph Operator generalises that edge into an entire state-space:\nany observable becomes a Click edge; any violated sorry becomes a Tick.\nThe *hyper-pocketwatch* periodically reads the sorry topology, runs\nClicks, fires Ticks, and surfaces the result as a HUD the operator can\ninhabit.\n\nIf you followed this scene through from [Portfolio Inference](portfolio-\ninference), note the nesting: Portfolio Inference infers at the\nportfolio level; Hypergraph Operator generalises the same shape to the\n*capability hypergraph*. It is the layer at which the capability model\nbecomes a running AIF generative model in its own right.\n\n[\u2190 Learning Loop](learning-loop) \u00b7 [A Sorry Enterprise \u2192](a-sorry-enterprise)\n"
+        },
+        {
+          "ref": "a-sorry-enterprise",
+          "title": "A Sorry Enterprise",
+          "isOpeningScene": false,
+          "image": {
+            "url": "https://example.test/stack-geometry/scene.jpg",
+            "thumbnailUrl": "https://example.test/stack-geometry/scene-thumb.jpg"
+          },
+          "content": "# A Sorry Enterprise\n\nA Sorry Enterprise takes a step further out than any of the others in\nthis family. Where the other missions use sorrys as holes-to-close,\nthis one proposes that *sorry is the stack's organising currency*.\nTyped holes are the backlog. Pattern activation is the work signal.\nTurn-by-turn retrieval is the neural substrate; sorrys are the targets;\nthe trajectory from retrieval to closure is what the enterprise runs.\n\nThe insight driving this framing: the patterns retrieved per turn are\nnot random. They reflect the semantic content of the work being done.\nIf a turn's retrieved patterns overlap with patterns that are affine\nto a particular sorry, that turn is moving toward closing that sorry.\nA Sorry Enterprise models this as a Bayesian system where the\nprobability of closure updates as evidence accumulates.\n\nFor the stack as a commercial entity \u2014 Hyperreal Enterprises \u2014 the\nimplication is structural: a sorry-driven organisation where the\nbacklog is typed holes, the metabolism is pattern activation, and the\nledger is closure-probability. The UKRN Working Paper, the prospectus,\nthe Bristol conversation \u2014 these are all enterprise-level applications\nof the same move.\n\nIf you came here from the overview wondering \"but who is the stack\n*for*?\", this is the scene that starts to answer.\n\n[\u2190 Hypergraph Operator](hypergraph-operator) \u00b7 [Self-Representing Stack \u2192](self-representing-stack)\n"
+        },
+        {
+          "ref": "self-representing-stack",
+          "title": "Self-Representing Stack",
+          "isOpeningScene": false,
+          "image": {
+            "url": "https://example.test/stack-geometry/scene.jpg",
+            "thumbnailUrl": "https://example.test/stack-geometry/scene-thumb.jpg"
+          },
+          "content": "# Self-Representing Stack\n\nSelf-Representing Stack is, in some sense, the ur-mission of this\nfamily. It names the gap that the whole cluster addresses. Before this\nmission, the futon stack had a hypergraph memory layer (futon1a),\nhyperedge creation APIs (plumbed but mostly unused at higher levels),\nan evidence browser (purely a viewer), and mission peripherals (which\nobserve rather than connect). Connective tissue existed but was sparse.\n\nThe mission's claim: *the stack should represent itself to itself*.\nTensions should trace through gates. Reflection envelopes should ground\nclaims back to source code. XTDB should persist it all. This is not\nabstraction for its own sake; it is the machinery by which the stack's\nself-understanding has any chance of being accurate rather than\naspirational.\n\nThe mission has reached the \"plumbing works\" milestone \u2014 three-column\nschema ported, tensions traceable, reflection grounding operational.\nThe columns remain mostly empty, which is why [Futon Enrichment](\nfuton-enrichment) exists as the structural successor: a rational-\nreconstruction mission that fills the columns with connective tissue\none relationship at a time.\n\nIf you are new to the family, this is the scene to read second (after\n[Overview](overview)). It explains *why* a cluster of self-reflection\nmissions exists at all.\n\n[\u2190 A Sorry Enterprise](a-sorry-enterprise) \u00b7 [Three-Column Stack \u2192](three-column-stack)\n"
+        },
+        {
+          "ref": "three-column-stack",
+          "title": "Three-Column Stack",
+          "isOpeningScene": false,
+          "image": {
+            "url": "https://example.test/stack-geometry/scene.jpg",
+            "thumbnailUrl": "https://example.test/stack-geometry/scene-thumb.jpg"
+          },
+          "content": "# Three-Column Stack\n\nThe three-column stack is the schema that [Self-Representing Stack](\nself-representing-stack) and [Futon Enrichment](futon-enrichment) both\nwork within. Three columns: code, project, math. Each column has its\nown set of structural invariants; each pair of columns has cross-column\ninvariants that say, for example, \"a claim in the math column should be\ngrounded by evidence in the project column that points to an\nimplementation in the code column.\"\n\nWhy three and not two? Two-column (code + project) handles the\nimmediate loop of work-being-done and work-being-recorded, but collapses\nthe distinction between a mathematical *argument* (a proof process) and\nany specific implementation. Three columns keep the proof process as a\nfirst-class dimension \u2014 which matters for futon6 and its category-theory\nwork, and for any mission whose outputs are mathematical in form.\n\nThe mission is complete. Its deliverable is the schema itself and the\ncross-column invariant categories (eight of them). The work of\n*populating* the schema \u2014 writing hyperedges that realise the\ninvariants \u2014 is what [Futon Enrichment](futon-enrichment) owns.\n\nAs a reader, notice the generalisation path: this schema is designed to\napply to futon-specific work first, but the structure (code / project /\nmath as first-class columns) generalises to any Clojure project, and\nfurther to any project whose deliverables include mathematical\narguments. That is the schema's export path to external adoption.\n\n[\u2190 Self-Representing Stack](self-representing-stack) \u00b7 [Structural Law \u2192](structural-law)\n"
+        },
+        {
+          "ref": "structural-law",
+          "title": "Structural Law",
+          "isOpeningScene": false,
+          "image": {
+            "url": "https://example.test/stack-geometry/scene.jpg",
+            "thumbnailUrl": "https://example.test/stack-geometry/scene-thumb.jpg"
+          },
+          "content": "# Structural Law\n\nStructural Law is where the stack crystallises meta-patterns that keep\nrecurring across domains. Six core.logic invariant layers are\noperational (portfolio, tickle coordination, agency, proof, mission,\ncodex-code), and when you line them up a small set of *meta-invariants*\nkeeps appearing in all of them: graph symmetry, status discipline,\nprovenance integrity, event-capture, gate ordering. Each domain\nprojects these onto its own vocabulary, but the underlying shape is\nthe same.\n\nThe mission's claim is that these recurring projections are *structural\nlaws* of the stack \u2014 not project-specific constraints, but universal\ninvariants that any domain inside futon will eventually need to honour.\nThey crystallise over time: first as local invariants in one domain,\nthen as named meta-invariants when the same shape recurs, then as\nenforceable laws when a third domain echoes them.\n\nFor a reader, this scene is where the answer to \"does the stack have\n*principles*?\" starts to be yes. The principles are empirically\nderived, not imposed, and they can be machine-checked via core.logic\nqueries. [Invariant Violations](invariant-violations) is where the\nfailure modes get catalogued.\n\n[\u2190 Three-Column Stack](three-column-stack) \u00b7 [Invariant Violations \u2192](invariant-violations)\n"
+        },
+        {
+          "ref": "invariant-violations",
+          "title": "Invariant Violations",
+          "isOpeningScene": false,
+          "image": {
+            "url": "https://example.test/stack-geometry/scene.jpg",
+            "thumbnailUrl": "https://example.test/stack-geometry/scene-thumb.jpg"
+          },
+          "content": "# Invariant Violations\n\nIf [Structural Law](structural-law) says \"here are the laws that recur\nacross domains\", Invariant Violations says \"here is what happens when\nthe laws break.\" The mission is a ledger \u2014 a systematic tracker of\nstructural issues surfaced by the invariant layers, scoped and applied\nrather than patched depth-first.\n\nThree domains contribute live-system data as of the mission's last\ncheckpoint: portfolio (zero violations \u2014 the predecessor layer is\noperational), tickle coordination (zero violations on live system),\nand agency (five violations catalogued on live system). The future of\nthis ledger includes proof-peripheral violations and peripheral-hop\ntopology violations, both of which will come online as [Fulab Logic](\nfulab-logic) extends the core.logic coverage beyond portfolio.\n\nThe principle behind the ledger is worth stating cleanly: invariant\nlayers *identify* structural issues; this ledger *maps* them; fixes\nare *scoped* and applied systematically. That ordering prevents the\ncommon failure where each reported violation becomes its own yak-shave.\nThe ledger lets you see the whole violation landscape before choosing\nwhat to close first.\n\n[\u2190 Structural Law](structural-law) \u00b7 [Stack Inhabitation \u2192](stack-inhabitation)\n"
+        },
+        {
+          "ref": "stack-inhabitation",
+          "title": "Stack Inhabitation",
+          "isOpeningScene": false,
+          "image": {
+            "url": "https://example.test/stack-geometry/scene.jpg",
+            "thumbnailUrl": "https://example.test/stack-geometry/scene-thumb.jpg"
+          },
+          "content": "# Stack Inhabitation\n\nStack Inhabitation is the mission that names a particular pathology\nmost of the others in this family depend on avoiding. The futon stack\nhas extensive infrastructure \u2014 Agency with multi-agent routing,\nevidence stores, pattern libraries, Arxana hypergraph browsers,\ncandidate-invariant queues, mission documents, excursion logs, a\nBayesian Click model, a working Emacs REPL with context retrieval\nnotifications. Most of this infrastructure is *uninhabited*.\n\nThe candidate-invariant queue has sixty-five entries and no processing\npipeline. Excursions are explorations without missions. The evidence\nbrowser just started showing data. The Click model has one edge and no\nconnection to the hypergraph. Patterns retrieve per turn but do not\nfeed back into decisions. Infrastructure built and not used is\ninfrastructure that does not know whether it works.\n\nTwo patterns from the library diagnose this precisely: **surface-earns-\ninhabitation** (a productive interface nobody uses is dead\ninfrastructure; the surface must earn inhabitation by being less\nfriction than the primitive alternative) and **inhabitation-feeds-\nevolution** (inhabiting a peripheral generates the data that evolves\nthe peripheral).\n\nThis scene is a good middle-of-the-anthology landmark because it names\nwhat could go wrong with everything else you have read so far. Any of\nthe other missions can produce correct, elegant, unused infrastructure.\nThe apparatus only matters when it is inhabited.\n\n[\u2190 Invariant Violations](invariant-violations) \u00b7 [Fulab Logic \u2192](fulab-logic)\n"
+        },
+        {
+          "ref": "fulab-logic",
+          "title": "Fulab Logic",
+          "isOpeningScene": false,
+          "image": {
+            "url": "https://example.test/stack-geometry/scene.jpg",
+            "thumbnailUrl": "https://example.test/stack-geometry/scene-thumb.jpg"
+          },
+          "content": "# Fulab Logic\n\nFulab Logic extends the core.logic invariant coverage beyond the\nportfolio boundary into the domains with the most structural\nconstraints: proof peripherals, tickle coordination, peripheral hop\ntopology. The pattern is set by `portfolio/logic.clj`, which proved\nthat core.logic works for live-state invariants (build a pldb from\nlive state, express properties as goals, query for violations). The\ngap is that other domains' structural properties are enforced\nprocedurally in scattered locations, not expressed as queryable\nrelations.\n\nWhy core.logic and not the simpler validation path? Malli validates\nshapes (is this map well-formed?); core.logic validates *structural\nrelations* (does this set of hops compose into a valid topology?).\nMany of the stack's invariants are relational \u2014 they concern whether\na graph is symmetric, whether status transitions are well-ordered,\nwhether provenance edges round-trip \u2014 and relational queries are\nexactly what core.logic is designed for.\n\nThe output of this mission feeds [Invariant Violations](\ninvariant-violations), which maps the surfaced issues; and feeds\n[Structural Law](structural-law), which crystallises the recurring\nmeta-invariants. The three missions together are the stack's\nrelational-invariant backbone.\n\n[\u2190 Stack Inhabitation](stack-inhabitation) \u00b7 [Tickle Overnight \u2192](tickle-overnight)\n"
+        },
+        {
+          "ref": "tickle-overnight",
+          "title": "Tickle Overnight",
+          "isOpeningScene": false,
+          "image": {
+            "url": "https://example.test/stack-geometry/scene.jpg",
+            "thumbnailUrl": "https://example.test/stack-geometry/scene-thumb.jpg"
+          },
+          "content": "# Tickle Overnight\n\nTickle Overnight is the most concretely-labour-oriented mission in this\nfamily. It addresses a practical question: Joe pays four hundred pounds\na month for OpenAI Pro and Claude Max, and idle agents leave the money\non the table. The futon6 category-theory validation corpus has three\nhundred and thirteen PlanetMath entries ready for wiring-diagram\nextraction. The mission orchestrates Claude and Codex overnight to\nprocess this corpus \u2014 real mathematical research that produces\ndocumented value rather than being a fire-and-forget bulk run.\n\nThe design has four discipline-points: incremental processing (one\nentry at a time, not eight hundred at once), Claude-reviews-every-\nextraction (not just bulk upload), an evidence trail documenting every\nstep, and resumability so crashes do not lose progress. There is also\nground-truth validation: a `topology.json` provides baseline counts to\ncheck against.\n\nAs a scene in *this* anthology, Tickle Overnight is the one that\nconnects the stack's reflexive apparatus to its compute substrate.\nWithout overnight work, the stack is a daytime-only thing, limited by\nJoe's waking hours. With overnight work disciplined by the other\nmissions in this family \u2014 observation, invariants, evidence, review \u2014\nit becomes a twenty-four-hour-a-day organism that happens to sleep\noccasionally.\n\n[\u2190 Fulab Logic](fulab-logic) \u00b7 [Futon Enrichment \u2192](futon-enrichment)\n"
+        },
+        {
+          "ref": "futon-enrichment",
+          "title": "Futon Enrichment",
+          "isOpeningScene": false,
+          "image": {
+            "url": "https://example.test/stack-geometry/scene.jpg",
+            "thumbnailUrl": "https://example.test/stack-geometry/scene-thumb.jpg"
+          },
+          "content": "# Futon Enrichment\n\nFuton Enrichment is the mission that fills in the three-column stack\n[schema](three-column-stack) with content. The columns currently hold\nsparse data: the code column has reflection data (live in the JVM,\nqueryable), the project column has missions and evidence in Mission\nControl, the math column has one hundred and fifty-three hyperedges\nfrom futon6. What is missing is the *cross-column connective tissue* \u2014\nthe hyperedges that say \"this function was created by this mission,\nuses this pattern, has this evidence trail, participates in these\ntensions.\"\n\nThe approach is explicitly *rational reconstruction*, not bulk import.\nA one-shot static analysis would produce a large dump with no\nprovenance. Rational reconstruction builds the connective tissue\nincrementally, each hyperedge grounded in specific observable evidence,\neach cross-column edge justified by a traceable reason. This is\nslower than bulk import, but it is the only path that produces\nhyperedges the stack can *trust* as its own self-representation.\n\nThe code browser becomes the user-visible artefact: once enrichment\ndata exists, `arxana-browser-code.el` shows mission context, pattern\nprovenance, evidence trails, tensions, and cross-futon dependencies\nalongside every function. The side panel goes from \"documentation\" to\n\"navigable self-representation.\"\n\n[\u2190 Tickle Overnight](tickle-overnight) \u00b7 [Return to Overview](overview)\n\n---\n\n\n- \u2192 **Peripheral Architecture** (leaf 6.4.3): thematic \u2014 shares the\n  inhabitation-earns-infrastructure discipline with Stack Inhabitation.\n- \u2192 **Proof / Problem** (leaf 6.4.2): thematic \u2014 the math column of\n  Three-Column Stack is populated by Proof-family missions.\n- \u2192 **War Machine** (leaf 6.4.5 or full/5): causal \u2014 Portfolio\n  Inference is a precursor dependency of the War Machine visualiser.\n- \u2192 **IRC / Transport** (leaf 6.5.2): adjacency \u2014 infrastructure that\n  these missions run on.\n- \u2192 **Exotype Family** (leaf 0): contrast \u2014 a cluster whose members are\n  framework-derivation work, where this cluster is framework-*application*\n  work.\n"
+        }
+      ]
+    }
+  ],
+  "storyLinks": [
+    {
+      "fromStoryRef": "leaf-0",
+      "toStoryRef": "leaf-6-4-4",
+      "toSceneRef": "overview",
+      "toPageNumber": 1,
+      "linkType": "causal",
+      "rationale": "the exotype derivation procedure is one of the abstractions Stack Geometry's topology layer makes visible",
+      "createdByAuthorRef": "agent",
+      "vote": "accept"
+    },
+    {
+      "fromStoryRef": "leaf-0",
+      "toStoryRef": "leaf-2",
+      "toSceneRef": "overview",
+      "toPageNumber": 1,
+      "linkType": "causal",
+      "rationale": "Agency Refactor and Peripheral Model are infrastructure that the inhabitable-surfaces missions build on",
+      "createdByAuthorRef": "agent",
+      "vote": "accept"
+    },
+    {
+      "fromStoryRef": "leaf-0",
+      "toStoryRef": "leaf-6-4-2",
+      "toSceneRef": "overview",
+      "toPageNumber": 1,
+      "linkType": "contrast",
+      "rationale": "proof missions derive from a different xenotype (the proof-search xenotype) rather than the social-exotype",
+      "createdByAuthorRef": "agent",
+      "vote": "accept"
+    },
+    {
+      "fromStoryRef": "leaf-2",
+      "toStoryRef": "leaf-6-4-4",
+      "toSceneRef": "overview",
+      "toPageNumber": 1,
+      "linkType": "thematic",
+      "rationale": "shares Stack Inhabitation's \"surface must earn inhabitation\" discipline",
+      "createdByAuthorRef": "agent",
+      "vote": "accept"
+    },
+    {
+      "fromStoryRef": "leaf-2",
+      "toStoryRef": "leaf-0",
+      "toSceneRef": "overview",
+      "toPageNumber": 1,
+      "linkType": "causal",
+      "rationale": "the social-exotype derivation produced some of the wiring diagrams these missions realise",
+      "createdByAuthorRef": "agent",
+      "vote": "accept"
+    },
+    {
+      "fromStoryRef": "leaf-6-4-2",
+      "toStoryRef": "leaf-6-4-4",
+      "toSceneRef": "overview",
+      "toPageNumber": 1,
+      "linkType": "contrast",
+      "rationale": "portfolio reflection and proof-search are two forms of stack reflexivity, one inward and one outward",
+      "createdByAuthorRef": "agent",
+      "vote": "accept"
+    },
+    {
+      "fromStoryRef": "leaf-6-4-2",
+      "toStoryRef": "leaf-0",
+      "toSceneRef": "overview",
+      "toPageNumber": 1,
+      "linkType": "contrast",
+      "rationale": "proof missions derive from a proof-search xenotype, parallel but distinct from the social-exotype",
+      "createdByAuthorRef": "agent",
+      "vote": "accept"
+    }
+  ]
+}

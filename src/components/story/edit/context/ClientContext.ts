@@ -26,6 +26,9 @@ import deleteStory, {
 } from "@domain/story/client/deleteStory";
 import getScene, { type GetScene } from "@domain/story/client/getScene";
 import getStory, { type GetStory } from "@domain/story/client/getStory";
+import getStoryLinks, {
+  type GetStoryLinks,
+} from "@domain/story/client/getStoryLinks";
 import previewStory, {
   type PreviewStory,
 } from "@domain/story/client/previewStory";
@@ -71,6 +74,10 @@ export type WithUploadSceneAudio = {
 
 export type WithGetStory = {
   getStory: GetStory;
+};
+
+export type WithGetStoryLinks = {
+  getStoryLinks: GetStoryLinks;
 };
 
 export type WithGetScene = {
@@ -133,6 +140,7 @@ export type ClientEnvironment = WithDeleteSceneImage &
   WithUploadSceneAudio &
   WithUploadSceneImage &
   WithGetStory &
+  WithGetStoryLinks &
   WithGetScene &
   WithSaveSceneContent &
   WithDeleteScene &
@@ -163,6 +171,7 @@ export const createClientEnvironment = (
     },
     getScene,
     getStory,
+    getStoryLinks,
     previewStory,
     publishStory,
     saveSceneContent,

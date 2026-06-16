@@ -25,7 +25,6 @@ const envFromFile = loadEnvFile();
 const run = (command, args, name) => {
   const child = spawn(command, args, {
     stdio: "inherit",
-    shell: true,
     env: {
       ...process.env,
       ...envFromFile,

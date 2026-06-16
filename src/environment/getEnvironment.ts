@@ -13,6 +13,13 @@ import saveSceneAudio from "../domain/audio/saveSceneAudio.js";
 import createAuthorInDatabase from "../domain/author/createAuthorInDatabase.js";
 import getAuthorByEmailInDatabase from "../domain/author/getAuthorByEmailInDatabase.js";
 import saveAuthorNameInDatabase from "../domain/author/saveAuthorNameInDatabase.js";
+import assignStoryToPilotInDatabase from "../domain/pilot/assignStoryToPilotInDatabase.js";
+import createInterpretiveNoteInDatabase from "../domain/pilot/createInterpretiveNoteInDatabase.js";
+import createPilotInDatabase from "../domain/pilot/createPilotInDatabase.js";
+import getInterpretiveNotesInDatabase from "../domain/pilot/getInterpretiveNotesInDatabase.js";
+import getPilotInDatabase from "../domain/pilot/getPilotInDatabase.js";
+import getPilotsInDatabase from "../domain/pilot/getPilotsInDatabase.js";
+import getPilotStoriesInDatabase from "../domain/pilot/getPilotStoriesInDatabase.js";
 import deleteImageFromCloudinary from "../domain/image/cloudinary/deleteImageFromCloudinary.js";
 import uploadImageToCloudinary from "../domain/image/cloudinary/uploadImageToCloudinary.js";
 import createImageInDatabase from "../domain/image/createImageInDatabase.js";
@@ -22,8 +29,10 @@ import type {
   RepositoryAudio,
   RepositoryAuthor,
   RepositoryImage,
+  RepositoryPilot,
   RepositoryScene,
   RepositoryStory,
+  RepositoryStoryLink,
 } from "../domain/index.js";
 import createScene from "../domain/story/createScene.js";
 import createSceneInDatabase from "../domain/story/createSceneInDatabase.js";
@@ -43,6 +52,11 @@ import getSceneForStoryInDatabase from "../domain/story/getSceneForStoryInDataba
 import getScenesForStoryInDatabase from "../domain/story/getScenesForStoryInDatabase.js";
 import getStoryInDatabase from "../domain/story/getStoryInDatabase.js";
 import getStorySummariesByAuthorInDatabase from "../domain/story/getStorySummariesByAuthorInDatabase.js";
+import createStoryLinkInDatabase from "../domain/story/link/createStoryLinkInDatabase.js";
+import getAllStoryLinksInDatabase from "../domain/story/link/getAllStoryLinksInDatabase.js";
+import getStoryLinksForStoryInDatabase from "../domain/story/link/getStoryLinksForStoryInDatabase.js";
+import retireStoryLinkInDatabase from "../domain/story/link/retireStoryLinkInDatabase.js";
+import voteOnStoryLinkInDatabase from "../domain/story/link/voteOnStoryLinkInDatabase.js";
 import publishStory from "../domain/story/publish/publishStory.js";
 import publishStoryInDatabase from "../domain/story/publish/publishStoryInDatabase.js";
 import unpublishStoryInDatabase from "../domain/story/publish/unpublishStoryInDatabase.js";
@@ -176,6 +190,24 @@ const getEnvironment: App.GetEnvironment = (() => {
     saveStoryTitle: tx(saveStoryTitleInDatabase(logDb, getDB, getStory)),
   };
 
+  const repositoryStoryLink: RepositoryStoryLink = {
+    createStoryLink: tx(createStoryLinkInDatabase(logDb, getDB)),
+    getStoryLinksForStory: tx(getStoryLinksForStoryInDatabase(logDb, getDB)),
+    getAllStoryLinks: tx(getAllStoryLinksInDatabase(logDb, getDB)),
+    voteOnStoryLink: tx(voteOnStoryLinkInDatabase(logDb, getDB)),
+    retireStoryLink: tx(retireStoryLinkInDatabase(logDb, getDB)),
+  };
+
+  const repositoryPilot: RepositoryPilot = {
+    createPilot: tx(createPilotInDatabase(logDb, getDB)),
+    getPilot: tx(getPilotInDatabase(logDb, getDB)),
+    getPilots: tx(getPilotsInDatabase(logDb, getDB)),
+    assignStoryToPilot: tx(assignStoryToPilotInDatabase(logDb, getDB)),
+    getPilotStories: tx(getPilotStoriesInDatabase(logDb, getDB)),
+    createInterpretiveNote: tx(createInterpretiveNoteInDatabase(logDb, getDB)),
+    getInterpretiveNotes: tx(getInterpretiveNotesInDatabase(logDb, getDB)),
+  };
+
   const repositoryAuthor: RepositoryAuthor = {
     getAuthorByEmail: tx(getAuthorByEmailInDatabase(logDb, getDB)),
     createAuthor: tx(createAuthorInDatabase(logDb, getDB)),
@@ -197,6 +229,8 @@ const getEnvironment: App.GetEnvironment = (() => {
     repositoryImage,
     repositoryScene,
     repositoryStory,
+    repositoryStoryLink,
+    repositoryPilot,
   });
 
   return () => environment;

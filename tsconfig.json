@@ -9,6 +9,7 @@
       "@domain/*": ["src/domain/*"],
       "@i18n/*": ["src/i18n/*"],
       "@layouts/*": ["src/layouts/*"],
+      "@authentication/*": ["src/authentication/*"],
       "@util/*": ["src/util/*"],
     }
   },

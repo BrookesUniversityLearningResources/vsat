@@ -3,6 +3,7 @@ import type { MiddlewareHandler } from "astro";
 import { ErrorCodes } from "../../error/errorCode.js";
 import toStoryId from "../toStoryId.js";
 import isAuthorOfTheStory from "./isAuthorOfTheStory.js";
+import isStewardUser from "../../../authentication/isStewardUser.js";
 
 /**
  * Astro middleware asserting that the current user is the author of the story.
@@ -27,6 +28,19 @@ const assertAuthorMiddleware: MiddlewareHandler = async (context, next) => {
     );
 
     return context.redirect(`/login?err=${ErrorCodes.MustBeLoggedIn}`);
+  }
+
+  if (context.routePattern.endsWith("/links")) {
+    return next();
+  }
+
+  if (
+    isStewardUser(
+      context.locals.user,
+      context.request.headers.get("cookie"),
+    )
+  ) {
+    return next();
   }
 
   const storyId = toStoryId(context.params.storyId);

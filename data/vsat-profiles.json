@@ -1,0 +1,28 @@
+{
+  "profiles": {
+    "test": {
+      "database": "vsat",
+      "description": "Local VSAT database seeded with development test content.",
+      "source": {
+        "type": "development-seed"
+      }
+    },
+    "live": {
+      "database": "vsat_live",
+      "description": "Local VSAT database imported from the live VSP backup.",
+      "source": {
+        "type": "vsp-dump",
+        "database": "vsp_live",
+        "dumpPath": "~/Downloads/2026-04-12.dump"
+      }
+    },
+    "futon": {
+      "database": "vsat_futon",
+      "description": "Generated FUTON stack geometry stories.",
+      "source": {
+        "type": "generated",
+        "path": "data/futon-profile.json"
+      }
+    }
+  }
+}

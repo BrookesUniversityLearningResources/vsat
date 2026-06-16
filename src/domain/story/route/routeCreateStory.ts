@@ -21,11 +21,11 @@ export default function routeCreateStory(
       author: req.user,
     })
       .then((story) => {
-        log.info({ story }, "Created story");
+        const location = `/author/story/${story.id}`;
 
-        res.status(200).json({
-          id: story.id,
-        });
+        log.info({ location, story }, "Created story");
+
+        res.status(201).setHeader("Location", location).send();
       })
       .catch((err) => {
         log.error({ err }, "Error creating story");

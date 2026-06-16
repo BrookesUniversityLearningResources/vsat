@@ -31,13 +31,35 @@ function saveStoryInDatabase(log: Logger, db: GetDatabase): SaveStory {
       .execute();
 
     const scenes = await Promise.all(
-      story.scenes.map((scene) => {
+      story.scenes.map(async (scene) => {
+        let imageId = scene.image?.id ?? null;
+
+        const imageToSave = scene.image ?? null;
+
+        if (!imageId && imageToSave) {
+          const image = await db()
+            .insertInto("image")
+            .values({
+              url: imageToSave.url,
+              thumbnailUrl: imageToSave.thumbnailUrl,
+            })
+            .onConflict((oc) =>
+              oc.column("url").doUpdateSet({
+                thumbnailUrl: imageToSave.thumbnailUrl,
+              }),
+            )
+            .returningAll()
+            .executeTakeFirstOrThrow();
+
+          imageId = image.id;
+        }
+
         const values = {
           storyId: storyDto.id,
           title: scene.title,
           content: scene.content,
           isOpeningScene: scene.isOpeningScene,
-          imageId: scene.image?.id ?? null,
+          imageId,
           audioId: scene.audio?.id ?? null,
           ...(scene.id !== undefined ? { id: scene.id } : {}),
         } as const;
@@ -51,7 +73,7 @@ function saveStoryInDatabase(log: Logger, db: GetDatabase): SaveStory {
               title: scene.title,
               content: scene.content,
               isOpeningScene: scene.isOpeningScene,
-              imageId: scene.image?.id ?? null,
+              imageId,
               audioId: scene.audio?.id ?? null,
             }),
           )

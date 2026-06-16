@@ -11,7 +11,6 @@ touch .env
 > [the `.gitignore` file](./gitignore).
 
 Populate it with the following environment variables:
-
 ```
 NODE_ENV=development
 PORT=3000
@@ -31,6 +30,8 @@ DEV_AUTH_BYPASS_NAME=Dev User
 DEV_DISABLE_COEP=1
 DEV_DISABLE_OVERLAY=1
 DEV_API_PORT=3001
+STEWARD_EMAILS=steward@example.com,second@example.com
+DEV_STEWARD_TOGGLE=1
 ```
 
 `DEV_AUTH_BYPASS` only applies when `NODE_ENV=development` and the request host

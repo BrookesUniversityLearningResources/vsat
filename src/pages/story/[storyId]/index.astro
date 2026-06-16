@@ -10,8 +10,8 @@ if (!storyId) {
   return Astro.redirect(`/author/story?err=${ErrorCodes.StoryNotFound}`);
 }
 
-const { i18n, repositoryStory } = Astro.locals.environment<
-  App.WithI18N & App.WithStoryRepository
+const { i18n, repositoryStory, repositoryStoryLink } = Astro.locals.environment<
+  App.WithI18N & App.WithStoryRepository & App.WithStoryLinkRepository
 >();
 
 const story = await repositoryStory.getPublishedStory(storyId);
@@ -19,6 +19,69 @@ const story = await repositoryStory.getPublishedStory(storyId);
 if (!story) {
   return Astro.redirect(`/author/story?err=${ErrorCodes.StoryNotFound}`);
 }
+
+const links = await repositoryStoryLink.getStoryLinksForStory(storyId);
+const acceptedLinks = links.filter((link) => link.status === "accepted");
+const inboundLinks = acceptedLinks.filter((link) => link.toStory.id === storyId);
+const outboundLinks = acceptedLinks.filter((link) => link.fromStory.id === storyId);
+
+const linkedStories = new Map<number, { id: number; title: string }>();
+acceptedLinks.forEach((link) => {
+  const other =
+    link.fromStory.id === storyId ? link.toStory : link.fromStory;
+  linkedStories.set(other.id, { id: other.id, title: other.title });
+});
+const linkedStoryCards = Array.from(linkedStories.values()).slice(0, 5);
+
+type ContextLink = {
+  fromStoryId: number;
+  fromStoryTitle: string;
+  linkType: string;
+  rationale: string;
+  toSceneId: number;
+  toSceneTitle: string | null;
+  toPageNumber: number | null;
+};
+
+const contextByScene = new Map<number, ContextLink[]>();
+const contextByPage = new Map<string, ContextLink[]>();
+
+acceptedLinks
+  .filter((link) => link.toStory.id === storyId && link.toScene)
+  .forEach((link) => {
+    const contextLink: ContextLink = {
+      fromStoryId: link.fromStory.id,
+      fromStoryTitle: link.fromStory.title,
+      linkType: link.linkType,
+      rationale: link.rationale,
+      toSceneId: link.toScene!.id,
+      toSceneTitle: link.toScene?.title ?? null,
+      toPageNumber: link.toPageNumber ?? null,
+    };
+
+    const sceneLinks = contextByScene.get(contextLink.toSceneId) ?? [];
+    sceneLinks.push(contextLink);
+    contextByScene.set(contextLink.toSceneId, sceneLinks);
+
+    if (contextLink.toPageNumber !== null) {
+      const pageKey = `${contextLink.toSceneId}:${contextLink.toPageNumber}`;
+      const pageLinks = contextByPage.get(pageKey) ?? [];
+      pageLinks.push(contextLink);
+      contextByPage.set(pageKey, pageLinks);
+    }
+  });
+
+const contextData = {
+  byScene: Object.fromEntries(contextByScene.entries()),
+  byPage: Object.fromEntries(contextByPage.entries()),
+};
+
+const serializedContext = JSON.stringify(contextData)
+  .replace(/</g, "\\u003C")
+  .replace(/>/g, "\\u003E")
+  .replace(/&/g, "\\u0026")
+  .replace(/\u2028/g, "\\u2028")
+  .replace(/\u2029/g, "\\u2029");
 ---
 
 <!doctype html>
@@ -40,4 +103,406 @@ if (!story) {
 </html>
 <body>
   <PublishedStory story={story} />
+  <button class="interpretive-toggle" type="button" aria-expanded="false">
+    Interpretive
+  </button>
+
+  <script set:html={`window.vsatInterpretiveContext = ${serializedContext}`} />
+
+  <aside class="interpretive-drawer" aria-hidden="true" hidden>
+    <details>
+      <summary>
+        Interpretive links
+        <span class="interpretive-count">
+          {acceptedLinks.length}
+        </span>
+      </summary>
+      <div class="interpretive-body">
+        <section class="interpretive-context-panel" data-interpretive-context>
+          <h2>Current scene/page</h2>
+          <p class="context-label" data-interpretive-label>
+            Scene · Page
+          </p>
+          <ul class="context-links" data-interpretive-links></ul>
+          <p class="empty" data-interpretive-empty>
+            No interpretive links for this scene/page yet.
+          </p>
+        </section>
+        {acceptedLinks.length ? (
+          <>
+            <section>
+              <h2>Outbound</h2>
+              {outboundLinks.length ? (
+                <ul>
+                  {outboundLinks.map((link) => (
+                    <li>
+                      <a href={`/story/${link.toStory.id}`}>
+                        {link.toStory.title}
+                      </a>
+                      <span class="link-meta">
+                        {link.linkType}
+                        {link.toScene && (
+                          <span>
+                            · Scene {link.toScene.title ?? `#${link.toScene.id}`}
+                          </span>
+                        )}
+                        {link.toPageNumber && (
+                          <span>· Page {link.toPageNumber}</span>
+                        )}
+                      </span>
+                      <p class="link-rationale">{link.rationale}</p>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p class="empty">No outbound links yet.</p>
+              )}
+            </section>
+            <section>
+              <h2>Inbound</h2>
+              {inboundLinks.length ? (
+                <ul>
+                  {inboundLinks.map((link) => (
+                    <li>
+                      <a href={`/story/${link.fromStory.id}`}>
+                        {link.fromStory.title}
+                      </a>
+                      <span class="link-meta">
+                        {link.linkType}
+                        {link.toScene && (
+                          <span>
+                            · Scene {link.toScene.title ?? `#${link.toScene.id}`}
+                          </span>
+                        )}
+                        {link.toPageNumber && (
+                          <span>· Page {link.toPageNumber}</span>
+                        )}
+                      </span>
+                      <p class="link-rationale">{link.rationale}</p>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p class="empty">No inbound links yet.</p>
+              )}
+            </section>
+          </>
+        ) : (
+          <p class="empty">
+            No accepted interpretive links yet. Try VSATLATARIUM to propose one.
+          </p>
+        )}
+        <a class="interpretive-cta" href="/story/vsatlatarium">
+          Open VSATLATARIUM
+        </a>
+      </div>
+    </details>
+  </aside>
+
+  {linkedStoryCards.length > 0 && (
+    <section class="interpretive-endcap" aria-hidden="true" hidden>
+      <h2>Adjacent stories</h2>
+      <div class="endcap-grid">
+        {linkedStoryCards.map((linked) => (
+          <a class="endcap-card" href={`/story/${linked.id}`}>
+            {linked.title}
+          </a>
+        ))}
+      </div>
+    </section>
+  )}
 </body>
+
+<script is:inline>
+  const toggle = document.querySelector(".interpretive-toggle");
+  const drawer = document.querySelector(".interpretive-drawer");
+  const endcap = document.querySelector(".interpretive-endcap");
+  let pinnedOpen = false;
+  let peekOpen = false;
+
+  const syncOverlay = () => {
+    const isOpen = pinnedOpen || peekOpen;
+    document.body.classList.toggle("interpretive-overlay--open", isOpen);
+    toggle?.setAttribute("aria-expanded", String(isOpen));
+    if (drawer) {
+      drawer.setAttribute("aria-hidden", String(!isOpen));
+      drawer.hidden = !isOpen;
+    }
+    if (endcap) {
+      endcap.setAttribute("aria-hidden", String(!isOpen));
+      endcap.hidden = !isOpen;
+    }
+  };
+
+  toggle?.addEventListener("click", () => {
+    pinnedOpen = !pinnedOpen;
+    syncOverlay();
+  });
+
+  window.addEventListener("keydown", (event) => {
+    if (event.key === "Shift") {
+      peekOpen = true;
+      syncOverlay();
+    }
+    if (event.key.toLowerCase?.() === "i") {
+      pinnedOpen = !pinnedOpen;
+      syncOverlay();
+    }
+    if (event.key === "Escape") {
+      pinnedOpen = false;
+      peekOpen = false;
+      syncOverlay();
+    }
+  });
+
+  window.addEventListener("keyup", (event) => {
+    if (event.key === "Shift") {
+      peekOpen = false;
+      syncOverlay();
+    }
+  });
+
+  const contextData =
+    window.vsatInterpretiveContext || Object.freeze({ byScene: {}, byPage: {} });
+
+  const contextPanels = Array.from(
+    document.querySelectorAll("[data-interpretive-context]"),
+  );
+
+  const renderContextLinks = (links, sceneTitle, pageNumber) => {
+    contextPanels.forEach((panel) => {
+      const label = panel.querySelector("[data-interpretive-label]");
+      const list = panel.querySelector("[data-interpretive-links]");
+      const empty = panel.querySelector("[data-interpretive-empty]");
+
+      if (label) {
+        const title = sceneTitle || "Scene";
+        label.textContent = `${title} · Page ${pageNumber ?? "?"}`;
+      }
+
+      if (list) {
+        list.innerHTML = "";
+        links.forEach((link) => {
+          const item = document.createElement("li");
+          const anchor = document.createElement("a");
+          anchor.href = `/story/${link.fromStoryId}`;
+          anchor.textContent = link.fromStoryTitle;
+
+          const meta = document.createElement("span");
+          meta.className = "link-meta";
+          meta.textContent = `${link.linkType} · ${link.scope} link`;
+
+          const rationale = document.createElement("p");
+          rationale.className = "link-rationale";
+          rationale.textContent = link.rationale;
+
+          item.append(anchor, meta, rationale);
+          list.append(item);
+        });
+      }
+
+      if (empty) {
+        empty.hidden = links.length > 0;
+      }
+    });
+  };
+
+  const syncContext = (detail) => {
+    if (!detail?.sceneId) {
+      return;
+    }
+    const pageKey = `${detail.sceneId}:${detail.pageNumber ?? ""}`;
+    const pageLinks = contextData.byPage?.[pageKey] ?? [];
+    const sceneLinks = contextData.byScene?.[detail.sceneId] ?? [];
+    const scopedLinks = pageLinks.length
+      ? pageLinks.map((link) => ({ ...link, scope: "page" }))
+      : sceneLinks.map((link) => ({ ...link, scope: "scene" }));
+
+    renderContextLinks(scopedLinks, detail.sceneTitle, detail.pageNumber);
+  };
+
+  window.addEventListener("vsat:story-context", (event) => {
+    syncContext(event.detail);
+  });
+
+  syncOverlay();
+</script>
+
+<style>
+  .interpretive-drawer {
+    position: fixed;
+    top: 1rem;
+    right: 1rem;
+    z-index: 10000;
+    width: min(360px, 90vw);
+    font-family: "Source Sans Pro", system-ui, sans-serif;
+    pointer-events: auto;
+  }
+
+  .interpretive-toggle {
+    position: fixed;
+    top: 1rem;
+    left: 1rem;
+    z-index: 10001;
+    border: 1px solid #222;
+    border-radius: 999px;
+    padding: 0.4rem 0.75rem;
+    background: rgba(255, 255, 255, 0.9);
+    cursor: pointer;
+    font-family: "Source Sans Pro", system-ui, sans-serif;
+    pointer-events: auto;
+  }
+
+  .interpretive-drawer details {
+    border: 1px solid #222;
+    border-radius: 0.75rem;
+    background: rgba(255, 255, 255, 0.95);
+    overflow: hidden;
+  }
+
+  .interpretive-drawer summary {
+    cursor: pointer;
+    padding: 0.6rem 0.9rem;
+    font-weight: 600;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    list-style: none;
+  }
+
+  .interpretive-drawer summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .interpretive-count {
+    background: #1f4d7a;
+    color: #fff;
+    border-radius: 999px;
+    padding: 0.1rem 0.5rem;
+    font-size: 0.75rem;
+  }
+
+  .interpretive-body {
+    padding: 0.75rem 0.9rem 1rem;
+    display: grid;
+    gap: 0.75rem;
+    font-size: 0.9rem;
+  }
+
+  .interpretive-body h2 {
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  .interpretive-body ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    gap: 0.65rem;
+  }
+
+  .link-meta {
+    display: block;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    opacity: 0.7;
+  }
+
+  .link-rationale {
+    margin-top: 0.25rem;
+    font-style: italic;
+  }
+
+  .empty {
+    opacity: 0.7;
+    font-style: italic;
+  }
+
+  .interpretive-cta {
+    border: 1px solid #1f4d7a;
+    border-radius: 999px;
+    padding: 0.4rem 0.75rem;
+    text-decoration: none;
+    color: #1f4d7a;
+    background: #e7f2ff;
+    text-align: center;
+  }
+
+  .interpretive-endcap {
+    position: fixed;
+    left: 1rem;
+    bottom: 1rem;
+    z-index: 10000;
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid #222;
+    border-radius: 0.75rem;
+    padding: 0.75rem 1rem 1rem;
+    font-family: "Source Sans Pro", system-ui, sans-serif;
+    max-width: 480px;
+    pointer-events: auto;
+  }
+
+  .interpretive-endcap h2 {
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  .endcap-grid {
+    margin-top: 0.5rem;
+    display: grid;
+    gap: 0.5rem;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  }
+
+  .endcap-card {
+    border: 1px solid #222;
+    border-radius: 0.6rem;
+    padding: 0.5rem;
+    text-decoration: none;
+    color: inherit;
+    background: #fff;
+  }
+
+  .interpretive-context-panel {
+    border: 1px dashed #1f4d7a;
+    border-radius: 0.75rem;
+    padding: 0.75rem 0.9rem;
+    background: rgba(231, 242, 255, 0.7);
+    display: grid;
+    gap: 0.5rem;
+  }
+
+  .context-label {
+    font-weight: 600;
+  }
+
+  .context-links {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    gap: 0.5rem;
+  }
+
+  @media screen and (max-width: 720px) {
+    .interpretive-drawer {
+      right: 0.5rem;
+      left: 0.5rem;
+      width: auto;
+    }
+
+    .interpretive-toggle {
+      left: 0.5rem;
+    }
+
+    .interpretive-endcap {
+      left: 0.5rem;
+      right: 0.5rem;
+      width: auto;
+    }
+  }
+</style>

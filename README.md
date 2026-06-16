@@ -8,10 +8,22 @@ Note that you'll need some:
 ```shell
 $ git clone https://github.com/BrookesUniversityLearningResources/vsat.git
 $ cd vsat
-$ nvm use
+$ nvm use 24
 $ npm install
 $ docker compose up --detach db
 $ npm run dev:hot
 ```
 
 [Open the home page.](http://localhost:4321/)
+
+Local data profiles are available for seeded test data, imported live data, and
+future generated datasets:
+
+```shell
+$ npm run profile:list
+$ npm run profile:switch -- test
+$ npm run profile:ingest:live -- --replace
+$ npm run profile:seed:futon -- --replace
+```
+
+See [database profiles](./docs/db/profiles.md).

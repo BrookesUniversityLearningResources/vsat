@@ -16,22 +16,25 @@ import routeDeleteStory from "./domain/story/route/routeDeleteStory.js";
 import routeGetPublishedStories from "./domain/story/route/routeGetPublishedStories.js";
 import routeGetScene from "./domain/story/route/routeGetScene.js";
 import routeGetStory from "./domain/story/route/routeGetStory.js";
+import routePilot from "./domain/pilot/route/routePilot.js";
 import routePublishStory from "./domain/story/route/routePublishStory.js";
 import routeSaveAuthorName from "./domain/story/route/routeSaveAuthorName.js";
 import routeSaveSceneContent from "./domain/story/route/routeSaveSceneContent.js";
 import routeSaveSceneTitle from "./domain/story/route/routeSaveSceneTitle.js";
 import routeSaveStoryTitle from "./domain/story/route/routeSaveStoryTitle.js";
+import routeStoryLinks from "./domain/story/route/routeStoryLinks.js";
 import routeUnpublishStory from "./domain/story/route/routeUnpublishStory.js";
 import routeUploadSceneAudio from "./domain/story/route/routeUploadSceneAudio.js";
 import routeUploadSceneImage from "./domain/story/route/routeUploadSceneImage.js";
+import assertIsAuthorHandler from "./domain/story/support/assertIsAuthorHandler.js";
 import assertIsAuthorOfTheStoryHandler from "./domain/story/support/assertIsAuthorOfTheStoryHandler.js";
 import isAuthorOfTheStory from "./domain/story/support/isAuthorOfTheStory.js";
 import loadConfig from "./environment/config.js";
 import getEnvironment from "./environment/getEnvironment.js";
-import enableSharedArrayBufferMiddleware from "./server/enableSharedArrayBufferMiddleware.js";
 import type { StartServer } from "./server/createServer.js";
 import httpSession from "./server/httpSessionMiddleware.js";
 import routeHealthcheck from "./server/routeHealthcheck.js";
+import { withHeadersToEnableSharedArrayBufferUsage } from "./server/staticHeadersMiddleware.js";
 
 export async function createAppParts(): Promise<{
   log: Logger;
@@ -45,6 +48,8 @@ export async function createAppParts(): Promise<{
     log,
     repositoryAuthor,
     repositoryStory,
+    repositoryStoryLink,
+    repositoryPilot,
     repositoryScene,
     database: { connectionPool, db },
   } = getEnvironment<
@@ -52,6 +57,8 @@ export async function createAppParts(): Promise<{
       App.WithDatabase &
       App.WithAuthorRepository &
       App.WithStoryRepository &
+      App.WithStoryLinkRepository &
+      App.WithPilotRepository &
       App.WithSceneRepository
   >();
 
@@ -106,9 +113,11 @@ export async function createAppParts(): Promise<{
       config.authentication.pathsRequiringAuthentication,
     ),
     ...(sharedArrayBufferHeadersEnabled
-      ? [enableSharedArrayBufferMiddleware()]
+      ? [withHeadersToEnableSharedArrayBufferUsage()]
       : []),
   ];
+
+  const assertIsAuthor = assertIsAuthorHandler(log);
 
   const assertIsAuthorOfTheStory = assertIsAuthorOfTheStoryHandler(
     log,
@@ -145,11 +154,7 @@ export async function createAppParts(): Promise<{
       repositoryScene.deleteSceneAudio,
       assertIsAuthorOfTheStory,
     ),
-    routeSaveAuthorName(
-      log,
-      repositoryAuthor.saveAuthorName,
-      assertIsAuthorOfTheStory,
-    ),
+    routeSaveAuthorName(log, repositoryAuthor.saveAuthorName, assertIsAuthor),
     routeSaveSceneContent(
       log,
       repositoryScene.saveSceneContent,
@@ -164,6 +169,22 @@ export async function createAppParts(): Promise<{
       log,
       repositoryScene.saveSceneTitle,
       assertIsAuthorOfTheStory,
+    ),
+    routeStoryLinks(
+      repositoryStoryLink.createStoryLink,
+      repositoryStoryLink.getStoryLinksForStory,
+      repositoryStoryLink.voteOnStoryLink,
+      repositoryStoryLink.retireStoryLink,
+    ),
+    routePilot(
+      repositoryPilot.createPilot,
+      repositoryPilot.getPilot,
+      repositoryPilot.getPilots,
+      repositoryPilot.assignStoryToPilot,
+      repositoryPilot.getPilotStories,
+      repositoryPilot.createInterpretiveNote,
+      repositoryPilot.getInterpretiveNotes,
+      repositoryStoryLink.getStoryLinksForStory,
     ),
     routeDeleteScene(repositoryScene.deleteScene, assertIsAuthorOfTheStory),
     routeDeleteStory(

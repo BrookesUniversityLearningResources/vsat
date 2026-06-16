@@ -97,8 +97,19 @@ const serializedStory = DOMPurify.sanitize(
     init: function () {
       const openingScene = openingSceneFor(window.current.story);
       const openingPage = openingPageFor(openingScene);
+      const params = new URLSearchParams(window.location.search);
+      const requestedSceneId = Number(params.get("scene"));
+      const requestedScene =
+        Number.isFinite(requestedSceneId) && requestedSceneId > 0
+          ? window.current.story.scenes.find(
+              (scene: { id: number }) => scene.id === requestedSceneId,
+            )
+          : undefined;
 
-      if (!!openingScene.audio) {
+      if (requestedScene) {
+        window.current.scene = requestedScene;
+        window.current.page = openingPageFor(requestedScene);
+      } else if (!!openingScene.audio) {
         const [titleCardScene, titleCardPage] = titleCardSceneFor(
           window.current.story.title,
           openingScene,
@@ -130,6 +141,12 @@ const serializedStory = DOMPurify.sanitize(
           }
 
           this.render(window.current, { isSceneChange: !!change.toScene });
+        }
+      },
+      pointermove: function () {
+        const sound = this.el.components.sound;
+        if (!sound?.isPlaying) {
+          sound?.playSound?.();
         }
       },
     },
@@ -249,6 +266,18 @@ const serializedStory = DOMPurify.sanitize(
           }
         }
       }
+
+      const contextDetail = {
+        sceneId: current.scene.id,
+        sceneTitle: current.scene.title,
+        pageNumber: current.page.number,
+      };
+      window.vsatStoryContext = contextDetail;
+      window.dispatchEvent(
+        new CustomEvent("vsat:story-context", {
+          detail: contextDetail,
+        }),
+      );
     },
   });
 

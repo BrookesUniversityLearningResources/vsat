@@ -1,0 +1,338 @@
+;; VSAT / VSATLAS Value Hypergraph
+;;
+;; Third face of the Grand Unified Placemat (Krowne vertex: Money / fiscal sustainability).
+;; Same structural vocabulary as ukrns-value-model.edn and futon-stack-invariant-model.edn.
+;;
+;; Source: VSATLAS wiki, CLAUDE.md, Open Source Andela concept (2026-03-23).
+;;
+;; Three layers map to invariant axis:
+;;   Story layer       → I0 (the core fact: stories exist and are experienced)
+;;   Interpretive layer → I1–I2 (connections visible, evidence circulates)
+;;   Stewardship layer  → I3–I4 (system governs itself, commons sustained)
+;;
+;; Honest questions are marked :status :? throughout.
+
+{:mission/id :vsat-value-model
+ :mission/state :design
+ :mission/date "2026-03-23"
+
+ ;; =====================================================================
+ ;; ACTORS — people with roles who flow through action arenas
+ ;; =====================================================================
+
+ :actors
+ [{:id :A-author
+   :name "Storyteller / author"
+   :type :actor
+   :gives #{:stories :scenes :narrative-arcs :photospheres}
+   :needs #{:authoring-tools :audience :voice-preserved}
+   :timescale :fast
+   :status :present
+   :note "Layer 1 actor. Their work is never altered by the platform."}
+
+  {:id :A-reader
+   :name "Reader / explorer"
+   :type :actor
+   :gives #{:attention :engagement :onward-sharing}
+   :needs #{:immersive-experience :navigable-structure :meaning}
+   :timescale :fast
+   :status :present
+   :note "Terminal value node for stories — if no one reads, the system is empty"}
+
+  {:id :A-interpreter
+   :name "Interpreter / facilitator"
+   :type :actor
+   :gives #{:link-proposals :thematic-analysis :workshop-facilitation :rationale}
+   :needs #{:stories-worth-connecting :interpretive-tools :community}
+   :timescale :medium
+   :status :building
+   :note "Layer 2 actor. Proposes connections without altering originals."}
+
+  {:id :A-steward
+   :name "Steward / moderator"
+   :type :actor
+   :gives #{:link-review :governance :moderation :quality-assurance}
+   :needs #{:mandate :tools :clear-principles :recognised-standing}
+   :timescale :slow
+   :status :designed
+   :note "Layer 3 actor. Gates link retirement; maintains coherence and safety."}
+
+  {:id :A-technical-contributor
+   :name "Technical contributor"
+   :type :actor
+   :gives #{:code :bug-fixes :features :infrastructure}
+   :needs #{:clear-architecture :contribution-pathways :recognition}
+   :timescale :medium
+   :status :present
+   :note "Open source contributor. Currently small team; aspires to community."}
+
+  {:id :A-client-org
+   :name "Client organisation"
+   :type :actor
+   :gives #{:revenue :content :use-cases :domain-expertise}
+   :needs #{:narrative-infrastructure :facilitation :impact-evidence :governance-capability}
+   :timescale :slow
+   :status :present
+   :note "Currently: Brookes Learning Resources. Future: TBD — this is the buyer question."}
+
+  {:id :A-steward-trainee
+   :name "Steward trainee (Open Source Andela)"
+   :type :actor
+   :gives #{:labour :fresh-perspective :local-knowledge}
+   :needs #{:training :mentoring :career-pathway :recognised-credential}
+   :timescale :medium
+   :status :?
+   :note "The Open Source Andela concept: train stewards for the whole ecosystem, not just VSAT.
+          Does this actor exist yet? No. Is there a buyer for this training? TBD.
+          Potential funders: Gates Foundation, Shuttleworth, others."}]
+
+ ;; =====================================================================
+ ;; ACTION ARENAS — settings defined by shared practices
+ ;; =====================================================================
+
+ :arenas
+ [;; --- I0: Stories exist and are experienced ---
+
+  {:id :AR-story-creation
+   :name "Story creation"
+   :type :action-arena
+   :practice "Author creates 360° photosphere story with scenes and navigation"
+   :invariant :I0
+   :timescale :fast
+   :actors #{:A-author}
+   :inputs #{:photospheres :narrative-content :authoring-tools}
+   :outputs #{:published-story}
+   :status :present
+   :note "Layer 1. Working. The core fact."}
+
+  {:id :AR-story-experience
+   :name "Story experience"
+   :type :action-arena
+   :practice "Reader navigates and experiences immersive story"
+   :invariant :I0
+   :timescale :fast
+   :actors #{:A-reader}
+   :inputs #{:published-story}
+   :outputs #{:reader-engagement :emotional-response :understanding}
+   :status :present
+   :note "Layer 1. Working. If no one experiences the stories, nothing else matters."}
+
+  ;; --- I1: Connections become visible ---
+
+  {:id :AR-link-proposal
+   :name "Link proposal"
+   :type :action-arena
+   :practice "Interpreter proposes typed connection between stories with rationale"
+   :invariant :I1
+   :timescale :medium
+   :actors #{:A-interpreter}
+   :inputs #{:published-story :thematic-insight}
+   :outputs #{:proposed-link :rationale-text :link-type}
+   :link-types #{:thematic :causal :adjacency :contrast}
+   :status :building
+   :note "Layer 2. In development. Makes latent structure visible."}
+
+  {:id :AR-facilitated-workshop
+   :name "Facilitated interpretation workshop"
+   :type :action-arena
+   :practice "Facilitator guides group through collective interpretation of story connections"
+   :invariant :I1
+   :timescale :medium
+   :actors #{:A-interpreter :A-reader :A-client-org}
+   :inputs #{:published-stories :group-discussion}
+   :outputs #{:proposed-links :shared-understanding :workshop-revenue}
+   :status :building
+   :note "Professional service. This is where the revenue comes from."}
+
+  ;; --- I2: Evidence circulates ---
+
+  {:id :AR-constellation-view
+   :name "VSATLATARIUM constellation view"
+   :type :action-arena
+   :practice "3D planetarium renders stories as constellation with typed arcs"
+   :invariant :I2
+   :timescale :fast
+   :actors #{:A-reader :A-interpreter :A-client-org}
+   :inputs #{:published-stories :accepted-links}
+   :outputs #{:visible-structure :navigable-atlas :demo-for-clients}
+   :status :present
+   :note "The thing that makes evidence visible. Also the demo / sales tool."}
+
+  {:id :AR-pilot
+   :name "Pilot experiment"
+   :type :action-arena
+   :practice "Structured experiment grouping stories with interpretive notes and JSON reports"
+   :invariant :I2
+   :timescale :medium
+   :actors #{:A-interpreter :A-client-org}
+   :inputs #{:story-subset :research-question}
+   :outputs #{:pilot-report :aggregated-evidence :focused-constellation}
+   :status :present
+   :note "The mechanism for scoped investigations. Analogous to UKRN's T1 phase."}
+
+  ;; --- I3: Feedback improves practice ---
+
+  {:id :AR-link-review
+   :name "Link review and curation"
+   :type :action-arena
+   :practice "Steward reviews proposed links; accepts, rejects, or retires"
+   :invariant :I3
+   :timescale :slow
+   :actors #{:A-steward}
+   :inputs #{:proposed-links :stewardship-principles}
+   :outputs #{:curated-atlas :quality-signal :precedent}
+   :status :designed
+   :note "Layer 3. Designed but not yet exercised at scale."}
+
+  {:id :AR-content-import
+   :name "External content import"
+   :type :action-arena
+   :practice "Import flexiarg patterns, Arxana hypergraphs, or other EDN as stories/scenes/links"
+   :invariant :I3
+   :timescale :medium
+   :actors #{:A-technical-contributor}
+   :inputs #{:edn-data :flexiarg-patterns :arxana-hypergraphs}
+   :outputs #{:imported-cosmos :cross-system-visibility}
+   :status :designed
+   :note "The inter-edge to FUTON and UKRN-S. Flagged in future directions."}
+
+  ;; --- I4: The system sustains itself ---
+
+  {:id :AR-steward-training
+   :name "Steward training pipeline"
+   :type :action-arena
+   :practice "Progression: storyteller → collaborator → contributor → steward"
+   :invariant :I4
+   :timescale :slow
+   :actors #{:A-steward-trainee :A-steward :A-interpreter}
+   :inputs #{:mentoring :governance-curriculum :real-cases}
+   :outputs #{:trained-steward :governance-capability :credential}
+   :status :?
+   :note "The Open Source Andela core arena. Does this exist yet? No.
+          Is this the thing that makes the system self-sustaining? Yes.
+          Is there a buyer? TBD. This is the honest question."}
+
+  {:id :AR-governance
+   :name "Community governance"
+   :type :action-arena
+   :practice "Stewards and contributors shape platform direction, resolve disputes, set norms"
+   :invariant :I4
+   :timescale :glacial
+   :actors #{:A-steward :A-technical-contributor :A-interpreter}
+   :inputs #{:stewardship-compact :contribution-history :community-norms}
+   :outputs #{:platform-direction :norm-evolution :sustained-commons}
+   :status :?
+   :note "Ostrom's collective-choice arrangement for VSAT.
+          Cannot depend on a single team (wiki). Not yet operational.
+          Same structural problem as UKRN CoP: designed but not closed."}]
+
+ ;; =====================================================================
+ ;; INVARIANT LAYERS — same I0–I4, instantiated for VSAT
+ ;; =====================================================================
+
+ :invariants
+ [{:id :I0
+   :name "Stories exist and are experienced"
+   :type :invariant
+   :question "Can people create and read immersive stories?"
+   :status :operational
+   :note "Layer 1. Working. 9 stories including stress tests in dev seed."}
+
+  {:id :I1
+   :name "Connections between stories become visible"
+   :type :invariant
+   :question "Can interpreters propose and readers see how stories relate?"
+   :status :building
+   :note "Layer 2. Interpretive layer in development. Link types defined."}
+
+  {:id :I2
+   :name "Evidence circulates — users see structure"
+   :type :invariant
+   :question "Does the constellation view make the atlas navigable and legible?"
+   :status :operational
+   :note "VSATLATARIUM deployed. Pilot system working. This is ahead of UKRN."}
+
+  {:id :I3
+   :name "Curation improves the atlas over time"
+   :type :invariant
+   :question "Do stewards review, retire, and improve links? Does the atlas get better?"
+   :status :designed
+   :note "Stewardship compact written. Not yet exercised at scale."}
+
+  {:id :I4
+   :name "The commons sustains itself"
+   :type :invariant
+   :question "Can the platform survive after the original team moves on?"
+   :status :?
+   :note "The honest question. Depends on: steward training pipeline (Open Source Andela),
+          revenue model (professional services, not SaaS), community governance (Ostrom).
+          None of these are operational yet. All are designed or conceptualised."}]
+
+ ;; =====================================================================
+ ;; PROTOCOLS — how practices are structured
+ ;; =====================================================================
+
+ :protocols
+ [{:id :P-authoring
+   :name "Story authoring protocol"
+   :layer :I0
+   :note "Astro + A-Frame; photospheres + scenes + blockLinks"}
+
+  {:id :P-link-proposal
+   :name "Link proposal protocol"
+   :layer :I1
+   :note "Typed link (thematic/causal/adjacency/contrast) + rationale text + vote"}
+
+  {:id :P-stewardship-compact
+   :name "Stewardship compact"
+   :layer :I3
+   :note "Principles governing link review. Written but not battle-tested."}
+
+  {:id :P-import-edn
+   :name "EDN import protocol"
+   :layer :I3
+   :note "flexiarg/Arxana → stories/scenes/links. Designed, not implemented."}
+
+  {:id :P-steward-progression
+   :name "Steward progression pathway"
+   :layer :I4
+   :status :?
+   :note "storyteller → collaborator → contributor → steward. Named in wiki.
+          No curriculum, no credential, no buyer. The Open Source Andela gap."}]
+
+ ;; =====================================================================
+ ;; HONEST QUESTIONS — things we don't know yet
+ ;; (These are the dashed red arrows on the placemat.)
+ ;; =====================================================================
+
+ :honest-questions
+ [{:id :Q-buyer
+   :question "Who pays for steward training at scale?"
+   :touches #{:A-client-org :A-steward-trainee :AR-steward-training}
+   :candidates ["Gates Foundation" "Shuttleworth Foundation" "institutional buyers"
+                 "open source foundations" "development agencies"]
+   :note "VSAT itself is a demonstrator, not the product. The product is governance capability."}
+
+  {:id :Q-generalise
+   :question "Does the stewardship model generalise beyond VSAT to open source as a whole?"
+   :touches #{:AR-steward-training :AR-governance}
+   :evidence-needed "At least one non-VSAT project using the same steward training pipeline"
+   :note "The Open Source Andela thesis. Currently a concept, not evidence."}
+
+  {:id :Q-credential
+   :question "What credential does a trained steward hold?"
+   :touches #{:A-steward-trainee :P-steward-progression}
+   :note "Without a recognised credential, the training pipeline has no career-pathway output.
+          Compare UKRN: contribution log + CPD credit was Pattern 4's resolution."}
+
+  {:id :Q-revenue-sufficiency
+   :question "Can professional services revenue sustain the infrastructure?"
+   :touches #{:AR-facilitated-workshop :A-client-org}
+   :note "The wiki model: platform free, services paid. Is there enough demand?
+          Brookes is one client. How many are needed?"}
+
+  {:id :Q-english-lit
+   :question "Is the VSATLATARIUM compelling enough to attract users outside the initial client?"
+   :touches #{:AR-constellation-view :A-reader}
+   :note "English literature scholars worldwide — but they aren't rich.
+          The planetarium is a demo, not a product. Don't optimise the chip."}]}
