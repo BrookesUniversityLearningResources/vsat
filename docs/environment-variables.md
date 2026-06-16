@@ -25,6 +25,7 @@ Optional (development only):
 
 ```
 DEV_AUTH_BYPASS=1
+DEV_AUTH_BYPASS_ALLOWED_HOSTS=vsat-dev-a59e8b7d8397.herokuapp.com
 DEV_AUTH_BYPASS_EMAIL=dev@localhost
 DEV_AUTH_BYPASS_NAME=Dev User
 DEV_DISABLE_COEP=1
@@ -34,8 +35,11 @@ STEWARD_EMAILS=steward@example.com,second@example.com
 DEV_STEWARD_TOGGLE=1
 ```
 
-`DEV_AUTH_BYPASS` only applies when `NODE_ENV=development` and the request host
-is local (`localhost`, `127.0.0.1`, `::1`, or `*.localhost`).
+`DEV_AUTH_BYPASS` applies to local development hosts (`localhost`,
+`127.0.0.1`, `::1`, or `*.localhost`) when `NODE_ENV=development`. It can also
+be enabled for specific non-local hosts by setting the comma-separated
+`DEV_AUTH_BYPASS_ALLOWED_HOSTS` list; use this only for temporary QA
+environments.
 
 > You'll need to ask
 > [someone on the team](https://github.com/BrookesUniversityLearningResources/vsat/graphs/contributors)

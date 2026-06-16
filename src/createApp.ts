@@ -62,10 +62,19 @@ export async function createAppParts(): Promise<{
       App.WithSceneRepository
   >();
 
+  const devAuthBypassRequested =
+    process.env.DEV_AUTH_BYPASS === "1" ||
+    process.env.DEV_AUTH_BYPASS === "true";
+  const devAuthBypassAllowedHosts = (
+    process.env.DEV_AUTH_BYPASS_ALLOWED_HOSTS ?? ""
+  )
+    .split(",")
+    .map((host) => host.trim().replace(/:\d+$/, ""))
+    .filter(Boolean);
   const devAuthBypassEnabled =
-    process.env.NODE_ENV === "development" &&
-    (process.env.DEV_AUTH_BYPASS === "1" ||
-      process.env.DEV_AUTH_BYPASS === "true");
+    devAuthBypassRequested &&
+    (process.env.NODE_ENV === "development" ||
+      devAuthBypassAllowedHosts.length > 0);
   const devAuthBypassEmail =
     process.env.DEV_AUTH_BYPASS_EMAIL ?? "dev@localhost";
   const devAuthBypassName = process.env.DEV_AUTH_BYPASS_NAME ?? "Dev User";
@@ -107,6 +116,7 @@ export async function createAppParts(): Promise<{
       enabled: devAuthBypassEnabled,
       email: devAuthBypassEmail,
       name: devAuthBypassName,
+      allowedHosts: devAuthBypassAllowedHosts,
     }),
     authenticationRequired(
       log,

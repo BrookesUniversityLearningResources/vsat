@@ -8,6 +8,7 @@ type DevAuthBypassOptions = {
   enabled: boolean;
   email: string;
   name: string;
+  allowedHosts: string[];
 };
 
 const isLocalDevHost = (host: string) =>
@@ -15,6 +16,8 @@ const isLocalDevHost = (host: string) =>
   host === "127.0.0.1" ||
   host === "::1" ||
   host.endsWith(".localhost");
+
+const hostWithoutPort = (host: string) => host.replace(/:\d+$/, "");
 
 export default function devAuthBypass(
   log: Logger,
@@ -75,8 +78,8 @@ export default function devAuthBypass(
       return next();
     }
 
-    const host = req.hostname || req.host || "";
-    if (!isLocalDevHost(host)) {
+    const host = hostWithoutPort(req.hostname || req.host || "");
+    if (!isLocalDevHost(host) && !options.allowedHosts.includes(host)) {
       log.warn({ host }, "Skipping dev auth bypass for non-local host");
       return next();
     }
