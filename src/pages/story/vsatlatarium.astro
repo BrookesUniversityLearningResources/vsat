@@ -1,8 +1,11 @@
 ---
 import ImportAFrameScripts from "@components/story/published/aframe/ImportAFrameScripts.astro";
-import Layout from "../../layouts/PublicSiteLayout.astro";
-import type { PublishedStory, PublishedScene } from "@domain/story/publish/types";
+import type {
+  PublishedScene,
+  PublishedStory,
+} from "@domain/story/publish/types";
 import { cached } from "@util/layoutCache";
+import Layout from "../../layouts/PublicSiteLayout.astro";
 
 export const prerender = false;
 
@@ -13,6 +16,8 @@ const { log, repositoryStory, repositoryStoryLink, repositoryPilot } =
 
 const pilotParam = Astro.url.searchParams.get("pilot");
 const pilotId = pilotParam ? Number(pilotParam) : null;
+const MAX_VSATLATARIUM_STORIES = 60;
+const FULL_STORY_FETCH_CONCURRENCY = 3;
 
 let summaries: Awaited<ReturnType<typeof repositoryStory.getPublishedStorySummaries>> =
   [];
@@ -21,6 +26,8 @@ let interStoryLinks: Awaited<ReturnType<typeof repositoryStoryLink.getAllStoryLi
 let fullStories: PublishedStory[] = [];
 let pilots: Awaited<ReturnType<typeof repositoryPilot.getPilots>> = [];
 let storyDataUnavailable = false;
+let storyLimitExceeded = false;
+let requiresPilotSelection = false;
 
 try {
   const pilotStoriesPromise = pilotId
@@ -36,11 +43,19 @@ try {
 
   pilots = allPilots;
 
-  // Filter to pilot's stories if a pilot is selected
+  // VSATLATARIUM is intentionally bounded: prefer anthology-scoped story sets
+  // and cap the full-story payload because each published story carries scene
+  // content and media references.
   const pilotStoryIds = pilotId ? new Set(pilotStories.map((s) => s.id)) : null;
-  summaries = pilotStoryIds
+  const scopedSummaries = pilotStoryIds
     ? allSummaries.filter((s) => pilotStoryIds.has(s.id))
-    : allSummaries;
+    : pilots.length > 0
+      ? []
+      : allSummaries;
+  requiresPilotSelection = !pilotId && pilots.length > 0;
+  storyLimitExceeded = scopedSummaries.length > MAX_VSATLATARIUM_STORIES;
+  summaries = scopedSummaries.slice(0, MAX_VSATLATARIUM_STORIES);
+
   const visibleStoryIds = new Set(summaries.map((s) => s.id));
   interStoryLinks = allLinks.filter(
     (l) => visibleStoryIds.has(l.fromStory.id) && visibleStoryIds.has(l.toStory.id),
@@ -48,8 +63,10 @@ try {
 
   // Fetch full story data to get scenes and internal navigation links
   fullStories = (
-    await Promise.all(
-      summaries.map((s) => repositoryStory.getPublishedStory(s.id)),
+    await mapConcurrent(
+      summaries,
+      FULL_STORY_FETCH_CONCURRENCY,
+      (s) => repositoryStory.getPublishedStory(s.id),
     )
   ).filter((s): s is PublishedStory => s !== null);
 } catch (err) {
@@ -103,6 +120,29 @@ const normalizeLabelText = (value: string) =>
     .replace(/[\u2010-\u2015\u2212:;_-]+/g, " ")
     .replace(/\s+/g, " ")
     .trim();
+
+async function mapConcurrent<T, U>(
+  values: ReadonlyArray<T>,
+  concurrency: number,
+  mapper: (value: T) => Promise<U>,
+): Promise<U[]> {
+  const results = new Array<U>(values.length);
+  let nextIndex = 0;
+
+  const workers = Array.from(
+    { length: Math.min(concurrency, values.length) },
+    async () => {
+      while (nextIndex < values.length) {
+        const index = nextIndex;
+        nextIndex += 1;
+        results[index] = await mapper(values[index] as T);
+      }
+    },
+  );
+
+  await Promise.all(workers);
+  return results;
+}
 
 // --- Build cluster data ---
 type Vec3 = { x: number; y: number; z: number };
@@ -605,6 +645,18 @@ const clientData = {
       </aside>
     )}
 
+    {requiresPilotSelection && (
+      <aside class="vsatlatarium__notice" role="status">
+        Choose an anthology to load VSATLATARIUM.
+      </aside>
+    )}
+
+    {storyLimitExceeded && (
+      <aside class="vsatlatarium__notice" role="status">
+        Showing the first {MAX_VSATLATARIUM_STORIES} stories in this anthology.
+      </aside>
+    )}
+
     <div class="vsatlatarium__content">
       <div class="vsatlatarium__canvas">
         <div class="vsatlatarium__toolbar">
@@ -807,10 +859,12 @@ const clientData = {
           <div class="vsatlatarium__pilots">
             <h3>Anthology</h3>
             <div class="pilot-chips">
-              <a
-                class={`pilot-chip ${!pilotId ? "pilot-chip--active" : ""}`}
-                href={`/story/vsatlatarium${isPlanetarium ? "" : "?view=geomview"}`}
-              >All stories</a>
+              {pilots.length === 0 && (
+                <a
+                  class={`pilot-chip ${!pilotId ? "pilot-chip--active" : ""}`}
+                  href={`/story/vsatlatarium${isPlanetarium ? "" : "?view=geomview"}`}
+                >All stories</a>
+              )}
               {pilots.map((pilot) => (
                 <a
                   class={`pilot-chip ${pilot.id === pilotId ? "pilot-chip--active" : ""}`}

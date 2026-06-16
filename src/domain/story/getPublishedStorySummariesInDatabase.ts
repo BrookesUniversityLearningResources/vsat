@@ -29,7 +29,6 @@ export default function getPublishedStorySummariesInDatabase(
         "storyPublished.title as storyTitle",
         "storyPublished.createdAt as storyPublishedOn",
         "storyPublished.imageUrl as storyImageUrl",
-        "storyPublished.content as storyContent",
         "image.thumbnailUrl as openingSceneImageUrl",
         // author
         "author.id as authorId",
@@ -39,9 +38,7 @@ export default function getPublishedStorySummariesInDatabase(
       .execute();
 
     const summaries: PublishedStorySummary[] = rows.map((row) => {
-      const contentImageUrl = getImageFromPublishedContent(row.storyContent);
-      const imageUrl =
-        row.storyImageUrl ?? row.openingSceneImageUrl ?? contentImageUrl;
+      const imageUrl = row.storyImageUrl ?? row.openingSceneImageUrl;
 
       return {
         id: row.storyId,
@@ -59,40 +56,4 @@ export default function getPublishedStorySummariesInDatabase(
 
     return summaries;
   };
-}
-
-type PublishedSceneImage = {
-  url?: string | null;
-  thumbnailUrl?: string | null;
-};
-
-type PublishedSceneLike = {
-  isOpeningScene?: boolean;
-  image?: PublishedSceneImage | null;
-};
-
-function getImageFromPublishedContent(content: unknown) {
-  if (!content) {
-    return null;
-  }
-
-  try {
-    const scenes =
-      typeof content === "string" ? (JSON.parse(content) as unknown) : content;
-    if (!Array.isArray(scenes) || scenes.length === 0) {
-      return null;
-    }
-
-    const opening =
-      (scenes.find(
-        (scene): scene is PublishedSceneLike =>
-          typeof scene === "object" && scene !== null && "isOpeningScene" in scene,
-      ) as PublishedSceneLike | undefined) ??
-      (scenes[0] as PublishedSceneLike | undefined);
-
-    const image = opening?.image;
-    return image?.thumbnailUrl ?? image?.url ?? null;
-  } catch {
-    return null;
-  }
 }
