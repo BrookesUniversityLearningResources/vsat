@@ -6,6 +6,8 @@ type StoryLinkRow = {
   rationale: string;
   status: string;
   createdAt: Date;
+  acceptedAt: Date | null;
+  rejectedAt: Date | null;
   fromStoryId: number;
   fromStoryTitle: string;
   toStoryId: number;
@@ -24,6 +26,8 @@ export function mapStoryLinkSummary(row: StoryLinkRow): StoryLinkSummary {
     rationale: row.rationale,
     status: row.status as StoryLinkSummary["status"],
     createdAt: row.createdAt,
+    acceptedAt: row.acceptedAt,
+    rejectedAt: row.rejectedAt,
     fromStory: {
       id: row.fromStoryId,
       title: row.fromStoryTitle,

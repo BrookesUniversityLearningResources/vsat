@@ -1,7 +1,6 @@
-import type { Logger } from "pino";
-
-import type { GetDatabase } from "../../../database/schema.js";
 import { sql } from "kysely";
+import type { Logger } from "pino";
+import type { GetDatabase } from "../../../database/schema.js";
 import type { VoteOnStoryLink, VoteOnStoryLinkResult } from "../../index.js";
 import { mapStoryLinkSummary } from "./mapStoryLinkSummary.js";
 
@@ -89,7 +88,7 @@ export default function voteOnStoryLinkInDatabase(
       .innerJoin("story as toStory", "toStory.id", "storyLink.toStoryId")
       .leftJoin("scene as toScene", "toScene.id", "storyLink.toSceneId")
       .innerJoin("author as creator", "creator.id", "storyLink.createdBy")
-      .select([
+      .select((eb) => [
         "storyLink.id as id",
         "storyLink.linkType as linkType",
         "storyLink.rationale as rationale",
@@ -104,6 +103,18 @@ export default function voteOnStoryLinkInDatabase(
         "storyLink.toPageNumber as toPageNumber",
         "creator.id as createdById",
         "creator.name as createdByName",
+        eb
+          .selectFrom("linkVote")
+          .select((eb) => eb.fn.max("linkVote.createdAt").as("acceptedAt"))
+          .whereRef("linkVote.linkId", "=", "storyLink.id")
+          .where("linkVote.vote", "=", "accept")
+          .as("acceptedAt"),
+        eb
+          .selectFrom("linkVote")
+          .select((eb) => eb.fn.max("linkVote.createdAt").as("rejectedAt"))
+          .whereRef("linkVote.linkId", "=", "storyLink.id")
+          .where("linkVote.vote", "=", "reject")
+          .as("rejectedAt"),
       ])
       .where("storyLink.id", "=", request.linkId)
       .executeTakeFirstOrThrow();

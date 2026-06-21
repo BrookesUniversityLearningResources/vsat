@@ -3,6 +3,7 @@ import { type FC, type PropsWithChildren, useState } from "react";
 import { I18nextProvider } from "react-i18next";
 
 import authenticateWithServerUsingEmail from "../../authentication/client/authenticateWithServerUsingEmail.js";
+import { safeReturnTo } from "../../authentication/returnTo.js";
 import useI18N from "../../i18n/client/useI18N.js";
 import LoginForm, { type OnLogin } from "./LoginForm.js";
 
@@ -16,15 +17,18 @@ type LoginState =
  */
 type LoginProps = PropsWithChildren & {
   magicPublicKey: string;
+  returnTo: string;
   translations: Record<string, ResourceKey>;
 };
 
 const Login: FC<LoginProps> = ({
   magicPublicKey,
+  returnTo,
   translations,
   children: loginInProgress,
 }) => {
   const i18n = useI18N(translations, navigator.language);
+  const safeRedirectPath = safeReturnTo(returnTo);
 
   const [loginState, setLoginState] = useState<LoginState>({
     kind: "loginForm",
@@ -33,10 +37,10 @@ const Login: FC<LoginProps> = ({
   const onLogin: OnLogin = (email) => {
     setLoginState({ kind: "loginInProgress" });
 
-    authenticateWithServerUsingEmail(magicPublicKey, email)
+    authenticateWithServerUsingEmail(magicPublicKey, email, safeRedirectPath)
       .then(() => {
         window.location.href = new URL(
-          "author/story",
+          safeRedirectPath,
           window.location.origin,
         ).href;
       })

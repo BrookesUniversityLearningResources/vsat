@@ -1,6 +1,6 @@
 ---
-import Layout from "@layouts/AuthoringLayout.astro";
 import isStewardUser from "@authentication/isStewardUser";
+import Layout from "@layouts/AuthoringLayout.astro";
 
 export const prerender = false;
 
@@ -16,6 +16,19 @@ const isSteward = isStewardUser(
 const stewardToggleEnabled =
   process.env.DEV_STEWARD_TOGGLE === "1" ||
   process.env.DEV_STEWARD_TOGGLE === "true";
+const linkDateFormatter = new Intl.DateTimeFormat("en-GB", {
+  dateStyle: "medium",
+});
+const formatLinkDate = (date: Date) => linkDateFormatter.format(date);
+const linkDecisionDate = (link: (typeof links)[number]) => {
+  if (link.status === "accepted" && link.acceptedAt) {
+    return `Accepted ${formatLinkDate(link.acceptedAt)}`;
+  }
+  if (link.status === "rejected" && link.rejectedAt) {
+    return `Rejected ${formatLinkDate(link.rejectedAt)}`;
+  }
+  return null;
+};
 ---
 
 <Layout title="Steward console" description={i18n.t("page.story.meta.description")}>
@@ -51,8 +64,7 @@ const stewardToggleEnabled =
           <table class="steward-table">
             <thead>
               <tr>
-                <th>Status</th>
-                <th>Type</th>
+                <th>Details</th>
                 <th>From</th>
                 <th>To</th>
                 <th>Rationale</th>
@@ -62,9 +74,25 @@ const stewardToggleEnabled =
             <tbody id="steward-links">
               {links.map((link) => (
                 <tr data-link-id={link.id}>
-                  <td class="status">{link.status}</td>
-                  <td>{link.linkType}</td>
-                  <td>{link.fromStory.title}</td>
+                  <td class="link-details">
+                    <span class={`status status--${link.status}`}>
+                      {link.status}
+                    </span>
+                    <span>Proposed {formatLinkDate(link.createdAt)}</span>
+                    {linkDecisionDate(link) && (
+                      <span>{linkDecisionDate(link)}</span>
+                    )}
+                  </td>
+                  <td class="from-cell">
+                    <span class="from-cell__inner">
+                      <span>{link.fromStory.title}</span>
+                      <span
+                        class={`link-type-chip link-type-chip--${link.linkType}`}
+                      >
+                        {link.linkType}
+                      </span>
+                    </span>
+                  </td>
                   <td>
                     {link.toStory.title}
                     {link.toScene && (
@@ -109,7 +137,10 @@ const stewardToggleEnabled =
         if (!res.ok) return;
         const data = await res.json();
         const statusCell = row?.querySelector(".status");
-        if (statusCell) statusCell.textContent = data.status;
+        if (statusCell) {
+          statusCell.textContent = data.status;
+          statusCell.className = `status status--${data.status}`;
+        }
         button.textContent = data.status === "retired" ? "Unretire" : "Retire";
       });
     </script>
@@ -166,6 +197,82 @@ const stewardToggleEnabled =
     max-width: 280px;
   }
 
+  .link-details {
+    display: grid;
+    justify-items: start;
+    gap: 0.25rem;
+    min-width: 9rem;
+  }
+
+  .from-cell__inner {
+    display: flex;
+    gap: 0.75rem;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+
+  .status,
+  .link-type-chip {
+    display: inline-block;
+    padding: 0.12rem 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    line-height: 1.2;
+    text-transform: uppercase;
+  }
+
+  .status {
+    border-radius: 0.15rem;
+    border: 1px solid #6c757d;
+    background: #fff;
+    color: #343a40;
+  }
+
+  .link-type-chip {
+    border-radius: 999px;
+  }
+
+  .status--accepted {
+    border-color: #495057;
+  }
+
+  .status--proposed {
+    border-color: #6c757d;
+  }
+
+  .status--rejected {
+    border-color: #495057;
+  }
+
+  .status--retired {
+    border-color: #6c757d;
+  }
+
+  .link-type-chip {
+    border: 1px solid currentColor;
+    background: #fff;
+  }
+
+  .link-type-chip--thematic {
+    color: #7e3ab8;
+    background: #f3e8ff;
+  }
+
+  .link-type-chip--causal {
+    color: #b91c1c;
+    background: #fee2e2;
+  }
+
+  .link-type-chip--adjacency {
+    color: #047857;
+    background: #d1fae5;
+  }
+
+  .link-type-chip--contrast {
+    color: #be185d;
+    background: #fce7f3;
+  }
+
   .route {
     display: inline-block;
     margin-left: 0.25rem;
@@ -199,17 +306,20 @@ const stewardToggleEnabled =
     transition: background 0.2s ease;
   }
 
-  .steward-table tbody tr:hover {
-    background: #f0f7ff;
+  .steward-table tbody tr:nth-child(odd) {
+    background: #fff;
   }
 
-  /* Alternating row colors */
   .steward-table tbody tr:nth-child(even) {
-    background: #fafafa;
+    background: #e6e6e6;
+  }
+
+  .steward-table tbody tr:hover {
+    background: #e7f2ff;
   }
 
   .steward-table tbody tr:nth-child(even):hover {
-    background: #f0f7ff;
+    background: #e7f2ff;
   }
 
   /* Code element styling */

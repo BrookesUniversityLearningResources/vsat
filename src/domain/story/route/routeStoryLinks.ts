@@ -1,23 +1,24 @@
 import express, { type RequestHandler, Router } from "express";
 import { z } from "zod";
-
+import isStewardUser from "../../../authentication/isStewardUser.js";
 import { ErrorCodes } from "../../error/errorCode.js";
 import { errorCodedContext } from "../../error/errorCodedContext.js";
-import isStewardUser from "../../../authentication/isStewardUser.js";
 import {
-  LinkVoteValues,
-  StoryLinkStatuses,
-  StoryLinkTypes,
   type CreateStoryLink,
   type GetStoryLinksForStory,
+  LinkVoteValues,
   type RetireStoryLink,
+  StoryLinkStatuses,
+  StoryLinkTypes,
   type VoteOnStoryLink,
 } from "../../index.js";
+import type { CanVoteOnStoryLink } from "../link/canVoteOnStoryLinkInDatabase.js";
 
 function routeStoryLinks(
   createStoryLink: CreateStoryLink,
   getStoryLinksForStory: GetStoryLinksForStory,
   voteOnStoryLink: VoteOnStoryLink,
+  canVoteOnStoryLink: CanVoteOnStoryLink,
   retireStoryLink: RetireStoryLink,
   ...otherHandlers: RequestHandler[]
 ): Router {
@@ -52,24 +53,24 @@ function routeStoryLinks(
         return;
       }
 
-    const parseResult = CreateStoryLinkRequestModel.safeParse({
-      storyId: req.params.storyId,
-      toStoryId: req.body?.toStoryId,
-      toSceneId: req.body?.toSceneId,
-      toPageNumber: req.body?.toPageNumber,
-      linkType: req.body?.linkType,
-      rationale: req.body?.rationale,
-    });
+      const parseResult = CreateStoryLinkRequestModel.safeParse({
+        storyId: req.params.storyId,
+        toStoryId: req.body?.toStoryId,
+        toSceneId: req.body?.toSceneId,
+        toPageNumber: req.body?.toPageNumber,
+        linkType: req.body?.linkType,
+        rationale: req.body?.rationale,
+      });
 
-    if (!parseResult.success) {
-      res.status(400).json(errorCodedContext(ErrorCodes.BadRequest));
-      return;
-    }
+      if (!parseResult.success) {
+        res.status(400).json(errorCodedContext(ErrorCodes.BadRequest));
+        return;
+      }
 
-    if (parseResult.data.storyId === parseResult.data.toStoryId) {
-      res.status(400).json(errorCodedContext(ErrorCodes.BadRequest));
-      return;
-    }
+      if (parseResult.data.storyId === parseResult.data.toStoryId) {
+        res.status(400).json(errorCodedContext(ErrorCodes.BadRequest));
+        return;
+      }
 
       createStoryLink({
         fromStoryId: parseResult.data.storyId,
@@ -89,36 +90,52 @@ function routeStoryLinks(
     },
   );
 
-  router.post("/links/:linkId/vote", ...(otherHandlers ?? []), express.json(), (req, res) => {
-    if (!req.user) {
-      res.status(401).json(errorCodedContext(ErrorCodes.Unauthorized));
-      return;
-    }
+  router.post(
+    "/links/:linkId/vote",
+    ...(otherHandlers ?? []),
+    express.json(),
+    async (req, res) => {
+      if (!req.user) {
+        res.status(401).json(errorCodedContext(ErrorCodes.Unauthorized));
+        return;
+      }
 
-    const parseResult = VoteOnStoryLinkRequestModel.safeParse({
-      linkId: req.params.linkId,
-      vote: req.body?.vote,
-      comment: req.body?.comment,
-    });
-
-    if (!parseResult.success) {
-      res.status(400).json(errorCodedContext(ErrorCodes.BadRequest));
-      return;
-    }
-
-    voteOnStoryLink({
-      linkId: parseResult.data.linkId,
-      userId: req.user.id,
-      vote: parseResult.data.vote,
-      comment: parseResult.data.comment,
-    })
-      .then((result) => {
-        res.status(200).json(result);
-      })
-      .catch((err) => {
-        res.status(500).json(errorCodedContext(ErrorCodes.Error, err));
+      const parseResult = VoteOnStoryLinkRequestModel.safeParse({
+        linkId: req.params.linkId,
+        vote: req.body?.vote,
+        comment: req.body?.comment,
       });
-  });
+
+      if (!parseResult.success) {
+        res.status(400).json(errorCodedContext(ErrorCodes.BadRequest));
+        return;
+      }
+
+      const canVote = await canVoteOnStoryLink({
+        linkId: parseResult.data.linkId,
+        userId: req.user.id,
+        isSteward: isStewardUser(req.user, req.headers.cookie),
+      });
+
+      if (!canVote) {
+        res.status(403).json(errorCodedContext(ErrorCodes.Unauthorized));
+        return;
+      }
+
+      voteOnStoryLink({
+        linkId: parseResult.data.linkId,
+        userId: req.user.id,
+        vote: parseResult.data.vote,
+        comment: parseResult.data.comment,
+      })
+        .then((result) => {
+          res.status(200).json(result);
+        })
+        .catch((err) => {
+          res.status(500).json(errorCodedContext(ErrorCodes.Error, err));
+        });
+    },
+  );
 
   router.post("/links/:linkId/retire", ...(otherHandlers ?? []), (req, res) => {
     if (!req.user) {

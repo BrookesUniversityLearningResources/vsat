@@ -1,27 +1,60 @@
 ---
-import Layout from "@layouts/AuthoringLayout.astro";
 import isStewardUser from "@authentication/isStewardUser";
+import Layout from "@layouts/AuthoringLayout.astro";
 
 export const prerender = false;
 
-const { repositoryStoryLink, i18n } = Astro.locals.environment<
-  App.WithStoryLinkRepository & App.WithI18N
+const { repositoryStory, repositoryStoryLink, i18n } = Astro.locals.environment<
+  App.WithStoryRepository & App.WithStoryLinkRepository & App.WithI18N
 >();
 
-const links = await repositoryStoryLink.getAllStoryLinks();
 const isSteward = isStewardUser(
   Astro.locals.user,
   Astro.request.headers.get("cookie"),
 );
+const allLinks = await repositoryStoryLink.getAllStoryLinks();
+const authorStories = Astro.locals.user
+  ? await repositoryStory.getStorySummariesByAuthor(Astro.locals.user.id)
+  : null;
+const authorStoryIds = new Set(
+  authorStories?.stories.map((story) => story.id) ?? [],
+);
+const links = isSteward
+  ? allLinks
+  : allLinks.filter(
+      (link) =>
+        authorStoryIds.has(link.fromStory.id) ||
+        authorStoryIds.has(link.toStory.id),
+    );
+const linkDateFormatter = new Intl.DateTimeFormat("en-GB", {
+  dateStyle: "medium",
+});
+const formatLinkDate = (date: Date) => linkDateFormatter.format(date);
+const linkDecisionDate = (link: (typeof links)[number]) => {
+  if (link.status === "accepted" && link.acceptedAt) {
+    return `Accepted ${formatLinkDate(link.acceptedAt)}`;
+  }
+  if (link.status === "rejected" && link.rejectedAt) {
+    return `Rejected ${formatLinkDate(link.rejectedAt)}`;
+  }
+  return null;
+};
 ---
 
-<Layout title="All story links" description={i18n.t("page.story.meta.description")}>
+<Layout
+  title={isSteward ? "All story links" : "Your story links"}
+  description={i18n.t("page.story.meta.description")}
+>
   <main class="links-page">
     <header class="links-header">
       <div>
         <p class="links-kicker">Interpretive layer</p>
-        <h1>All story links</h1>
-        <p class="links-help">Review proposed, accepted, or retired links.</p>
+        <h1>{isSteward ? "All story links" : "Your story links"}</h1>
+        <p class="links-help">
+          {isSteward
+            ? "Review proposed, accepted, or retired links site-wide."
+            : "Review links that touch stories you authored."}
+        </p>
       </div>
       <a href="/author/story/">Back to stories</a>
     </header>
@@ -35,6 +68,12 @@ const isSteward = isStewardUser(
                 <span class="link-type">{link.linkType}</span>
                 <span class="link-status">{link.status}</span>
               </div>
+              <p class="link-date">
+                Proposed {formatLinkDate(link.createdAt)} by {link.createdBy.name}
+              </p>
+              {linkDecisionDate(link) && (
+                <p class="link-date">{linkDecisionDate(link)}</p>
+              )}
               <div class="link-main">
                 <strong>{link.fromStory.title}</strong>
                 <span class="link-arrow">→</span>
@@ -85,12 +124,7 @@ const isSteward = isStewardUser(
           ))}
         </ul>
       ) : (
-        <p>No links yet.</p>
-      )}
-      {!isSteward && (
-        <p class="links-note">
-          Retire/unretire actions are visible to stewards only.
-        </p>
+        <p>{isSteward ? "No links yet." : "No links for your stories yet."}</p>
       )}
     </section>
   </main>
@@ -206,6 +240,12 @@ const isSteward = isStewardUser(
     align-items: center;
   }
 
+  .link-date {
+    margin-top: 0.35rem;
+    font-size: 0.85rem;
+    opacity: 0.75;
+  }
+
   .link-arrow {
     font-weight: bold;
   }
@@ -226,12 +266,6 @@ const isSteward = isStewardUser(
     margin-top: 0.75rem;
     display: flex;
     gap: 0.5rem;
-  }
-
-  .links-note {
-    margin-top: 1rem;
-    font-size: 0.9rem;
-    opacity: 0.7;
   }
 
   .link-action {

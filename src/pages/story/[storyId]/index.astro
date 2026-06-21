@@ -22,66 +22,20 @@ if (!story) {
 
 const links = await repositoryStoryLink.getStoryLinksForStory(storyId);
 const acceptedLinks = links.filter((link) => link.status === "accepted");
-const inboundLinks = acceptedLinks.filter((link) => link.toStory.id === storyId);
-const outboundLinks = acceptedLinks.filter((link) => link.fromStory.id === storyId);
+const retiredLinks = links.filter((link) => link.status === "retired");
+const inboundLinks = acceptedLinks.filter(
+  (link) => link.toStory.id === storyId,
+);
+const outboundLinks = acceptedLinks.filter(
+  (link) => link.fromStory.id === storyId,
+);
 
 const linkedStories = new Map<number, { id: number; title: string }>();
 acceptedLinks.forEach((link) => {
-  const other =
-    link.fromStory.id === storyId ? link.toStory : link.fromStory;
+  const other = link.fromStory.id === storyId ? link.toStory : link.fromStory;
   linkedStories.set(other.id, { id: other.id, title: other.title });
 });
 const linkedStoryCards = Array.from(linkedStories.values()).slice(0, 5);
-
-type ContextLink = {
-  fromStoryId: number;
-  fromStoryTitle: string;
-  linkType: string;
-  rationale: string;
-  toSceneId: number;
-  toSceneTitle: string | null;
-  toPageNumber: number | null;
-};
-
-const contextByScene = new Map<number, ContextLink[]>();
-const contextByPage = new Map<string, ContextLink[]>();
-
-acceptedLinks
-  .filter((link) => link.toStory.id === storyId && link.toScene)
-  .forEach((link) => {
-    const contextLink: ContextLink = {
-      fromStoryId: link.fromStory.id,
-      fromStoryTitle: link.fromStory.title,
-      linkType: link.linkType,
-      rationale: link.rationale,
-      toSceneId: link.toScene!.id,
-      toSceneTitle: link.toScene?.title ?? null,
-      toPageNumber: link.toPageNumber ?? null,
-    };
-
-    const sceneLinks = contextByScene.get(contextLink.toSceneId) ?? [];
-    sceneLinks.push(contextLink);
-    contextByScene.set(contextLink.toSceneId, sceneLinks);
-
-    if (contextLink.toPageNumber !== null) {
-      const pageKey = `${contextLink.toSceneId}:${contextLink.toPageNumber}`;
-      const pageLinks = contextByPage.get(pageKey) ?? [];
-      pageLinks.push(contextLink);
-      contextByPage.set(pageKey, pageLinks);
-    }
-  });
-
-const contextData = {
-  byScene: Object.fromEntries(contextByScene.entries()),
-  byPage: Object.fromEntries(contextByPage.entries()),
-};
-
-const serializedContext = JSON.stringify(contextData)
-  .replace(/</g, "\\u003C")
-  .replace(/>/g, "\\u003E")
-  .replace(/&/g, "\\u0026")
-  .replace(/\u2028/g, "\\u2028")
-  .replace(/\u2029/g, "\\u2029");
 ---
 
 <!doctype html>
@@ -107,8 +61,6 @@ const serializedContext = JSON.stringify(contextData)
     Interpretive
   </button>
 
-  <script set:html={`window.vsatInterpretiveContext = ${serializedContext}`} />
-
   <aside class="interpretive-drawer" aria-hidden="true" hidden>
     <details>
       <summary>
@@ -118,16 +70,6 @@ const serializedContext = JSON.stringify(contextData)
         </span>
       </summary>
       <div class="interpretive-body">
-        <section class="interpretive-context-panel" data-interpretive-context>
-          <h2>Current scene/page</h2>
-          <p class="context-label" data-interpretive-label>
-            Scene · Page
-          </p>
-          <ul class="context-links" data-interpretive-links></ul>
-          <p class="empty" data-interpretive-empty>
-            No interpretive links for this scene/page yet.
-          </p>
-        </section>
         {acceptedLinks.length ? (
           <>
             <section>
@@ -189,12 +131,38 @@ const serializedContext = JSON.stringify(contextData)
           </>
         ) : (
           <p class="empty">
-            No accepted interpretive links yet. Try VSATLATARIUM to propose one.
+            No accepted interpretive links yet.
           </p>
         )}
+        <a
+          class="interpretive-cta"
+          href={`/author/story/${story.id}/links?returnTo=${encodeURIComponent(`/story/${story.id}`)}#propose`}
+        >
+          Propose an interpretive link
+        </a>
         <a class="interpretive-cta" href="/story/vsatlatarium">
           Open VSATLATARIUM
         </a>
+        {retiredLinks.length > 0 && (
+          <section>
+            <h2>Stewardship history</h2>
+            <ul>
+              {retiredLinks.map((link) => {
+                const other =
+                  link.fromStory.id === storyId ? link.toStory : link.fromStory;
+                return (
+                  <li>
+                    <a href={`/story/${other.id}`}>{other.title}</a>
+                    <span class="link-meta">
+                      {link.linkType} · retired
+                    </span>
+                    <p class="link-rationale">{link.rationale}</p>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        )}
       </div>
     </details>
   </aside>
@@ -260,69 +228,6 @@ const serializedContext = JSON.stringify(contextData)
       peekOpen = false;
       syncOverlay();
     }
-  });
-
-  const contextData =
-    window.vsatInterpretiveContext || Object.freeze({ byScene: {}, byPage: {} });
-
-  const contextPanels = Array.from(
-    document.querySelectorAll("[data-interpretive-context]"),
-  );
-
-  const renderContextLinks = (links, sceneTitle, pageNumber) => {
-    contextPanels.forEach((panel) => {
-      const label = panel.querySelector("[data-interpretive-label]");
-      const list = panel.querySelector("[data-interpretive-links]");
-      const empty = panel.querySelector("[data-interpretive-empty]");
-
-      if (label) {
-        const title = sceneTitle || "Scene";
-        label.textContent = `${title} · Page ${pageNumber ?? "?"}`;
-      }
-
-      if (list) {
-        list.innerHTML = "";
-        links.forEach((link) => {
-          const item = document.createElement("li");
-          const anchor = document.createElement("a");
-          anchor.href = `/story/${link.fromStoryId}`;
-          anchor.textContent = link.fromStoryTitle;
-
-          const meta = document.createElement("span");
-          meta.className = "link-meta";
-          meta.textContent = `${link.linkType} · ${link.scope} link`;
-
-          const rationale = document.createElement("p");
-          rationale.className = "link-rationale";
-          rationale.textContent = link.rationale;
-
-          item.append(anchor, meta, rationale);
-          list.append(item);
-        });
-      }
-
-      if (empty) {
-        empty.hidden = links.length > 0;
-      }
-    });
-  };
-
-  const syncContext = (detail) => {
-    if (!detail?.sceneId) {
-      return;
-    }
-    const pageKey = `${detail.sceneId}:${detail.pageNumber ?? ""}`;
-    const pageLinks = contextData.byPage?.[pageKey] ?? [];
-    const sceneLinks = contextData.byScene?.[detail.sceneId] ?? [];
-    const scopedLinks = pageLinks.length
-      ? pageLinks.map((link) => ({ ...link, scope: "page" }))
-      : sceneLinks.map((link) => ({ ...link, scope: "scene" }));
-
-    renderContextLinks(scopedLinks, detail.sceneTitle, detail.pageNumber);
-  };
-
-  window.addEventListener("vsat:story-context", (event) => {
-    syncContext(event.detail);
   });
 
   syncOverlay();
@@ -465,27 +370,6 @@ const serializedContext = JSON.stringify(contextData)
     text-decoration: none;
     color: inherit;
     background: #fff;
-  }
-
-  .interpretive-context-panel {
-    border: 1px dashed #1f4d7a;
-    border-radius: 0.75rem;
-    padding: 0.75rem 0.9rem;
-    background: rgba(231, 242, 255, 0.7);
-    display: grid;
-    gap: 0.5rem;
-  }
-
-  .context-label {
-    font-weight: 600;
-  }
-
-  .context-links {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    display: grid;
-    gap: 0.5rem;
   }
 
   @media screen and (max-width: 720px) {

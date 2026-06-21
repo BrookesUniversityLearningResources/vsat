@@ -6,7 +6,7 @@ Purpose: audit that every intended interaction is reachable for the role it is m
 - **author** — logged in; can edit stories they authored
 - **steward** — authenticated user whose email is listed in `STEWARD_EMAILS` (or who has flipped the `vsat_steward` dev cookie when `DEV_STEWARD_TOGGLE=1`)
 
-"Author" is not a separate account type — any logged-in user has author powers on stories they own. Ownership is checked per-story by `assertAuthorMiddleware` on `/author/story/:storyId/...` (except the `/links` sub-route, which is open to any logged-in user so anyone can vote on links that touch a story). Stewards bypass the ownership check.
+"Author" is not a separate account type — any logged-in user has author powers on stories they own. Ownership is checked per-story by `assertAuthorMiddleware` on `/author/story/:storyId/...` (except the `/links` sub-route, which is open to logged-in link work). Stewards do not bypass content ownership checks; their additional powers are link stewardship actions.
 
 ## Access gates at a glance
 
@@ -34,14 +34,17 @@ Unauthenticated hits to guarded paths redirect to `/login`. A logged-in non-owne
 - all roles: browse published stories, link to VSATLATARIUM.
 
 ### `/story/:storyId` — read a story
-- all roles: same view. A-Frame scene viewer; "Interpretive" sidebar (press `I`) showing **accepted** links only; endcap cards to adjacent stories. No role branching in the page itself.
-- Note: the empty-state text says "Try VSATLATARIUM to propose one," but the propose UI is **not** exposed here or in VSATLATARIUM — only from inside the author scene editor and the per-story links page. See "Gaps" below.
+- all roles: same view. A-Frame scene viewer; "Interpretive" sidebar (press `I`) showing **accepted** links only; endcap cards to adjacent stories.
+- all roles: can view retired links touching the story in the read-only "Stewardship history" section when such links exist.
+- readers: can follow "Propose an interpretive link" to login; after login, the user returns to `/author/story/:storyId/links#propose`.
 
 ### `/story/manifold` — adjacency grid / link list
 - all roles: view all links and their statuses (proposed / accepted / rejected / retired), filter by pilot, click through to stories.
 
 ### `/story/vsatlatarium` — 3D planetarium
-- all roles: navigate scene and story nodes for published stories, switch planetarium ↔ geomview, hover / click into story detail. No role-gated controls.
+- all roles: navigate scene and story nodes for a selected anthology, switch planetarium ↔ geomview, hover / click into story detail.
+- logged-in users: can propose a link by choosing a source node, target node, type, and rationale in the planetarium panel.
+- readers: can start the proposal flow; if authentication is required, login returns them to the prefilled `/author/story/:storyId/links#propose` fallback.
 
 ## Authenticated pages (`/author/*`)
 
@@ -51,21 +54,21 @@ Unauthenticated hits to guarded paths redirect to `/login`. A logged-in non-owne
 
 ### `/author/story/:storyId` — story editor
 - author (owner only): edit title, CRUD scenes, edit scene content, upload images + audio, publish / unpublish, delete story, **propose link from a scene** (opens propose-link modal), navigate to preview or links.
-- steward (non-owner): bypasses ownership check, so has the same editing powers on any story. This is by design for stewardship, but worth flagging.
-- author (non-owner): redirected away with `Unauthorized`.
+- author / steward (non-owner): redirected away with `Unauthorized`.
 
 ### `/author/story/:storyId/preview` — preview as reader
-- author (owner) and steward: read-only preview of the published shape of the story.
-- author (non-owner): redirected away.
+- author (owner): read-only preview of the published shape of the story.
+- author / steward (non-owner): redirected away.
 
 ### `/author/story/:storyId/links` — links involving this story
-- any logged-in user (ownership **not** required on this sub-route): view inbound + outbound links; propose a new link; accept / reject (vote).
-- steward: additionally retire / unretire. UI exposes the retire/unretire buttons only when `isStewardUser` is true; help text on the page says "Retire/unretire actions are visible to stewards only."
+- any logged-in user (ownership **not** required on this sub-route): view inbound + outbound links; propose a new link.
+- author of a linked story: accept / reject (vote).
+- steward: accept / reject, plus retire / unretire. UI exposes the retire/unretire buttons only when `isStewardUser` is true; help text on the page says "Retire/unretire actions are visible to stewards only."
 
 ### `/author/links` — global link dashboard
-- any logged-in user: review all links site-wide, accept / reject.
+- any logged-in non-steward user: review links touching stories they authored, accept / reject.
+- steward: review all links site-wide, accept / reject.
 - steward: additionally retire / unretire.
-- Known scope issue: currently shows all links, not scoped to the current author's stories (see `docs/qa-checklist.md` P1).
 
 ### `/author/steward` — steward console
 - non-steward logged-in user: page loads with a message "You are not marked as a steward for this environment." No adjudication UI.
@@ -80,12 +83,12 @@ Unauthenticated hits to guarded paths redirect to `/login`. A logged-in non-owne
 | Endpoint | Who | Notes |
 | --- | --- | --- |
 | `POST /api/story/:storyId/links` | any logged-in user | propose a link (status `proposed`). |
-| `POST /api/links/:linkId/vote` | any logged-in user | `{vote: "accept"\|"reject"}`. |
+| `POST /api/links/:linkId/vote` | author of linked story or steward | `{vote: "accept"\|"reject"}`. |
 | `POST /api/links/:linkId/retire` | **steward only** | 403 for non-stewards; toggles to/from `retired`. |
 | `POST /api/pilot` | any logged-in user | create pilot. |
 | `POST /api/pilot/:pilotId/stories` | any logged-in user | attach story to pilot. |
 | `POST /api/pilot/:pilotId/notes` | any logged-in user | add interpretive note. |
-| `GET  /api/pilot/:pilotId/report` | open | JSON report; no auth check on the route itself. |
+| `GET  /api/pilot/:pilotId/report` | any logged-in user | JSON report; the route itself has no extra role check, but `/api/*` is login-gated by middleware. |
 
 Every API action has a UI entry point somewhere in `/author/*`.
 
@@ -98,10 +101,10 @@ Every API action has a UI entry point somewhere in `/author/*`.
 | Use VSATLATARIUM / manifold | ✓ | ✓ | ✓ | ✓ |
 | Read stewardship compact | ✓ | ✓ | ✓ | ✓ |
 | Log in | ✓ | — | — | — |
-| Create / edit / delete own story, scenes, media | — | ✓ | — | ✓ (any story) |
-| Publish / unpublish own story | — | ✓ | — | ✓ (any story) |
+| Create / edit / delete own story, scenes, media | — | ✓ | — | ✓ (own stories only) |
+| Publish / unpublish own story | — | ✓ | — | ✓ (own stories only) |
 | Propose a link | — | ✓ | ✓ | ✓ |
-| Accept / reject a link (vote) | — | ✓ | ✓ | ✓ |
+| Accept / reject a link (vote) | — | ✓ (linked own story) | — | ✓ |
 | Retire / unretire a link | — | — | — | ✓ |
 | Create / manage pilots, notes | — | ✓ | ✓ | ✓ |
 | Use steward console | — | — | — | ✓ |
@@ -119,34 +122,32 @@ flowchart LR
   SR -->|press I| SB["Interpretive sidebar<br/>(accepted links only)"]
   SB --> AS["Adjacent story endcap"]
   AS --> SR2["/story/:otherId"]
+  SR --> PL0["/author/story/:storyId/links#propose<br/>(after login if needed)"]
   SR --> VL["/story/vsatlatarium"]
   SR --> MF["/story/manifold"]
-  SR -.->|empty-state says<br/>&quot;try VSATLATARIUM to propose&quot;| DEAD(["no propose UI here<br/>or in planetarium"]):::gap
-
-  classDef gap fill:#fde,stroke:#c66,color:#633;
 ```
 
-Reader interactions on a photosphere page = read the scene, read accepted interpretive links, jump to adjacent stories, jump to the global views. No write actions.
+Reader interactions on a photosphere page = read the scene, read accepted interpretive links, jump to adjacent stories, jump to the global views, or log in to propose an interpretive link.
 
 ### J2. Reader → Propose a link (the "how do I contribute?" path)
 
 ```mermaid
 flowchart LR
   R([Reader]) --> SR["/story/:storyId"]
-  SR -.->|no propose button| X1(( )):::gap
+  SR -->|Propose interpretive link| LOGIN1["/login?returnTo=..."]
   R --> VL["/story/vsatlatarium"]
-  VL -.->|no propose button| X2(( )):::gap
+  VL -->|Propose from node pair| LOGIN2["/login?returnTo=..."]
   R -->|log in via /login| A([Author])
+  LOGIN1 --> ASL["/author/story/:storyId/links#propose"]
+  LOGIN2 --> ASL
   A --> AE["/author/story/:myStoryId<br/>scene editor"]
   AE -->|&quot;Propose link from here&quot;| PL[[Propose-link modal]]
-  A --> ASL["/author/story/:myStoryId/links"]
+  A --> ASL
   ASL -->|Propose form| PL
   PL -->|POST /api/story/:storyId/links| DB[(status: proposed)]
-
-  classDef gap fill:#fde,stroke:#c66,color:#633;
 ```
 
-Gap: a reader must (a) log in, and (b) have at least one of their own stories to get into a scene editor, because the only propose-link entry points are author-context. The public read page and planetarium invite proposals but do not host the UI.
+Reachability note: a reader must log in before writing, but no longer needs to own a story or enter the scene editor. Public story pages and VSATLATARIUM both lead to the per-story proposal form.
 
 ### J3. Author reviews / votes on links touching their story
 
@@ -155,7 +156,7 @@ flowchart LR
   A([Author, logged in]) --> AD["/author/story/ — dashboard"]
   AD --> AE["/author/story/:storyId"]
   AE -->|Links button| ASL["/author/story/:storyId/links"]
-  AD --> AL["/author/links — global links"]
+  AD --> AL["/author/links — scoped links"]
   ASL -->|Accept / Reject| V1["POST /api/links/:id/vote"]
   AL -->|Accept / Reject| V1
   ASL -.->|Retire/unretire hidden| ST{{steward-only}}:::steward
@@ -164,7 +165,7 @@ flowchart LR
   classDef steward fill:#eef,stroke:#66c,color:#336;
 ```
 
-Note: `/author/story/:storyId/links` is **not** ownership-gated — any logged-in user can open it for any story and vote. Global `/author/links` is likewise open to any logged-in user (see qa-checklist P1).
+Note: `/author/story/:storyId/links` is **not** ownership-gated — any logged-in user can open it for any story and propose a link. Accept/reject voting is restricted to authors of linked stories and stewards. `/author/links` scopes non-stewards to links touching their authored stories; stewards see all links.
 
 ### J4. Steward adjudicates links
 
@@ -177,14 +178,12 @@ flowchart LR
   ASL -->|Retire / unretire<br/>(visible because isStewardUser)| RT
   S --> AL["/author/links"]
   AL -->|Retire / unretire| RT
-  S --> AE["/author/story/:anyStoryId"]:::wide
-  AE -->|bypasses ownership check| EDIT[[can also edit / delete<br/>ANY story]]:::gap
+  S -.->|"non-owned story edit"| DENY["redirect Unauthorized"]:::wide
 
-  classDef gap fill:#fde,stroke:#c66,color:#633;
   classDef wide fill:#ffd,stroke:#c90,color:#630;
 ```
 
-Three surfaces for retire/unretire (console, per-story links, global links). Side-effect worth reviewing: `assertAuthorMiddleware` lets stewards through, so the steward role currently includes full content-edit power on any story, not just link adjudication.
+Three surfaces for retire/unretire (console, per-story links, scoped/global links). Stewards do not get global story edit/delete authority.
 
 ### J5. How do I add a new steward?
 
@@ -211,19 +210,17 @@ There is no self-service promotion flow. Adding a steward in production = editin
 
 ```mermaid
 flowchart LR
-  V["/story/vsatlatarium"] -->|click scene node| SR["/story/:storyId"]
-  SR -->|log in, navigate to own story| AE["/author/story/:myStoryId"]
-  AE --> PL[[Propose-link modal]]
+  V["/story/vsatlatarium"] -->|pick source node| SRC["source selected"]
+  SRC -->|pick target node| TGT["target selected"]
+  TGT -->|submit in panel| PL[[POST proposal]]
+  TGT -->|needs login| ASL["/author/story/:sourceId/links#propose<br/>(prefilled fallback)"]
   PL --> DB[(link: proposed)]
   DB -.->|planetarium shows<br/>proposed as dim arcs| V
   DB -->|accept vote| ACC[(link: accepted)]
   ACC -->|bright arc| V
-  V -.->|no &quot;add link&quot; control<br/>in planetarium itself| GAP(( )):::gap
-
-  classDef gap fill:#fde,stroke:#c66,color:#633;
 ```
 
-Round-trip works but is indirect: planetarium → story page → log in → own story editor → propose → (optionally vote to accept) → arcs update next planetarium load. There is no in-planetarium "add link between these two nodes I just clicked" affordance.
+Round-trip now works directly for logged-in users from the planetarium panel. Unauthenticated users are sent through login and land on the prefilled per-story proposal form.
 
 ### J7. Full role × surface map (reference)
 
@@ -250,8 +247,8 @@ flowchart TB
 
   subgraph Authed["/author/* (login required)"]
     AD["/author/story/"]:::auth
-    AE["/author/story/:id<br/>(owner or steward)"]:::auth
-    PRE["/author/story/:id/preview<br/>(owner or steward)"]:::auth
+    AE["/author/story/:id<br/>(owner only)"]:::auth
+    PRE["/author/story/:id/preview<br/>(owner only)"]:::auth
     ASL["/author/story/:id/links<br/>(any logged-in)"]:::auth
     AL["/author/links<br/>(any logged-in)"]:::auth
     PI["/author/pilot/*"]:::auth
@@ -280,9 +277,9 @@ flowchart TB
 
 ## Reachability gaps and questions worth auditing
 
-- **Reader → Propose link**: page copy on `/story/:storyId` invites readers to "propose one" via VSATLATARIUM, but propose UI is only reachable through `/author/story/:storyId` (scene editor) and `/author/story/:storyId/links`. A reader who follows the prompt lands nowhere. Either drop the copy, surface a propose modal on the public read page (login-gated at submit), or add propose UI to VSATLATARIUM.
-- **Steward global edit power**: stewards bypass `assertAuthorMiddleware`, so they can edit/publish/delete any story, not just adjudicate links. Intentional? The stewardship compact frames stewards as link adjudicators, not content editors.
-- **`/author/links` scope**: shows all links site-wide to every logged-in user — effectively makes every logged-in user a global link reviewer. Known issue (qa-checklist P1); decide whether it should be author-scoped, steward-only, or renamed.
-- **`/author/story/:storyId/links` has no ownership gate**: any logged-in user can vote on links for any story. Probably correct (voting is a community action), but worth confirming versus "only authors of either endpoint story can vote."
-- **Pilot report `GET /api/pilot/:pilotId/report`** is unauthenticated. Intentional (public share link)? If yes, document it; if no, add the login gate.
-- **No non-steward path to see retired links** on the public read page — retired links are hidden from readers. If stewardship is meant to be transparent, consider showing "retired" with the rationale visible.
+- **Reader → Propose link**: addressed by the public story "Propose an interpretive link" CTA, VSATLATARIUM's source/target proposal panel, and `returnTo` login redirects into `/author/story/:storyId/links#propose`. Continue QA on the Magic-link round trip and prefilled target fields.
+- **Steward global edit power**: addressed by removing steward ownership bypass from story edit/preview routes. Steward powers are now link-adjudication powers, not global content edit powers.
+- **`/author/links` scope**: addressed in the UI by showing all links only to stewards and scoping non-stewards to links that touch their authored stories.
+- **`/author/story/:storyId/links` vote scope**: addressed by keeping viewing/proposal open to logged-in users while restricting accept/reject votes to authors of linked stories and stewards, including direct API calls.
+- **Pilot report `GET /api/pilot/:pilotId/report`**: documented as login-gated by the shared `/api/*` middleware. If public share links are desired later, that should be an explicit route/config decision.
+- **No non-steward path to see retired links**: addressed by showing retired links and rationale in a read-only "Stewardship history" section on public story pages.

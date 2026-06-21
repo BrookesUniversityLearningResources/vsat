@@ -32,7 +32,7 @@ export default function createStoryLinkInDatabase(
       .innerJoin("story as toStory", "toStory.id", "storyLink.toStoryId")
       .leftJoin("scene as toScene", "toScene.id", "storyLink.toSceneId")
       .innerJoin("author as creator", "creator.id", "storyLink.createdBy")
-      .select([
+      .select((eb) => [
         "storyLink.id as id",
         "storyLink.linkType as linkType",
         "storyLink.rationale as rationale",
@@ -47,6 +47,18 @@ export default function createStoryLinkInDatabase(
         "storyLink.toPageNumber as toPageNumber",
         "creator.id as createdById",
         "creator.name as createdByName",
+        eb
+          .selectFrom("linkVote")
+          .select((eb) => eb.fn.max("linkVote.createdAt").as("acceptedAt"))
+          .whereRef("linkVote.linkId", "=", "storyLink.id")
+          .where("linkVote.vote", "=", "accept")
+          .as("acceptedAt"),
+        eb
+          .selectFrom("linkVote")
+          .select((eb) => eb.fn.max("linkVote.createdAt").as("rejectedAt"))
+          .whereRef("linkVote.linkId", "=", "storyLink.id")
+          .where("linkVote.vote", "=", "reject")
+          .as("rejectedAt"),
       ])
       .where("storyLink.id", "=", inserted.id)
       .executeTakeFirstOrThrow();
