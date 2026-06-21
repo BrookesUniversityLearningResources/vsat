@@ -7,6 +7,8 @@ import devAuthBypass from "./authentication/devAuthBypass.js";
 import passportWithMagicLogin from "./authentication/passport/passportWithMagicLogin.js";
 import routeAuthenticate from "./authentication/routeAuthenticate.js";
 import routeLogout from "./authentication/routeLogout.js";
+import routePilot from "./domain/pilot/route/routePilot.js";
+import canVoteOnStoryLinkInDatabase from "./domain/story/link/canVoteOnStoryLinkInDatabase.js";
 import routeCreateScene from "./domain/story/route/routeCreateScene.js";
 import routeCreateStory from "./domain/story/route/routeCreateStory.js";
 import routeDeleteScene from "./domain/story/route/routeDeleteScene.js";
@@ -16,7 +18,6 @@ import routeDeleteStory from "./domain/story/route/routeDeleteStory.js";
 import routeGetPublishedStories from "./domain/story/route/routeGetPublishedStories.js";
 import routeGetScene from "./domain/story/route/routeGetScene.js";
 import routeGetStory from "./domain/story/route/routeGetStory.js";
-import routePilot from "./domain/pilot/route/routePilot.js";
 import routePublishStory from "./domain/story/route/routePublishStory.js";
 import routeSaveAuthorName from "./domain/story/route/routeSaveAuthorName.js";
 import routeSaveSceneContent from "./domain/story/route/routeSaveSceneContent.js";
@@ -184,6 +185,7 @@ export async function createAppParts(): Promise<{
       repositoryStoryLink.createStoryLink,
       repositoryStoryLink.getStoryLinksForStory,
       repositoryStoryLink.voteOnStoryLink,
+      canVoteOnStoryLinkInDatabase(() => db),
       repositoryStoryLink.retireStoryLink,
     ),
     routePilot(

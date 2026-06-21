@@ -1,7 +1,7 @@
 "use client";
 
 import { Magic } from "magic-sdk";
-
+import { safeReturnTo } from "../returnTo.js";
 import authenticateWithServer from "./authenticateWithServer.js";
 
 const LIFESPAN_IN_SECONDS = 2 /* hours */ * 60 * 60;
@@ -10,11 +10,15 @@ const LIFESPAN_IN_SECONDS = 2 /* hours */ * 60 * 60;
 async function authenticateWithServerUsingEmail(
   publicKey: string,
   email: string,
+  returnTo?: string,
 ) {
   const magic = new Magic(publicKey);
+  const callbackUrl = new URL("/login/callback", window.location.origin);
+  callbackUrl.searchParams.set("returnTo", safeReturnTo(returnTo));
+
   const token = await magic.auth.loginWithMagicLink({
     email,
-    redirectURI: new URL("/login/callback", window.location.origin).href,
+    redirectURI: callbackUrl.href,
     lifespan: LIFESPAN_IN_SECONDS,
   });
 

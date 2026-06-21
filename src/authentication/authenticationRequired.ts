@@ -2,6 +2,7 @@ import type { RequestHandler } from "express";
 import type { Logger } from "pino";
 
 import type { AuthenticationConfig } from "../environment/config.js";
+import { loginPathForReturnTo } from "./returnTo.js";
 
 /**
  * Build (Express) middleware that guards paths requiring an authenticated user.
@@ -30,7 +31,7 @@ export default function authenticationRequired(
     if (requiresAuth(path)) {
       log.trace({ path }, "Request requires authenticated user");
 
-      return res.redirect("/login");
+      return res.redirect(loginPathForReturnTo(req.originalUrl || req.url));
     }
 
     log.trace({ path }, "Request does not require authenticated user");

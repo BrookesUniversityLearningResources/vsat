@@ -90,6 +90,8 @@ Test each item and mark with ✅ or ❌.
 
 ## Author Links (`/author/links`)
 
+- [ ] Non-steward view only shows links touching stories authored by the current user
+- [ ] Steward view shows all links site-wide
 - [ ] Link cards show type, status, from→to stories, rationale
 - [ ] Cards color-coded by status (blue=accepted, yellow=proposed, pink=rejected)
 - [ ] Accept/Reject buttons work and update card status
@@ -108,6 +110,12 @@ Test each item and mark with ✅ or ❌.
 - [ ] Rows have hover highlight and alternating backgrounds
 - [ ] Retire/Unretire button works
 
+## Public Story Stewardship History (`/story/{id}`)
+
+- [ ] Retired links touching the story appear in the interpretive drawer
+- [ ] Retired links show type, peer story, and rationale
+- [ ] No retire/unretire controls appear on the public story page
+
 ## Stewardship Compact (`/stewardship`)
 
 - [ ] Sections have blue left-border accents
@@ -118,4 +126,6 @@ Test each item and mark with ✅ or ❌.
 
 - [ ] Existing links displayed with status coloring
 - [ ] Propose link form has styled container and pill submit
-- [ ] Vote buttons work
+- [ ] Vote buttons appear for authors of linked stories and stewards
+- [ ] Vote buttons are hidden for logged-in non-authors
+- [ ] Vote API returns 403 for logged-in non-authors
