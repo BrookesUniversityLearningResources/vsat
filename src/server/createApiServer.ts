@@ -3,6 +3,7 @@ import type { Server } from "node:http";
 import express, { type RequestHandler } from "express";
 
 import type { ServerConfig } from "../environment/config.js";
+import attachRelay from "./relay/attachRelay.js";
 
 type StartServerResult = {
   server: Server;
@@ -32,6 +33,7 @@ function createApiServer(
 
   const startServer = async () => {
     const server = app.listen(config.port);
+    attachRelay(server);
     return { server, config };
   };
 

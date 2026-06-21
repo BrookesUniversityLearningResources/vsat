@@ -1,0 +1,483 @@
+---
+// The phone/laptop "remote" view.
+//   /remote            → lobby: a grid of live sessions (tap to co-pilot in
+//                        place, or scan a tile's QR with a phone to join there)
+//   /remote?room=CODE  → control surface for one session
+// Dependency-light and works on both phone and laptop.
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <title>VSAT Remote</title>
+  </head>
+  <body>
+    <main>
+      <header>
+        <h1>VSAT Remote</h1>
+        <p class="status" data-status hidden></p>
+      </header>
+
+      <!-- Lobby -->
+      <section class="lobby" data-lobby hidden>
+        <p class="lobby-intro">
+          Active sessions — tap to co-pilot, or scan a tile with a phone.
+        </p>
+        <div class="tiles" data-tiles></div>
+        <p class="empty" data-lobby-empty hidden>
+          No active sessions. Open a story with <code>?room</code> to start one.
+        </p>
+        <p class="empty" data-lobby-restricted hidden>
+          The session lobby is for stewards. If someone gave you a code, join below.
+        </p>
+        <form class="manual" data-manual>
+          <input
+            name="room"
+            autocapitalize="characters"
+            autocomplete="off"
+            placeholder="Join by code"
+            required
+          />
+          <button type="submit">Join</button>
+        </form>
+      </section>
+
+      <!-- Control surface -->
+      <section class="control" data-control hidden>
+        <a class="back" href="/remote">← Sessions</a>
+
+        <section class="now" data-now hidden>
+          <p class="now-story" data-story></p>
+          <h2 class="now-scene" data-scene></h2>
+          <p class="now-page" data-context></p>
+        </section>
+
+        <section class="links" data-links hidden>
+          <p class="links-label">Go to</p>
+          <div class="links-list" data-links-list></div>
+        </section>
+
+        <p class="empty" data-empty hidden>No exits from this page.</p>
+      </section>
+    </main>
+
+    <script>
+      import QRCode from "qrcode";
+
+      const el = {
+        status: document.querySelector("[data-status]"),
+        lobby: document.querySelector("[data-lobby]"),
+        tiles: document.querySelector("[data-tiles]"),
+        lobbyEmpty: document.querySelector("[data-lobby-empty]"),
+        lobbyRestricted: document.querySelector("[data-lobby-restricted]"),
+        manual: document.querySelector("[data-manual]"),
+        control: document.querySelector("[data-control]"),
+        now: document.querySelector("[data-now]"),
+        story: document.querySelector("[data-story]"),
+        scene: document.querySelector("[data-scene]"),
+        context: document.querySelector("[data-context]"),
+        links: document.querySelector("[data-links]"),
+        linksList: document.querySelector("[data-links-list]"),
+        empty: document.querySelector("[data-empty]"),
+      };
+
+      const room = new URLSearchParams(location.search).get("room");
+
+      if (room) {
+        startControl(room);
+      } else {
+        startLobby();
+      }
+
+      // ----- Lobby -------------------------------------------------------------
+
+      function startLobby() {
+        el.lobby.hidden = false;
+
+        el.manual.addEventListener("submit", (event) => {
+          event.preventDefault();
+          const value = new FormData(el.manual)
+            .get("room")
+            ?.toString()
+            .trim()
+            .toUpperCase();
+          if (value) {
+            location.search = `?room=${encodeURIComponent(value)}`;
+          }
+        });
+
+        const tiles = new Map(); // code -> { el, story, scene }
+        let timer;
+
+        const refresh = async () => {
+          let sessions = [];
+          try {
+            const res = await fetch("/api/sessions", {
+              headers: { accept: "application/json" },
+            });
+            if (res.status === 403) {
+              // Discovery is steward-only; stop polling and explain.
+              clearInterval(timer);
+              el.lobbyRestricted.hidden = false;
+              el.lobbyEmpty.hidden = true;
+              return;
+            }
+            if (res.ok) {
+              sessions = (await res.json()).sessions ?? [];
+            }
+          } catch {
+            return;
+          }
+
+          const seen = new Set();
+          for (const session of sessions) {
+            seen.add(session.code);
+            const existing = tiles.get(session.code);
+            if (existing) {
+              existing.story.textContent = session.storyTitle || "Untitled story";
+              existing.scene.textContent =
+                session.heading || session.sceneTitle || "";
+            } else {
+              tiles.set(session.code, makeTile(session));
+            }
+          }
+
+          // Drop tiles for sessions that have ended.
+          for (const [code, tile] of tiles) {
+            if (!seen.has(code)) {
+              tile.el.remove();
+              tiles.delete(code);
+            }
+          }
+
+          el.lobbyEmpty.hidden = tiles.size > 0;
+        };
+
+        refresh();
+        timer = setInterval(refresh, 2000);
+      }
+
+      function makeTile(session) {
+        const anchor = document.createElement("a");
+        anchor.className = "tile";
+        anchor.href = `/remote?room=${encodeURIComponent(session.code)}`;
+
+        const info = document.createElement("div");
+        info.className = "tile-info";
+
+        const story = document.createElement("p");
+        story.className = "tile-story";
+        story.textContent = session.storyTitle || "Untitled story";
+
+        const scene = document.createElement("p");
+        scene.className = "tile-scene";
+        scene.textContent = session.heading || session.sceneTitle || "";
+
+        const code = document.createElement("p");
+        code.className = "tile-code";
+        code.textContent = session.code;
+
+        info.append(story, scene, code);
+
+        const canvas = document.createElement("canvas");
+        canvas.className = "tile-qr";
+        const joinUrl = `${location.origin}/remote?room=${encodeURIComponent(session.code)}`;
+        QRCode.toCanvas(canvas, joinUrl, {
+          width: 96,
+          margin: 1,
+          color: { dark: "#15171c", light: "#ffffff" },
+        }).catch(() => {});
+
+        anchor.append(info, canvas);
+        el.tiles.appendChild(anchor);
+
+        return { el: anchor, story, scene };
+      }
+
+      // ----- Control surface ---------------------------------------------------
+
+      function setStatus(text, kind) {
+        el.status.hidden = false;
+        el.status.textContent = text;
+        el.status.dataset.kind = kind || "";
+      }
+
+      function startControl(room) {
+        el.control.hidden = false;
+        setStatus("Connecting…", "");
+
+        const protocol = location.protocol === "https:" ? "wss" : "ws";
+        const url = `${protocol}://${location.host}/ws/relay?room=${encodeURIComponent(room)}&role=remote`;
+        let socket;
+        let reconnectTimer;
+
+        const open = () => {
+          socket = new WebSocket(url);
+
+          socket.addEventListener("open", () => {
+            setStatus(`Paired · room ${room}`, "ok");
+            socket.send(JSON.stringify({ type: "hello" }));
+          });
+
+          socket.addEventListener("message", (event) => {
+            let message;
+            try {
+              message = JSON.parse(event.data);
+            } catch {
+              return;
+            }
+            if (message.type === "state") {
+              render(message, socket);
+            }
+          });
+
+          socket.addEventListener("close", () => {
+            setStatus("Reconnecting…", "warn");
+            clearTimeout(reconnectTimer);
+            reconnectTimer = setTimeout(open, 1000);
+          });
+
+          socket.addEventListener("error", () => socket.close());
+        };
+
+        open();
+      }
+
+      function render(state, socket) {
+        el.now.hidden = false;
+        el.story.textContent = state.storyTitle || "";
+
+        // Lead with the page heading the reader actually sees on screen; fall
+        // back to the scene title if a page has no heading.
+        const heading = state.heading || state.sceneTitle || "Untitled";
+        el.scene.textContent = heading;
+
+        // Context line: scene title (when it differs from the heading) + page.
+        const parts = [];
+        if (state.sceneTitle && state.sceneTitle !== heading) {
+          parts.push(state.sceneTitle);
+        }
+        if (typeof state.pageNumber === "number") {
+          parts.push(`Page ${state.pageNumber + 1}`);
+        }
+        el.context.textContent = parts.join(" · ");
+
+        el.linksList.replaceChildren();
+        const links = Array.isArray(state.links) ? state.links : [];
+
+        if (links.length === 0) {
+          el.links.hidden = true;
+          el.empty.hidden = false;
+          return;
+        }
+
+        el.empty.hidden = true;
+        el.links.hidden = false;
+
+        for (const option of links) {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "link-button";
+          button.textContent = option.text || option.link;
+          button.addEventListener("click", () => {
+            socket.send(
+              JSON.stringify({ type: "navigate", link: option.link }),
+            );
+          });
+          el.linksList.appendChild(button);
+        }
+      }
+    </script>
+
+    <style>
+      :root {
+        color-scheme: dark;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family: "Source Sans Pro", system-ui, sans-serif;
+        background: #15171c;
+        color: #ecf0f1;
+        min-height: 100vh;
+      }
+      main {
+        max-width: 32rem;
+        margin: 0 auto;
+        padding: 1.25rem 1.1rem calc(1.5rem + env(safe-area-inset-bottom));
+        display: flex;
+        flex-direction: column;
+        gap: 1.25rem;
+      }
+      header h1 {
+        margin: 0;
+        font-size: 1.1rem;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        opacity: 0.85;
+      }
+      .status {
+        margin: 0.35rem 0 0;
+        font-size: 0.85rem;
+        opacity: 0.7;
+      }
+      .status[data-kind="ok"] {
+        color: #4ade80;
+        opacity: 1;
+      }
+      .status[data-kind="warn"] {
+        color: #fbbf24;
+        opacity: 1;
+      }
+
+      /* Lobby */
+      .lobby-intro {
+        margin: 0;
+        font-size: 0.9rem;
+        opacity: 0.7;
+      }
+      .tiles {
+        display: grid;
+        gap: 0.75rem;
+      }
+      .tile {
+        display: flex;
+        gap: 0.9rem;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.9rem 1rem;
+        border: 1px solid #2c3340;
+        border-radius: 0.9rem;
+        background: #1b1e25;
+        color: inherit;
+        text-decoration: none;
+        transition: border-color 0.12s ease, background 0.12s ease;
+      }
+      .tile:active {
+        background: #222631;
+        border-color: #3c5976;
+      }
+      .tile-info {
+        min-width: 0;
+      }
+      .tile-story {
+        margin: 0;
+        font-size: 1.1rem;
+        font-weight: 600;
+      }
+      .tile-scene {
+        margin: 0.2rem 0 0;
+        font-size: 0.85rem;
+        opacity: 0.7;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .tile-code {
+        margin: 0.4rem 0 0;
+        font-size: 0.78rem;
+        letter-spacing: 0.18em;
+        opacity: 0.5;
+      }
+      .tile-qr {
+        flex: none;
+        width: 72px;
+        height: 72px;
+        border-radius: 0.4rem;
+        background: #fff;
+      }
+      .manual {
+        display: flex;
+        gap: 0.5rem;
+      }
+      .manual input {
+        flex: 1;
+        padding: 0.7rem;
+        border-radius: 0.6rem;
+        border: 1px solid #3c4250;
+        background: #1f232b;
+        color: inherit;
+        font-size: 1rem;
+        text-transform: uppercase;
+      }
+      .manual button {
+        padding: 0.7rem 1rem;
+        border-radius: 0.6rem;
+        border: none;
+        background: #3c5976;
+        color: #fff;
+        font-size: 1rem;
+        cursor: pointer;
+      }
+
+      /* Control surface */
+      .back {
+        color: #9fb3c8;
+        text-decoration: none;
+        font-size: 0.9rem;
+      }
+      .now {
+        border: 1px solid #2c3340;
+        border-radius: 0.9rem;
+        padding: 1rem 1.1rem;
+        background: #1b1e25;
+      }
+      .now-story {
+        margin: 0 0 0.25rem;
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        letter-spacing: 0.07em;
+        opacity: 0.55;
+      }
+      .now-scene {
+        margin: 0;
+        font-size: 1.45rem;
+        line-height: 1.2;
+      }
+      .now-page {
+        margin: 0.4rem 0 0;
+        font-size: 0.85rem;
+        opacity: 0.6;
+      }
+      .links-label {
+        margin: 0 0 0.6rem;
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        letter-spacing: 0.07em;
+        opacity: 0.55;
+      }
+      .links-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.6rem;
+      }
+      .link-button {
+        width: 100%;
+        text-align: left;
+        padding: 1rem 1.1rem;
+        border-radius: 0.8rem;
+        border: 1px solid #3c5976;
+        background: #2c3e50;
+        color: #ecf0f1;
+        font-family: inherit;
+        font-size: 1.1rem;
+        cursor: pointer;
+        transition: background 0.12s ease;
+      }
+      .link-button:active {
+        background: #3c5976;
+      }
+      .empty {
+        opacity: 0.55;
+        font-style: italic;
+      }
+    </style>
+  </body>
+</html>

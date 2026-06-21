@@ -213,6 +213,11 @@ const serializedContext = JSON.stringify(contextData)
   )}
 </body>
 
+<script>
+  import { startHostController } from "@components/story/remote/hostController";
+  startHostController();
+</script>
+
 <script is:inline>
   const toggle = document.querySelector(".interpretive-toggle");
   const drawer = document.querySelector(".interpretive-drawer");
