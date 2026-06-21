@@ -11,78 +11,89 @@ export const prerender = false;
 
 const { log, repositoryStory, repositoryStoryLink, repositoryPilot } =
   Astro.locals.environment<
-    App.WithLog & App.WithStoryRepository & App.WithStoryLinkRepository & App.WithPilotRepository
+    App.WithLog &
+      App.WithStoryRepository &
+      App.WithStoryLinkRepository &
+      App.WithPilotRepository
   >();
 
 const pilotParam = Astro.url.searchParams.get("pilot");
 const pilotId = pilotParam ? Number(pilotParam) : null;
 const MAX_VSATLATARIUM_STORIES = 60;
 const FULL_STORY_FETCH_CONCURRENCY = 3;
+const viewMode = Astro.url.searchParams.get("view") ?? "planetarium";
+const isPlanetarium = viewMode === "planetarium";
+const hrefForPilot = (id: number) =>
+  `/story/vsatlatarium?pilot=${id}${isPlanetarium ? "" : "&view=geomview"}`;
 
-let summaries: Awaited<ReturnType<typeof repositoryStory.getPublishedStorySummaries>> =
-  [];
-let interStoryLinks: Awaited<ReturnType<typeof repositoryStoryLink.getAllStoryLinks>> =
-  [];
+let summaries: Awaited<
+  ReturnType<typeof repositoryStory.getPublishedStorySummaries>
+> = [];
+let interStoryLinks: Awaited<
+  ReturnType<typeof repositoryStoryLink.getAllStoryLinks>
+> = [];
 let fullStories: PublishedStory[] = [];
 let pilots: Awaited<ReturnType<typeof repositoryPilot.getPilots>> = [];
 let storyDataUnavailable = false;
 let storyLimitExceeded = false;
 let requiresPilotSelection = false;
+let selectedPilot:
+  | Awaited<ReturnType<typeof repositoryPilot.getPilots>>[number]
+  | null = null;
 
 try {
-  const pilotStoriesPromise = pilotId
-    ? repositoryPilot.getPilotStories(pilotId)
-    : Promise.resolve([] as { id: number }[]);
+  pilots = await repositoryPilot.getPilots();
 
-  const [allSummaries, allLinks, allPilots, pilotStories] = await Promise.all([
-    repositoryStory.getPublishedStorySummaries({}),
-    repositoryStoryLink.getAllStoryLinks(),
-    repositoryPilot.getPilots(),
-    pilotStoriesPromise,
-  ]);
+  selectedPilot = pilotId
+    ? (pilots.find((p) => p.id === pilotId) ?? null)
+    : null;
 
-  pilots = allPilots;
+  if (!selectedPilot && pilots.length > 0) {
+    return Astro.redirect(hrefForPilot(pilots[0].id));
+  }
 
-  // VSATLATARIUM is intentionally bounded: prefer anthology-scoped story sets
-  // and cap the full-story payload because each published story carries scene
-  // content and media references.
-  const pilotStoryIds = pilotId ? new Set(pilotStories.map((s) => s.id)) : null;
-  const scopedSummaries = pilotStoryIds
-    ? allSummaries.filter((s) => pilotStoryIds.has(s.id))
-    : pilots.length > 0
-      ? []
-      : allSummaries;
-  requiresPilotSelection = !pilotId && pilots.length > 0;
-  storyLimitExceeded = scopedSummaries.length > MAX_VSATLATARIUM_STORIES;
-  summaries = scopedSummaries.slice(0, MAX_VSATLATARIUM_STORIES);
+  if (selectedPilot) {
+    const [allSummaries, allLinks, pilotStories] = await Promise.all([
+      repositoryStory.getPublishedStorySummaries({}),
+      repositoryStoryLink.getAllStoryLinks(),
+      repositoryPilot.getPilotStories(selectedPilot.id),
+    ]);
 
-  const visibleStoryIds = new Set(summaries.map((s) => s.id));
-  interStoryLinks = allLinks.filter(
-    (l) => visibleStoryIds.has(l.fromStory.id) && visibleStoryIds.has(l.toStory.id),
-  );
+    // VSATLATARIUM is intentionally bounded: cap the full-story payload because
+    // each published story carries scene content and media references.
+    const pilotStoryIds = new Set(pilotStories.map((s) => s.id));
+    const scopedSummaries = allSummaries.filter((s) =>
+      pilotStoryIds.has(s.id),
+    );
+    storyLimitExceeded = scopedSummaries.length > MAX_VSATLATARIUM_STORIES;
+    summaries = scopedSummaries.slice(0, MAX_VSATLATARIUM_STORIES);
+    const visibleStoryIds = new Set(summaries.map((s) => s.id));
+    interStoryLinks = allLinks.filter(
+      (l) =>
+        visibleStoryIds.has(l.fromStory.id) &&
+        visibleStoryIds.has(l.toStory.id),
+    );
 
-  // Fetch full story data to get scenes and internal navigation links
-  fullStories = (
-    await mapConcurrent(
-      summaries,
-      FULL_STORY_FETCH_CONCURRENCY,
-      (s) => repositoryStory.getPublishedStory(s.id),
-    )
-  ).filter((s): s is PublishedStory => s !== null);
+    // Fetch full story data to get scenes and internal navigation links
+    fullStories = (
+      await mapConcurrent(
+        summaries,
+        FULL_STORY_FETCH_CONCURRENCY,
+        (s) => repositoryStory.getPublishedStory(s.id),
+      )
+    ).filter((s): s is PublishedStory => s !== null);
+  }
 } catch (err) {
   storyDataUnavailable = true;
-  log.warn({ err }, "VSATLATARIUM story data unavailable; rendering empty view");
+  log.warn(
+    { err },
+    "VSATLATARIUM story data unavailable; rendering empty view",
+  );
 }
-
-const selectedPilot = pilotId ? pilots.find((p) => p.id === pilotId) : null;
-
-// --- Layout constants ---
-const viewMode = Astro.url.searchParams.get("view") ?? "planetarium";
-const isPlanetarium = viewMode === "planetarium";
 
 // Cache fingerprint: pilot, view mode, story ids, scene counts, link ids
 const layoutFingerprint = [
-  pilotId ? `P${pilotId}` : "all",
+  selectedPilot ? `P${selectedPilot.id}` : "none",
   viewMode,
   ...fullStories.map((s) => `${s.id}:${s.scenes.length}`),
   ...interStoryLinks.map((l) => `L${l.id}`),
@@ -90,7 +101,10 @@ const layoutFingerprint = [
 
 // Scale the whole layout to content, then scale each story cluster by
 // its scene count so dense stories have more readable local spacing.
-const totalScenes = fullStories.reduce((sum, s) => sum + (s?.scenes.length ?? 0), 0);
+const totalScenes = fullStories.reduce(
+  (sum, s) => sum + (s?.scenes.length ?? 0),
+  0,
+);
 const clusterRadius = isPlanetarium
   ? Math.max(18, Math.round(10 + 4 * Math.sqrt(totalScenes)))
   : Math.max(12, Math.round(5 + 3 * Math.sqrt(totalScenes)));
@@ -157,7 +171,7 @@ type SceneNode = {
 };
 type InternalArc = {
   from: string; // sceneNode id
-  to: string;   // sceneNode id
+  to: string; // sceneNode id
 };
 type StoryCluster = {
   storyId: number;
@@ -180,306 +194,322 @@ type InterStoryArc = {
   toStoryTitle: string;
 };
 
-const { clusters, interArcs } = cached<{ clusters: StoryCluster[]; interArcs: InterStoryArc[] }>(
-  "vsatlatarium-layout",
-  layoutFingerprint,
-  () => {
+const { clusters, interArcs } = cached<{
+  clusters: StoryCluster[];
+  interArcs: InterStoryArc[];
+}>("vsatlatarium-layout", layoutFingerprint, () => {
+  const clusters: StoryCluster[] = [];
 
-const clusters: StoryCluster[] = [];
+  for (let i = 0; i < fullStories.length; i++) {
+    const story = fullStories[i];
 
-for (let i = 0; i < fullStories.length; i++) {
-  const story = fullStories[i];
-
-  // Cluster center on the golden spiral sphere.
-  // Clamp vertical range for small collections so nodes stay in a
-  // comfortable viewing band instead of scattering pole-to-pole.
-  const t = (i + 0.5) / Math.max(fullStories.length, 1);
-  const maxY = fullStories.length >= 8 ? 1.0 : 0.4 + fullStories.length * 0.075;
-  const cy = maxY * (1 - 2 * t);
-  const cr = Math.sqrt(1 - cy * cy);
-  const cTheta = goldenAngle * i;
-  const center: Vec3 = {
-    x: Number((clusterRadius * cr * Math.cos(cTheta)).toFixed(3)),
-    y: Number((clusterRadius * cy).toFixed(3)),
-    z: Number((clusterRadius * cr * Math.sin(cTheta)).toFixed(3)),
-  };
-
-  const scenes = story.scenes;
-  const localRadius = localRadiusForSceneCount(scenes.length);
-
-  // Layout scenes around the cluster center using a local golden spiral
-  const sceneNodes: SceneNode[] = scenes.map((scene, si) => {
-    const st = (si + 0.5) / Math.max(scenes.length, 1);
-    const sy = 1 - 2 * st;
-    const sr = Math.sqrt(1 - sy * sy);
-    const sTheta = goldenAngle * si;
-    const pages = Object.keys(scene.pages);
-    return {
-      id: `story-${story.id}-scene-${scene.id}`,
-      sceneId: scene.id,
-      storyId: story.id,
-      title: scene.title,
-      isOpening: scene.isOpeningScene,
-      pageCount: pages.length,
-      position: {
-        x: Number((center.x + localRadius * sr * Math.cos(sTheta)).toFixed(3)),
-        y: Number((center.y + localRadius * sy).toFixed(3)),
-        z: Number((center.z + localRadius * sr * Math.sin(sTheta)).toFixed(3)),
-      },
+    // Cluster center on the golden spiral sphere.
+    // Clamp vertical range for small collections so nodes stay in a
+    // comfortable viewing band instead of scattering pole-to-pole.
+    const t = (i + 0.5) / Math.max(fullStories.length, 1);
+    const maxY =
+      fullStories.length >= 8 ? 1.0 : 0.4 + fullStories.length * 0.075;
+    const cy = maxY * (1 - 2 * t);
+    const cr = Math.sqrt(1 - cy * cy);
+    const cTheta = goldenAngle * i;
+    const center: Vec3 = {
+      x: Number((clusterRadius * cr * Math.cos(cTheta)).toFixed(3)),
+      y: Number((clusterRadius * cy).toFixed(3)),
+      z: Number((clusterRadius * cr * Math.sin(cTheta)).toFixed(3)),
     };
-  });
 
-  // Build a map from link targets to scene IDs
-  const linkTargetToSceneId = new Map<string, number>();
-  for (const scene of scenes) {
-    if (scene.link) {
-      linkTargetToSceneId.set(scene.link, scene.id);
-    }
-    for (const page of Object.values(scene.pages)) {
-      linkTargetToSceneId.set(page.link, scene.id);
-    }
-  }
+    const scenes = story.scenes;
+    const localRadius = localRadiusForSceneCount(scenes.length);
 
-  // Extract internal arcs from blockLinks in the already-parsed pages
-  const arcSet = new Set<string>();
-  const internalArcs: InternalArc[] = [];
-  for (const scene of scenes) {
-    for (const page of Object.values(scene.pages)) {
-      for (const block of page.content) {
-        if (block.kind !== "blockLink") continue;
-        const targetSceneId = linkTargetToSceneId.get(block.link);
-        if (targetSceneId === undefined || targetSceneId === scene.id) continue;
-        const fromId = `story-${story.id}-scene-${scene.id}`;
-        const toId = `story-${story.id}-scene-${targetSceneId}`;
-        const key = `${fromId}->${toId}`;
-        if (arcSet.has(key)) continue;
+    // Layout scenes around the cluster center using a local golden spiral
+    const sceneNodes: SceneNode[] = scenes.map((scene, si) => {
+      const st = (si + 0.5) / Math.max(scenes.length, 1);
+      const sy = 1 - 2 * st;
+      const sr = Math.sqrt(1 - sy * sy);
+      const sTheta = goldenAngle * si;
+      const pages = Object.keys(scene.pages);
+      return {
+        id: `story-${story.id}-scene-${scene.id}`,
+        sceneId: scene.id,
+        storyId: story.id,
+        title: scene.title,
+        isOpening: scene.isOpeningScene,
+        pageCount: pages.length,
+        position: {
+          x: Number(
+            (center.x + localRadius * sr * Math.cos(sTheta)).toFixed(3),
+          ),
+          y: Number((center.y + localRadius * sy).toFixed(3)),
+          z: Number(
+            (center.z + localRadius * sr * Math.sin(sTheta)).toFixed(3),
+          ),
+        },
+      };
+    });
+
+    // Build a map from link targets to scene IDs
+    const linkTargetToSceneId = new Map<string, number>();
+    for (const scene of scenes) {
+      if (scene.link) {
+        linkTargetToSceneId.set(scene.link, scene.id);
+      }
+      for (const page of Object.values(scene.pages)) {
+        linkTargetToSceneId.set(page.link, scene.id);
+      }
+    }
+
+    // Extract internal arcs from blockLinks in the already-parsed pages
+    const arcSet = new Set<string>();
+    const internalArcs: InternalArc[] = [];
+    for (const scene of scenes) {
+      for (const page of Object.values(scene.pages)) {
+        for (const block of page.content) {
+          if (block.kind !== "blockLink") continue;
+          const targetSceneId = linkTargetToSceneId.get(block.link);
+          if (targetSceneId === undefined || targetSceneId === scene.id)
+            continue;
+          const fromId = `story-${story.id}-scene-${scene.id}`;
+          const toId = `story-${story.id}-scene-${targetSceneId}`;
+          const key = `${fromId}->${toId}`;
+          if (arcSet.has(key)) continue;
+          arcSet.add(key);
+          internalArcs.push({ from: fromId, to: toId });
+        }
+      }
+    }
+
+    // --- Spring-based force-directed layout for scenes ---
+    // Start from golden-spiral positions, then relax with simple physics
+    if (sceneNodes.length > 1) {
+      // Deterministic pseudo-random perturbation seeded by story id
+      const seedRand = (seed: number) => {
+        let s = seed;
+        return () => {
+          s = (s * 16807 + 0) % 2147483647;
+          return s / 2147483647 - 0.5;
+        };
+      };
+      const rand = seedRand(story.id * 7919);
+
+      const positions = sceneNodes.map((s) => ({
+        x: s.position.x - center.x + rand() * 0.3,
+        y: s.position.y - center.y + rand() * 0.3,
+        z: s.position.z - center.z + rand() * 0.3,
+      }));
+
+      // Build adjacency from internal arcs for attraction forces
+      const adjSet = new Set<string>();
+      for (const arc of internalArcs) {
+        const fi = sceneNodes.findIndex((s) => s.id === arc.from);
+        const ti = sceneNodes.findIndex((s) => s.id === arc.to);
+        if (fi >= 0 && ti >= 0) adjSet.add(`${fi}-${ti}`);
+      }
+
+      const iterations = 120;
+      const repulsion = 3.5;
+      const attraction = 0.06;
+      const centering = 0.005;
+      const damping = 0.9;
+      const springRestLength = 2.5;
+      const velocities = positions.map(() => ({ x: 0, y: 0, z: 0 }));
+
+      for (let iter = 0; iter < iterations; iter++) {
+        for (let a = 0; a < positions.length; a++) {
+          // Repulsion from all other nodes
+          for (let b = a + 1; b < positions.length; b++) {
+            const dx = positions[a].x - positions[b].x;
+            const dy = positions[a].y - positions[b].y;
+            const dz = positions[a].z - positions[b].z;
+            const dist = Math.sqrt(dx * dx + dy * dy + dz * dz) || 0.01;
+            const force = repulsion / (dist * dist);
+            const fx = (dx / dist) * force;
+            const fy = (dy / dist) * force;
+            const fz = (dz / dist) * force;
+            velocities[a].x += fx;
+            velocities[a].y += fy;
+            velocities[a].z += fz;
+            velocities[b].x -= fx;
+            velocities[b].y -= fy;
+            velocities[b].z -= fz;
+          }
+
+          // Attraction along arcs
+          for (let b = 0; b < positions.length; b++) {
+            if (a === b) continue;
+            if (!adjSet.has(`${a}-${b}`) && !adjSet.has(`${b}-${a}`)) continue;
+            const dx = positions[b].x - positions[a].x;
+            const dy = positions[b].y - positions[a].y;
+            const dz = positions[b].z - positions[a].z;
+            const dist = Math.sqrt(dx * dx + dy * dy + dz * dz) || 0.01;
+            const force = (dist - springRestLength) * attraction;
+            velocities[a].x += (dx / dist) * force;
+            velocities[a].y += (dy / dist) * force;
+            velocities[a].z += (dz / dist) * force;
+          }
+
+          // Centering force (keep nodes near cluster center)
+          velocities[a].x -= positions[a].x * centering;
+          velocities[a].y -= positions[a].y * centering;
+          velocities[a].z -= positions[a].z * centering;
+        }
+
+        // Apply velocities
+        for (let a = 0; a < positions.length; a++) {
+          velocities[a].x *= damping;
+          velocities[a].y *= damping;
+          velocities[a].z *= damping;
+          positions[a].x += velocities[a].x;
+          positions[a].y += velocities[a].y;
+          positions[a].z += velocities[a].z;
+
+          // Clamp to local radius
+          const dist = Math.sqrt(
+            positions[a].x ** 2 + positions[a].y ** 2 + positions[a].z ** 2,
+          );
+          if (dist > localRadius) {
+            const s = localRadius / dist;
+            positions[a].x *= s;
+            positions[a].y *= s;
+            positions[a].z *= s;
+          }
+        }
+      }
+
+      // Write back to scene nodes
+      for (let a = 0; a < sceneNodes.length; a++) {
+        sceneNodes[a].position = {
+          x: Number((center.x + positions[a].x).toFixed(3)),
+          y: Number((center.y + positions[a].y).toFixed(3)),
+          z: Number((center.z + positions[a].z).toFixed(3)),
+        };
+      }
+    }
+
+    // In planetarium mode, project all scene nodes onto the dome sphere
+    if (isPlanetarium) {
+      for (const scene of sceneNodes) {
+        const p = scene.position;
+        const len = Math.sqrt(p.x * p.x + p.y * p.y + p.z * p.z) || 1;
+        scene.position = {
+          x: Number(((p.x / len) * clusterRadius).toFixed(3)),
+          y: Number(((p.y / len) * clusterRadius).toFixed(3)),
+          z: Number(((p.z / len) * clusterRadius).toFixed(3)),
+        };
+      }
+    }
+
+    // Story node sits just above the cluster center (also dome-projected in planetarium)
+    const storyNodeId = `story-${story.id}-hub`;
+    let storyNodePos: Vec3 = {
+      x: center.x,
+      y: center.y + localRadius,
+      z: center.z,
+    };
+    if (isPlanetarium) {
+      const len =
+        Math.sqrt(
+          storyNodePos.x ** 2 + storyNodePos.y ** 2 + storyNodePos.z ** 2,
+        ) || 1;
+      storyNodePos = {
+        x: Number(((storyNodePos.x / len) * clusterRadius).toFixed(3)),
+        y: Number(((storyNodePos.y / len) * clusterRadius).toFixed(3)),
+        z: Number(((storyNodePos.z / len) * clusterRadius).toFixed(3)),
+      };
+    } else {
+      storyNodePos = {
+        x: Number(center.x.toFixed(3)),
+        y: Number((center.y + localRadius).toFixed(3)),
+        z: Number(center.z.toFixed(3)),
+      };
+    }
+
+    // Arc from opening scene to story node
+    const openingScene = sceneNodes.find((s) => s.isOpening);
+    if (openingScene) {
+      const key = `${openingScene.id}->${storyNodeId}`;
+      if (!arcSet.has(key)) {
         arcSet.add(key);
-        internalArcs.push({ from: fromId, to: toId });
+        internalArcs.push({ from: openingScene.id, to: storyNodeId });
       }
     }
-  }
 
-  // --- Spring-based force-directed layout for scenes ---
-  // Start from golden-spiral positions, then relax with simple physics
-  if (sceneNodes.length > 1) {
-    // Deterministic pseudo-random perturbation seeded by story id
-    const seedRand = (seed: number) => {
-      let s = seed;
-      return () => { s = (s * 16807 + 0) % 2147483647; return (s / 2147483647) - 0.5; };
-    };
-    const rand = seedRand(story.id * 7919);
-
-    const positions = sceneNodes.map((s) => ({
-      x: s.position.x - center.x + rand() * 0.3,
-      y: s.position.y - center.y + rand() * 0.3,
-      z: s.position.z - center.z + rand() * 0.3,
-    }));
-
-    // Build adjacency from internal arcs for attraction forces
-    const adjSet = new Set<string>();
+    // Connect any orphaned scenes (not source or target of any arc) to the story node
+    const connectedIds = new Set<string>();
     for (const arc of internalArcs) {
-      const fi = sceneNodes.findIndex((s) => s.id === arc.from);
-      const ti = sceneNodes.findIndex((s) => s.id === arc.to);
-      if (fi >= 0 && ti >= 0) adjSet.add(`${fi}-${ti}`);
+      connectedIds.add(arc.from);
+      connectedIds.add(arc.to);
     }
-
-    const iterations = 120;
-    const repulsion = 3.5;
-    const attraction = 0.06;
-    const centering = 0.005;
-    const damping = 0.9;
-    const springRestLength = 2.5;
-    const velocities = positions.map(() => ({ x: 0, y: 0, z: 0 }));
-
-    for (let iter = 0; iter < iterations; iter++) {
-      for (let a = 0; a < positions.length; a++) {
-        // Repulsion from all other nodes
-        for (let b = a + 1; b < positions.length; b++) {
-          const dx = positions[a].x - positions[b].x;
-          const dy = positions[a].y - positions[b].y;
-          const dz = positions[a].z - positions[b].z;
-          const dist = Math.sqrt(dx * dx + dy * dy + dz * dz) || 0.01;
-          const force = repulsion / (dist * dist);
-          const fx = (dx / dist) * force;
-          const fy = (dy / dist) * force;
-          const fz = (dz / dist) * force;
-          velocities[a].x += fx; velocities[a].y += fy; velocities[a].z += fz;
-          velocities[b].x -= fx; velocities[b].y -= fy; velocities[b].z -= fz;
-        }
-
-        // Attraction along arcs
-        for (let b = 0; b < positions.length; b++) {
-          if (a === b) continue;
-          if (!adjSet.has(`${a}-${b}`) && !adjSet.has(`${b}-${a}`)) continue;
-          const dx = positions[b].x - positions[a].x;
-          const dy = positions[b].y - positions[a].y;
-          const dz = positions[b].z - positions[a].z;
-          const dist = Math.sqrt(dx * dx + dy * dy + dz * dz) || 0.01;
-          const force = (dist - springRestLength) * attraction;
-          velocities[a].x += (dx / dist) * force;
-          velocities[a].y += (dy / dist) * force;
-          velocities[a].z += (dz / dist) * force;
-        }
-
-        // Centering force (keep nodes near cluster center)
-        velocities[a].x -= positions[a].x * centering;
-        velocities[a].y -= positions[a].y * centering;
-        velocities[a].z -= positions[a].z * centering;
-      }
-
-      // Apply velocities
-      for (let a = 0; a < positions.length; a++) {
-        velocities[a].x *= damping;
-        velocities[a].y *= damping;
-        velocities[a].z *= damping;
-        positions[a].x += velocities[a].x;
-        positions[a].y += velocities[a].y;
-        positions[a].z += velocities[a].z;
-
-        // Clamp to local radius
-        const dist = Math.sqrt(
-          positions[a].x ** 2 + positions[a].y ** 2 + positions[a].z ** 2,
-        );
-        if (dist > localRadius) {
-          const s = localRadius / dist;
-          positions[a].x *= s;
-          positions[a].y *= s;
-          positions[a].z *= s;
-        }
-      }
-    }
-
-    // Write back to scene nodes
-    for (let a = 0; a < sceneNodes.length; a++) {
-      sceneNodes[a].position = {
-        x: Number((center.x + positions[a].x).toFixed(3)),
-        y: Number((center.y + positions[a].y).toFixed(3)),
-        z: Number((center.z + positions[a].z).toFixed(3)),
-      };
-    }
-  }
-
-  // In planetarium mode, project all scene nodes onto the dome sphere
-  if (isPlanetarium) {
     for (const scene of sceneNodes) {
-      const p = scene.position;
-      const len = Math.sqrt(p.x * p.x + p.y * p.y + p.z * p.z) || 1;
-      scene.position = {
-        x: Number(((p.x / len) * clusterRadius).toFixed(3)),
-        y: Number(((p.y / len) * clusterRadius).toFixed(3)),
-        z: Number(((p.z / len) * clusterRadius).toFixed(3)),
-      };
+      if (!connectedIds.has(scene.id)) {
+        internalArcs.push({ from: scene.id, to: storyNodeId });
+      }
+    }
+
+    clusters.push({
+      storyId: story.id,
+      title: story.title,
+      center,
+      localRadius,
+      storyNodeId,
+      storyNodePos,
+      scenes: sceneNodes,
+      internalArcs,
+    });
+  }
+
+  // --- Build inter-story arc data ---
+  // Map scene IDs to their 3D positions for targeted links
+  const sceneNodeMap = new Map<string, SceneNode>();
+  for (const cluster of clusters) {
+    for (const sn of cluster.scenes) {
+      sceneNodeMap.set(sn.id, sn);
     }
   }
 
-  // Story node sits just above the cluster center (also dome-projected in planetarium)
-  const storyNodeId = `story-${story.id}-hub`;
-  let storyNodePos: Vec3 = {
-    x: center.x,
-    y: center.y + localRadius,
-    z: center.z,
-  };
-  if (isPlanetarium) {
-    const len = Math.sqrt(storyNodePos.x ** 2 + storyNodePos.y ** 2 + storyNodePos.z ** 2) || 1;
-    storyNodePos = {
-      x: Number(((storyNodePos.x / len) * clusterRadius).toFixed(3)),
-      y: Number(((storyNodePos.y / len) * clusterRadius).toFixed(3)),
-      z: Number(((storyNodePos.z / len) * clusterRadius).toFixed(3)),
-    };
-  } else {
-    storyNodePos = {
-      x: Number(center.x.toFixed(3)),
-      y: Number((center.y + localRadius).toFixed(3)),
-      z: Number(center.z.toFixed(3)),
-    };
-  }
+  const clusterByStoryId = new Map(clusters.map((c) => [c.storyId, c]));
 
-  // Arc from opening scene to story node
-  const openingScene = sceneNodes.find((s) => s.isOpening);
-  if (openingScene) {
-    const key = `${openingScene.id}->${storyNodeId}`;
-    if (!arcSet.has(key)) {
-      arcSet.add(key);
-      internalArcs.push({ from: openingScene.id, to: storyNodeId });
+  const interArcs: InterStoryArc[] = [];
+  for (const link of interStoryLinks) {
+    const fromCluster = clusterByStoryId.get(link.fromStory.id);
+    const toCluster = clusterByStoryId.get(link.toStory.id);
+    if (!fromCluster || !toCluster) continue;
+
+    // Source: story hub node of the originating story
+    const fromPos = fromCluster.storyNodePos;
+
+    // Target: specific scene node if available, otherwise story hub node
+    let toPos = toCluster.storyNodePos;
+    if (link.toScene) {
+      const targetNode = sceneNodeMap.get(
+        `story-${link.toStory.id}-scene-${link.toScene.id}`,
+      );
+      if (targetNode) toPos = targetNode.position;
     }
+
+    interArcs.push({
+      id: link.id,
+      status: link.status,
+      linkType: link.linkType,
+      rationale: link.rationale ?? "",
+      fromPos,
+      toPos,
+      fromStoryTitle: link.fromStory.title,
+      toStoryTitle: link.toStory.title,
+    });
   }
 
-  // Connect any orphaned scenes (not source or target of any arc) to the story node
-  const connectedIds = new Set<string>();
-  for (const arc of internalArcs) {
-    connectedIds.add(arc.from);
-    connectedIds.add(arc.to);
-  }
-  for (const scene of sceneNodes) {
-    if (!connectedIds.has(scene.id)) {
-      internalArcs.push({ from: scene.id, to: storyNodeId });
-    }
-  }
-
-  clusters.push({
-    storyId: story.id,
-    title: story.title,
-    center,
-    localRadius,
-    storyNodeId,
-    storyNodePos,
-    scenes: sceneNodes,
-    internalArcs,
-  });
-}
-
-// --- Build inter-story arc data ---
-// Map scene IDs to their 3D positions for targeted links
-const sceneNodeMap = new Map<string, SceneNode>();
-for (const cluster of clusters) {
-  for (const sn of cluster.scenes) {
-    sceneNodeMap.set(sn.id, sn);
-  }
-}
-
-const clusterByStoryId = new Map(clusters.map((c) => [c.storyId, c]));
-
-const interArcs: InterStoryArc[] = [];
-for (const link of interStoryLinks) {
-  const fromCluster = clusterByStoryId.get(link.fromStory.id);
-  const toCluster = clusterByStoryId.get(link.toStory.id);
-  if (!fromCluster || !toCluster) continue;
-
-  // Source: story hub node of the originating story
-  const fromPos = fromCluster.storyNodePos;
-
-  // Target: specific scene node if available, otherwise story hub node
-  let toPos = toCluster.storyNodePos;
-  if (link.toScene) {
-    const targetNode = sceneNodeMap.get(
-      `story-${link.toStory.id}-scene-${link.toScene.id}`,
-    );
-    if (targetNode) toPos = targetNode.position;
-  }
-
-  interArcs.push({
-    id: link.id,
-    status: link.status,
-    linkType: link.linkType,
-    rationale: link.rationale ?? "",
-    fromPos,
-    toPos,
-    fromStoryTitle: link.fromStory.title,
-    toStoryTitle: link.toStory.title,
-  });
-}
-
-return { clusters, interArcs };
+  return { clusters, interArcs };
 }); // end cached layout
 
 const vectorLength = (v: Vec3) => Math.sqrt(v.x ** 2 + v.y ** 2 + v.z ** 2);
-const geomViewStoryEnvelopeRadius = Math.max(
-  0,
-  ...clusters.flatMap((cluster) => [
-    vectorLength(cluster.storyNodePos),
-    ...cluster.scenes.map((scene) => vectorLength(scene.position)),
-  ]),
-) + 1.5;
+const geomViewStoryEnvelopeRadius =
+  Math.max(
+    0,
+    ...clusters.flatMap((cluster) => [
+      vectorLength(cluster.storyNodePos),
+      ...cluster.scenes.map((scene) => vectorLength(scene.position)),
+    ]),
+  ) + 1.5;
 
 // --- Serialise the data for the client-side script ---
 const clientData = {
@@ -664,11 +694,11 @@ const clientData = {
           <button type="button" id="vsat-toggle-wireframes" class="vsatlatarium__btn">Wireframes</button>
           <a
             class={`vsatlatarium__btn ${isPlanetarium ? "" : "vsatlatarium__btn--active"}`}
-            href={`/story/vsatlatarium?view=geomview${pilotId ? "&pilot=" + pilotId : ""}`}
+            href={`/story/vsatlatarium?view=geomview${selectedPilot ? "&pilot=" + selectedPilot.id : ""}`}
           >GeomView</a>
           <a
             class={`vsatlatarium__btn ${isPlanetarium ? "vsatlatarium__btn--active" : ""}`}
-            href={`/story/vsatlatarium${pilotId ? "?pilot=" + pilotId : ""}`}
+            href={`/story/vsatlatarium${selectedPilot ? "?pilot=" + selectedPilot.id : ""}`}
           >Planetarium</a>
         </div>
         <a-scene
@@ -859,15 +889,9 @@ const clientData = {
           <div class="vsatlatarium__pilots">
             <h3>Anthology</h3>
             <div class="pilot-chips">
-              {pilots.length === 0 && (
-                <a
-                  class={`pilot-chip ${!pilotId ? "pilot-chip--active" : ""}`}
-                  href={`/story/vsatlatarium${isPlanetarium ? "" : "?view=geomview"}`}
-                >All stories</a>
-              )}
               {pilots.map((pilot) => (
                 <a
-                  class={`pilot-chip ${pilot.id === pilotId ? "pilot-chip--active" : ""}`}
+                  class={`pilot-chip ${pilot.id === selectedPilot?.id ? "pilot-chip--active" : ""}`}
                   href={`/story/vsatlatarium?pilot=${pilot.id}${isPlanetarium ? "" : "&view=geomview"}`}
                 >{pilot.title}</a>
               ))}
@@ -875,6 +899,12 @@ const clientData = {
             {selectedPilot && (
               <p class="pilot-question">{selectedPilot.question}</p>
             )}
+          </div>
+        )}
+        {pilots.length === 0 && (
+          <div class="vsatlatarium__pilots">
+            <h3>Anthology</h3>
+            <p class="pilot-question">No anthologies are available yet.</p>
           </div>
         )}
 
@@ -1776,6 +1806,28 @@ const clientData = {
       return { sceneId, isHub, storyId, dbSceneId, sceneTitle, storyTitle };
     };
 
+    const proposalFormHref = (state) => {
+      const params = new URLSearchParams();
+      params.set("returnTo", "/story/" + state.from.storyId);
+      if (state.from.dbSceneId) {
+        params.set("contextSceneId", state.from.dbSceneId);
+      }
+      if (state.to?.storyId) {
+        params.set("toStoryId", state.to.storyId);
+      }
+      if (state.to?.dbSceneId) {
+        params.set("toSceneId", state.to.dbSceneId);
+      }
+
+      const query = params.toString();
+      return "/author/story/" + encodeURIComponent(state.from.storyId) + "/links"
+        + (query ? "?" + query : "")
+        + "#propose";
+    };
+
+    const loginHrefForReturnTo = (returnTo) =>
+      "/login?returnTo=" + encodeURIComponent(returnTo);
+
     const renderLinkingPanel = () => {
       if (!linkingState) return;
       const { from, to, phase, message } = linkingState;
@@ -1827,8 +1879,10 @@ const clientData = {
         html += '</div>';
       } else if (phase === "needsAuth") {
         html += '<p class="vsatlatarium__linking-msg vsatlatarium__linking-msg--warn">Log in to propose a link.</p>';
+        const linksHref = proposalFormHref(linkingState);
         html += '<div class="vsatlatarium__linking-actions">';
-        html += '<a class="vsatlatarium__linking-btn" href="/login" target="_blank" rel="noopener">Log in</a>';
+        html += '<a class="vsatlatarium__linking-btn" href="' + escAttr(loginHrefForReturnTo(linksHref)) + '">Log in to continue</a>';
+        html += '<a class="vsatlatarium__linking-btn vsatlatarium__linking-btn--ghost" href="' + escAttr(linksHref) + '" target="_blank" rel="noopener">Open form &#x2197;</a>';
         html += '<button type="button" class="vsatlatarium__linking-btn vsatlatarium__linking-btn--ghost" data-linking-cancel>Close</button>';
         html += '</div>';
       } else if (phase === "error") {
