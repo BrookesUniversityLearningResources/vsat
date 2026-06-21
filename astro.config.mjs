@@ -53,6 +53,10 @@ export default defineConfig({
       },
       proxy: {
         "/api": `http://localhost:${devApiPort}`,
+        "/ws": {
+          target: `ws://localhost:${devApiPort}`,
+          ws: true,
+        },
       },
     },
   },

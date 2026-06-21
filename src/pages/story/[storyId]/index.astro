@@ -181,6 +181,11 @@ const linkedStoryCards = Array.from(linkedStories.values()).slice(0, 5);
   )}
 </body>
 
+<script>
+  import { startHostController } from "@components/story/remote/hostController";
+  startHostController();
+</script>
+
 <script is:inline>
   const toggle = document.querySelector(".interpretive-toggle");
   const drawer = document.querySelector(".interpretive-drawer");

@@ -4,6 +4,7 @@ import express, { type RequestHandler } from "express";
 
 import type { ServerConfig } from "../environment/config.js";
 import attachAstroMiddleware from "./attachAstroMiddleware.js";
+import attachRelay from "./relay/attachRelay.js";
 
 type StartServerResult = {
   server: Server;
@@ -37,6 +38,7 @@ function createServer(
 
   const startServer = async () => {
     const server = app.listen(config.port);
+    attachRelay(server);
     return { server, config };
   };
 

@@ -33,6 +33,7 @@ import isAuthorOfTheStory from "./domain/story/support/isAuthorOfTheStory.js";
 import loadConfig from "./environment/config.js";
 import getEnvironment from "./environment/getEnvironment.js";
 import type { StartServer } from "./server/createServer.js";
+import routeSessions from "./server/relay/routeSessions.js";
 import httpSession from "./server/httpSessionMiddleware.js";
 import routeHealthcheck from "./server/routeHealthcheck.js";
 import { withHeadersToEnableSharedArrayBufferUsage } from "./server/staticHeadersMiddleware.js";
@@ -215,6 +216,7 @@ export async function createAppParts(): Promise<{
       assertIsAuthorOfTheStory,
     ),
     routeGetPublishedStories(log, repositoryStory.getPublishedStorySummaries),
+    routeSessions(),
   ].reduce((router, route) => {
     router.use("/api", route);
     return router;
