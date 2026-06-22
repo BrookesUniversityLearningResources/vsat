@@ -1,8 +1,8 @@
 ---
-import Layout from "@layouts/AuthoringLayout.astro";
 import isStewardUser from "@authentication/isStewardUser";
 import { ErrorCodes } from "@domain/error/errorCode";
 import toStoryId from "@domain/story/toStoryId";
+import Layout from "@layouts/AuthoringLayout.astro";
 
 export const prerender = false;
 
@@ -25,12 +25,58 @@ if (!story) {
 const links = await repositoryStoryLink.getStoryLinksForStory(storyId);
 const publishedStories = await repositoryStory.getPublishedStorySummaries({});
 const otherStories = publishedStories.filter((s) => s.id !== storyId);
+const authorStories = Astro.locals.user
+  ? await repositoryStory.getStorySummariesByAuthor(Astro.locals.user.id)
+  : null;
+const authorStoryIds = new Set(
+  authorStories?.stories.map((story) => story.id) ?? [],
+);
 const isSteward = isStewardUser(
   Astro.locals.user,
   Astro.request.headers.get("cookie"),
 );
+const canEditStory = authorStoryIds.has(storyId);
+const canVoteOnLinks = isSteward || canEditStory;
+const publicStoryHref = `/story/${story.id}`;
+const returnTo = Astro.url.searchParams.get("returnTo");
+const returningToPublicStory = returnTo === publicStoryHref;
+const storyReturnHref = canEditStory
+  ? `/author/story/${story.id}`
+  : publicStoryHref;
+const storyReturnLabel = canEditStory
+  ? "Back to story editor"
+  : returningToPublicStory
+    ? "Back to story"
+    : "Read story";
 const contextSceneId = Astro.url.searchParams.get("contextSceneId");
 const contextPageNumber = Astro.url.searchParams.get("contextPageNumber");
+const prefillToStoryId = Astro.url.searchParams.get("toStoryId");
+const prefillToSceneId = Astro.url.searchParams.get("toSceneId");
+const prefillToPageNumber = Astro.url.searchParams.get("toPageNumber");
+const prefillLinkType = Astro.url.searchParams.get("linkType") ?? "thematic";
+const linkStatusRank = {
+  accepted: 0,
+  proposed: 1,
+  rejected: 2,
+  retired: 3,
+} as const;
+const linkDateFormatter = new Intl.DateTimeFormat("en-GB", {
+  dateStyle: "medium",
+});
+const formatLinkDate = (date: Date) => linkDateFormatter.format(date);
+const linkDecisionDate = (link: (typeof links)[number]) => {
+  if (link.status === "accepted" && link.acceptedAt) {
+    return `Accepted ${formatLinkDate(link.acceptedAt)}`;
+  }
+  if (link.status === "rejected" && link.rejectedAt) {
+    return `Rejected ${formatLinkDate(link.rejectedAt)}`;
+  }
+  return null;
+};
+const sortedLinks = [...links].sort((a, b) => {
+  const statusDelta = linkStatusRank[a.status] - linkStatusRank[b.status];
+  return statusDelta || b.createdAt.getTime() - a.createdAt.getTime();
+});
 ---
 
 <Layout
@@ -47,132 +93,177 @@ const contextPageNumber = Astro.url.searchParams.get("contextPageNumber");
         </p>
       </div>
       <div class="links-actions">
-        <a href={`/author/story/${story.id}`}>Back to story</a>
+        {isSteward && <span class="steward-flair">Steward mode</span>}
+        <a href={storyReturnHref}>{storyReturnLabel}</a>
         <a href="/author/links">Review all links</a>
       </div>
     </header>
 
-    <section class="links-section">
-      <h2>Existing links</h2>
-      {links.length ? (
-        <ul class="links-list" id="links-list">
-          {links.map((link) => (
-            <li class={`link-card link-card--${link.status}`}>
-              <div class="link-meta">
-                <span class="link-type">{link.linkType}</span>
-                <span class="link-status">{link.status}</span>
-              </div>
-              <div class="link-main">
-                <strong>{link.fromStory.title}</strong>
-                <span class="link-arrow">→</span>
-                <strong>{link.toStory.title}</strong>
-              </div>
-              {(link.toScene || link.toPageNumber) && (
-                <div class="link-target">
-                  {link.toScene && (
-                    <span>
-                      Scene {link.toScene.title ?? `#${link.toScene.id}`}
-                    </span>
-                  )}
-                  {link.toPageNumber && <span>Page {link.toPageNumber}</span>}
+    <div class="links-workspace">
+      <section class="links-section links-section--existing">
+        <h2>Existing links</h2>
+        {links.length ? (
+          <ul class="links-list" id="links-list">
+            {sortedLinks.map((link) => (
+              <li class={`link-card link-card--${link.status}`}>
+                <div class="link-meta">
+                  <span class="link-type">{link.linkType}</span>
+                  <span class="link-status">{link.status}</span>
                 </div>
-              )}
-              <p class="link-rationale">{link.rationale}</p>
-              <div class="link-actions">
-                <button
-                  type="button"
-                  class="link-action link-action--vote"
-                  data-link-id={link.id}
-                  data-vote="accept"
-                  disabled={link.status === "retired"}
-                >
-                  Accept
-                </button>
-                <button
-                  type="button"
-                  class="link-action link-action--vote"
-                  data-link-id={link.id}
-                  data-vote="reject"
-                  disabled={link.status === "retired"}
-                >
-                  Reject
-                </button>
-                {isSteward && (
-                  <button
-                    type="button"
-                    class="link-action link-action--retire"
-                    data-link-id={link.id}
-                    data-retire
-                  >
-                    {link.status === "retired" ? "Unretire" : "Retire"}
-                  </button>
+                <p class="link-date">
+                  Proposed {formatLinkDate(link.createdAt)} by {link.createdBy.name}
+                </p>
+                {linkDecisionDate(link) && (
+                  <p class="link-date">{linkDecisionDate(link)}</p>
                 )}
-              </div>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <div class="links-prompt">
-          <p>No links yet. Start by proposing a single interpretive link.</p>
-          <p class="links-prompt__hint">
-            Add a brief rationale explaining why the stories connect.
-          </p>
-        </div>
-      )}
-      {!isSteward && (
-        <p class="links-note">
-          Retire/unretire actions are visible to stewards only.
-        </p>
-      )}
-    </section>
-
-    <section class="links-section" id="propose">
-      <h2>Propose a new link</h2>
-      {(contextSceneId || contextPageNumber) && (
-        <div class="links-context">
-          <strong>Context</strong>
-          {contextSceneId && <span>Scene {contextSceneId}</span>}
-          {contextPageNumber && <span>Page {contextPageNumber}</span>}
-          <span class="links-context__hint">
-            This context is not saved; add it to your rationale if needed.
-          </span>
-        </div>
-      )}
-      <form id="link-form" class="link-form">
-        <label>
-          Target story
-          <select name="toStoryId" required>
-            <option value="">Select a story</option>
-            {otherStories.map((s) => (
-              <option value={s.id}>{s.title}</option>
+                <div class="link-main">
+                  <strong>{link.fromStory.title}</strong>
+                  <span class="link-arrow">→</span>
+                  <strong>{link.toStory.title}</strong>
+                </div>
+                {(link.toScene || link.toPageNumber) && (
+                  <div class="link-target">
+                    {link.toScene && (
+                      <span>
+                        Scene {link.toScene.title ?? `#${link.toScene.id}`}
+                      </span>
+                    )}
+                    {link.toPageNumber && <span>Page {link.toPageNumber}</span>}
+                  </div>
+                )}
+                <p class="link-rationale">{link.rationale}</p>
+                <div class="link-actions">
+                  {canVoteOnLinks && (
+                    <>
+                      <button
+                        type="button"
+                        class="link-action link-action--vote"
+                        data-link-id={link.id}
+                        data-vote="accept"
+                        disabled={link.status === "retired"}
+                      >
+                        Accept
+                      </button>
+                      <button
+                        type="button"
+                        class="link-action link-action--vote"
+                        data-link-id={link.id}
+                        data-vote="reject"
+                        disabled={link.status === "retired"}
+                      >
+                        Reject
+                      </button>
+                    </>
+                  )}
+                  {isSteward && (
+                    <button
+                      type="button"
+                      class="link-action link-action--retire"
+                      data-link-id={link.id}
+                      data-retire
+                    >
+                      {link.status === "retired" ? "Unretire" : "Retire"}
+                    </button>
+                  )}
+                </div>
+              </li>
             ))}
-          </select>
-        </label>
-        <label>
-          Link type
-          <select name="linkType" required>
-            <option value="adjacency">Adjacency</option>
-            <option value="thematic">Thematic</option>
-            <option value="causal">Causal</option>
-            <option value="contrast">Contrast</option>
-          </select>
-        </label>
-        <label>
-          Target scene id (optional)
-          <input type="number" name="toSceneId" min="1" />
-        </label>
-        <label>
-          Target page number (optional)
-          <input type="number" name="toPageNumber" min="1" />
-        </label>
-        <label>
-          Rationale
-          <textarea name="rationale" rows="4" required></textarea>
-        </label>
-        <button type="submit">Propose link</button>
-        <p class="link-form__status" id="link-form-status"></p>
-      </form>
-    </section>
+          </ul>
+        ) : (
+          <div class="links-prompt">
+            <p>No links yet. Start by proposing a single interpretive link.</p>
+            <p class="links-prompt__hint">
+              Add a brief rationale explaining why the stories connect.
+            </p>
+          </div>
+        )}
+        {!isSteward && (
+          <p class="links-note">
+            Retire/unretire actions are visible to stewards only.
+          </p>
+        )}
+        {!canVoteOnLinks && (
+          <p class="links-note">
+            Accept/reject voting is available to authors of linked stories and
+            stewards.
+          </p>
+        )}
+      </section>
+
+      <section class="links-section links-section--propose" id="propose">
+        <h2>Propose a new link</h2>
+        {(contextSceneId || contextPageNumber) && (
+          <div class="links-context">
+            <strong>Context</strong>
+            {contextSceneId && <span>Scene {contextSceneId}</span>}
+            {contextPageNumber && <span>Page {contextPageNumber}</span>}
+            <span class="links-context__hint">
+              This context is not saved; add it to your rationale if needed.
+            </span>
+          </div>
+        )}
+        <form id="link-form" class="link-form">
+          <label>
+            Target story
+            <select name="toStoryId" required>
+              <option value="">Select a story</option>
+              {otherStories.map((s) => (
+                <option
+                  value={s.id}
+                  selected={String(s.id) === prefillToStoryId}
+                >
+                  {s.title}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Link type
+            <select name="linkType" required>
+              <option
+                value="adjacency"
+                selected={prefillLinkType === "adjacency"}
+              >
+                Adjacency
+              </option>
+              <option value="thematic" selected={prefillLinkType === "thematic"}>
+                Thematic
+              </option>
+              <option value="causal" selected={prefillLinkType === "causal"}>
+                Causal
+              </option>
+              <option value="contrast" selected={prefillLinkType === "contrast"}>
+                Contrast
+              </option>
+            </select>
+          </label>
+          <label>
+            Target scene id (optional)
+            <input
+              type="number"
+              name="toSceneId"
+              min="1"
+              value={prefillToSceneId ?? ""}
+            />
+          </label>
+          <label>
+            Target page number (optional)
+            <input
+              type="number"
+              name="toPageNumber"
+              min="1"
+              value={prefillToPageNumber ?? ""}
+            />
+          </label>
+          <label>
+            Rationale
+            <textarea name="rationale" rows="4" required></textarea>
+          </label>
+          <button type="submit">Propose link</button>
+          <p class="link-form__status" id="link-form-status"></p>
+        </form>
+      </section>
+    </div>
   </main>
 
   <script is:inline>
@@ -264,7 +355,7 @@ const contextPageNumber = Astro.url.searchParams.get("contextPageNumber");
 
 <style>
   .links-page {
-    max-width: 980px;
+    max-width: 1180px;
     margin: 2rem auto;
     padding: 0 1.5rem 3rem;
   }
@@ -297,8 +388,28 @@ const contextPageNumber = Astro.url.searchParams.get("contextPageNumber");
     color: inherit;
   }
 
+  .steward-flair {
+    border: 1px solid #5d387a;
+    border-radius: 999px;
+    padding: 0.35rem 0.75rem;
+    background: #f5ecff;
+    color: #4b2767;
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-align: center;
+  }
+
   .links-section {
-    margin-top: 2rem;
+    min-width: 0;
+  }
+
+  .links-workspace {
+    display: grid;
+    gap: 2rem;
+  }
+
+  .links-section--propose {
+    align-self: start;
   }
 
   .links-list {
@@ -328,6 +439,12 @@ const contextPageNumber = Astro.url.searchParams.get("contextPageNumber");
     display: flex;
     gap: 0.5rem;
     align-items: center;
+  }
+
+  .link-date {
+    margin-top: 0.35rem;
+    font-size: 0.85rem;
+    opacity: 0.75;
   }
 
   .link-arrow {
@@ -412,7 +529,6 @@ const contextPageNumber = Astro.url.searchParams.get("contextPageNumber");
   .link-form {
     display: grid;
     gap: 1rem;
-    max-width: 520px;
   }
 
   .link-form textarea,
@@ -513,5 +629,33 @@ const contextPageNumber = Astro.url.searchParams.get("contextPageNumber");
   .link-form button[type="submit"]:focus-visible {
     outline: 2px solid #1f4d7a;
     outline-offset: 2px;
+  }
+
+  @media screen and (min-width: 960px) {
+    .links-workspace {
+      grid-template-columns: minmax(0, 1fr) minmax(320px, 360px);
+      align-items: start;
+    }
+
+    .links-section--propose {
+      position: sticky;
+      top: 1rem;
+    }
+  }
+
+  @media screen and (max-width: 720px) {
+    .links-header {
+      flex-direction: column;
+    }
+
+    .links-actions {
+      flex-direction: row;
+      flex-wrap: wrap;
+    }
+
+    .link-main,
+    .link-actions {
+      flex-wrap: wrap;
+    }
   }
 </style>

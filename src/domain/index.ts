@@ -215,6 +215,8 @@ export type StoryLinkSummary = {
   status: StoryLinkStatus;
   createdBy: Pick<AuthorDto, "id" | "name">;
   createdAt: Date;
+  acceptedAt?: Date | null;
+  rejectedAt?: Date | null;
 };
 
 export type CreateStoryLinkRequest = {

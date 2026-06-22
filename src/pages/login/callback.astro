@@ -1,6 +1,7 @@
 ---
 import { Icon } from "astro-icon/components";
 
+import { safeReturnTo } from "../../authentication/returnTo";
 import Layout from "../../layouts/AuthoringLayout.astro";
 
 import "./_login.module.css";
@@ -8,20 +9,22 @@ import "./_login.module.css";
 const { magic, i18n } = Astro.locals.environment<
   App.WithMagicAuthenticationConfig & App.WithI18N
 >();
+const returnTo = safeReturnTo(Astro.url.searchParams.get("returnTo"));
 ---
 
 <script>
+  import { safeReturnTo } from "../../authentication/returnTo.js";
   import authenticateWithServerUsingCredential from "../../authentication/client/authenticateWithServerUsingCredential.js";
 
   const magicPublicKey =
     document.getElementById("callback")!.dataset["magicPublicKey"]!;
+  const returnTo = safeReturnTo(
+    document.getElementById("callback")!.dataset["returnTo"],
+  );
 
   authenticateWithServerUsingCredential(magicPublicKey)
     .then(() => {
-      window.location.href = new URL(
-        `author/story`,
-        window.location.origin,
-      ).href;
+      window.location.href = new URL(returnTo, window.location.origin).href;
     })
     .catch(() => {
       window.location.href = new URL(
@@ -35,7 +38,11 @@ const { magic, i18n } = Astro.locals.environment<
   title={i18n.t("page.login-callback.meta.title")}
   description={i18n.t("page.login-callback.meta.description")}
 >
-  <main id="callback" data-magic-public-key={magic.publicKey}>
+  <main
+    id="callback"
+    data-magic-public-key={magic.publicKey}
+    data-return-to={returnTo}
+  >
     <Icon name="noto-v1:love-letter" size="medium" />
     <div>{i18n.t("page.login-callback.message")}</div>
     <img

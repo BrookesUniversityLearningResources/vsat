@@ -1,4 +1,5 @@
 ---
+import { safeReturnTo } from "../../authentication/returnTo";
 import Login from "../../components/authentication/Login";
 import LoginInProgress from "../../components/authentication/LoginInProgress.astro";
 import Layout from "../../layouts/AuthoringLayout.astro";
@@ -13,6 +14,7 @@ const translations = i18n.getTranslationsForPage({
   locale: Astro.preferredLocale,
   page: "login",
 });
+const returnTo = safeReturnTo(Astro.url.searchParams.get("returnTo"));
 ---
 
 <Layout
@@ -22,6 +24,7 @@ const translations = i18n.getTranslationsForPage({
   <main>
     <Login
       magicPublicKey={magic.publicKey}
+      returnTo={returnTo}
       translations={translations}
       client:only="react"
     >
