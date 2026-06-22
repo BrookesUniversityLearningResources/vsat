@@ -1,0 +1,252 @@
+---
+// A "2D-only" flat viewer for a VSAT story — a worse-is-better VSAT that needs
+// no 360° camera and no WebGL. It reuses the real published-story data and the
+// existing `changePage` navigation logic; only the rendering is flat HTML.
+//
+// Two layouts (same DOM, different CSS):
+//   overlay (default) — photo full-screen as "the world", fiction/nav block
+//                       floating over it, echoing the legacy 360° viewer.
+//   ?layout=doc       — stacked photo-then-text, a lighter reading mode.
+//
+// This is the demo surface for the 2D mode; it will later fold into a persisted
+// per-story `mode` setting on /story/[id].
+import DOMPurify from "isomorphic-dompurify";
+
+import { ErrorCodes } from "@domain/error/errorCode";
+import toStoryId from "@domain/story/toStoryId";
+
+const storyId = toStoryId(Astro.params.storyId);
+if (!storyId) {
+  return Astro.redirect(`/author/story?err=${ErrorCodes.StoryNotFound}`);
+}
+
+const { i18n, repositoryStory } = Astro.locals.environment<
+  App.WithI18N & App.WithStoryRepository
+>();
+
+const story = await repositoryStory.getPublishedStory(storyId);
+if (!story) {
+  return Astro.redirect(`/author/story?err=${ErrorCodes.StoryNotFound}`);
+}
+
+const layout = Astro.url.searchParams.get("layout") === "doc" ? "doc" : "overlay";
+
+const serializedStory = DOMPurify.sanitize(
+  JSON.stringify({ story })
+    .replace(/</g, "\\u003C")
+    .replace(/>/g, "\\u003E")
+    .replace(/&/g, "\\u0026")
+);
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>{i18n.t("page.site-story.meta.title", { title: story.title })}</title>
+  </head>
+  <body>
+    <main class={`flat flat--${layout}`}>
+      <div class="flat-hero">
+        <img class="flat-img" data-img alt="" />
+        <p class="flat-noimg" data-noimg hidden>no photo for this scene</p>
+      </div>
+
+      <div class="flat-panel" data-panel>
+        <div class="flat-panel-head">
+          <span class="flat-title" data-story-title></span>
+          <span class="flat-badge">2D</span>
+        </div>
+        <h1 class="flat-heading" data-heading></h1>
+        <p class="flat-body" data-body></p>
+        <section class="flat-links" data-links></section>
+        <p class="flat-end" data-end hidden>— the end —</p>
+      </div>
+    </main>
+
+    <script set:html={`window.current = ${serializedStory}`} />
+
+    <script>
+      import changePage from "@components/story/published/aframe/changePage";
+      import openingPageFor from "@domain/story/publish/support/openingPage";
+      import openingSceneFor from "@domain/story/publish/support/openingScene";
+      import {
+        isHeadingBlock,
+        isLinkBlock,
+        isPlaintextBlock,
+      } from "@domain/story/publish/support/isBlock";
+
+      const story = (window as any).current.story;
+      const navigate = changePage(story);
+
+      let scene = openingSceneFor(story);
+      let page = openingPageFor(scene);
+
+      const el = {
+        title: document.querySelector("[data-story-title]"),
+        img: document.querySelector("[data-img]") as HTMLImageElement,
+        noimg: document.querySelector("[data-noimg]"),
+        heading: document.querySelector("[data-heading]"),
+        body: document.querySelector("[data-body]"),
+        links: document.querySelector("[data-links]"),
+        end: document.querySelector("[data-end]"),
+        panel: document.querySelector("[data-panel]"),
+      };
+
+      el.title.textContent = story.title || "";
+
+      function scrollTop() {
+        el.panel?.scrollTo?.({ top: 0, behavior: "smooth" });
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+
+      function go(link) {
+        const change = navigate(link, scene);
+        if (!change) return;
+        page = change.toPage;
+        if (change.toScene) scene = change.toScene;
+        render();
+        scrollTop();
+      }
+
+      function render() {
+        const url = scene.image && scene.image.url;
+        if (url) {
+          el.img.src = url;
+          el.img.hidden = false;
+          el.noimg.hidden = true;
+        } else {
+          el.img.removeAttribute("src");
+          el.img.hidden = true;
+          el.noimg.hidden = false;
+        }
+
+        el.heading.textContent =
+          page.content.find(isHeadingBlock)?.text || scene.title || "";
+        el.body.textContent = page.content
+          .filter(isPlaintextBlock)
+          .map((b) => b.text)
+          .join("\n\n");
+
+        el.links.replaceChildren();
+        const linkBlocks = page.content.filter(isLinkBlock);
+        for (const block of linkBlocks) {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "flat-link";
+          button.textContent = block.text || block.link;
+          button.addEventListener("click", () => go(block.link));
+          el.links.appendChild(button);
+        }
+        el.end.hidden = linkBlocks.length > 0;
+      }
+
+      render();
+    </script>
+
+    <style>
+      :root { color-scheme: dark; }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: "Source Sans Pro", system-ui, sans-serif;
+        background: #0e1014;
+        color: #ecf0f1;
+      }
+
+      /* shared panel content */
+      .flat-panel-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.5rem;
+        margin-bottom: 0.6rem;
+      }
+      .flat-title { font-weight: 600; font-size: 0.9rem; opacity: 0.8; }
+      .flat-badge {
+        flex: none;
+        font-size: 0.68rem;
+        letter-spacing: 0.1em;
+        padding: 0.12rem 0.5rem;
+        border-radius: 999px;
+        background: #2c3e50;
+        color: #9fb3c8;
+      }
+      .flat-heading { margin: 0 0 0.55rem; font-size: 1.5rem; line-height: 1.2; }
+      .flat-body {
+        margin: 0;
+        font-size: 1.02rem;
+        line-height: 1.5;
+        color: #d4dbe2;
+        white-space: pre-wrap;
+      }
+      .flat-links {
+        display: flex;
+        flex-direction: column;
+        gap: 0.55rem;
+        margin-top: 1rem;
+      }
+      .flat-link {
+        width: 100%;
+        text-align: left;
+        padding: 0.9rem 1.05rem;
+        border-radius: 0.75rem;
+        border: 1px solid #3c5976;
+        background: #2c3e50;
+        color: #ecf0f1;
+        font-family: inherit;
+        font-size: 1.08rem;
+        cursor: pointer;
+        transition: background 0.12s ease;
+      }
+      .flat-link:hover { background: #34495e; }
+      .flat-link:active { background: #3c5976; }
+      .flat-end { text-align: center; opacity: 0.5; font-style: italic; margin: 0.75rem 0 0; }
+
+      /* overlay layout — photo as the world, panel floating over it */
+      .flat--overlay {
+        min-height: 100vh;
+        min-height: 100dvh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 1rem;
+      }
+      .flat--overlay .flat-hero { position: fixed; inset: 0; z-index: 0; background: #0e1014; }
+      .flat--overlay .flat-img { width: 100%; height: 100%; object-fit: cover; display: block; }
+      .flat--overlay .flat-noimg {
+        position: fixed; inset: 0; margin: 0; z-index: 0;
+        display: grid; place-items: center; color: #5b6472; font-style: italic;
+      }
+      .flat--overlay .flat-panel {
+        position: relative;
+        z-index: 1;
+        width: min(33rem, 100%);
+        max-height: 84vh;
+        max-height: 84dvh;
+        overflow-y: auto;
+        background: rgba(18, 21, 27, 0.82);
+        -webkit-backdrop-filter: blur(10px);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(150, 170, 190, 0.18);
+        border-radius: 1rem;
+        padding: 1.15rem 1.25rem 1.35rem;
+        box-shadow: 0 14px 50px rgba(0, 0, 0, 0.5);
+      }
+
+      /* doc layout — stacked photo then text (lighter reading mode) */
+      .flat--doc { max-width: 40rem; margin: 0 auto; min-height: 100vh; }
+      .flat--doc .flat-hero { position: relative; background: #0e1014; }
+      .flat--doc .flat-img { width: 100%; height: 46vh; max-height: 420px; object-fit: cover; display: block; }
+      .flat--doc .flat-noimg {
+        height: 30vh; margin: 0;
+        display: grid; place-items: center; color: #5b6472; font-style: italic;
+      }
+      .flat--doc .flat-panel { padding: 1.2rem 1.1rem 1.6rem; }
+
+      /* keep the `hidden` attribute winning over the layout display rules */
+      .flat [hidden] { display: none !important; }
+    </style>
+  </body>
+</html>
