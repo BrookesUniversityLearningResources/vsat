@@ -57,6 +57,19 @@ const SceneFiction: FC<SceneFictionProps> = ({
 
   const [editorState] = useState(toSlateModel(scene));
 
+  // Visual save state: clean (just loaded) → dirty (edited, orange halo) →
+  // saved (green halo). Drops back to dirty on the next content edit.
+  const [saveState, setSaveState] = useState<"clean" | "dirty" | "saved">(
+    "clean",
+  );
+
+  const onContentChange = () => {
+    // Slate fires onChange for cursor moves too; only real edits make it dirty.
+    if (editor.operations.some((op) => op.type !== "set_selection")) {
+      setSaveState("dirty");
+    }
+  };
+
   const saveTheSceneContent = useMutation<string, Error, string>({
     mutationFn: (content) =>
       saveSceneContent({ storyId, sceneId: scene.id, content }).then(
@@ -84,6 +97,7 @@ const SceneFiction: FC<SceneFictionProps> = ({
       ),
     onError: feedback.notify.error,
     onSuccess: (content) => {
+      setSaveState("saved");
       onSceneChanged({
         kind: "contentChanged",
         id: scene.id,
@@ -219,7 +233,11 @@ const SceneFiction: FC<SceneFictionProps> = ({
 
   return (
     <div className={styles.sceneFiction}>
-      <Slate editor={editor} initialValue={editorState}>
+      <Slate
+        editor={editor}
+        initialValue={editorState}
+        onChange={onContentChange}
+      >
         <Toolbar>
           <button
             type="button"
@@ -234,6 +252,13 @@ const SceneFiction: FC<SceneFictionProps> = ({
           </button>
           <button
             type="button"
+            className={
+              saveState === "dirty"
+                ? styles.saveDirty
+                : saveState === "saved"
+                  ? styles.saveSaved
+                  : undefined
+            }
             onClick={onSave}
             disabled={saveTheSceneContent.isPending}
           >

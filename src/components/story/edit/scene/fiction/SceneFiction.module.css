@@ -10,3 +10,30 @@
   border-radius: var(--border-radius-medium);
   font-size: 1.5rem;
 }
+
+/* Save-state halos behind the save icon: orange-red glow = unsaved edits,
+   green glow = saved. The dirty halo pulses to draw the eye. */
+.saveDirty,
+.saveSaved {
+  position: relative;
+  z-index: 2;
+  transition: box-shadow 0.3s ease;
+}
+
+.saveDirty {
+  animation: saveDirtyPulse 10s ease-in-out infinite;
+}
+
+.saveSaved {
+  box-shadow: 0 0 3px 1px rgba(46, 204, 113, 0.7);
+}
+
+@keyframes saveDirtyPulse {
+  0%,
+  100% {
+    box-shadow: 0 0 2px 0 rgba(255, 100, 30, 0.45);
+  }
+  50% {
+    box-shadow: 0 0 4px 1px rgba(255, 100, 30, 0.8);
+  }
+}
