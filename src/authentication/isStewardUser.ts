@@ -49,5 +49,13 @@ export default function isStewardUser(
     return false;
   }
 
+  // `*` grants steward to any authenticated user. Intended for environments
+  // where real auth isn't wired up yet (e.g. vsat-dev with the dev auth bypass,
+  // so anyone can try the remote/lobby). Tighten to specific emails once auth
+  // works.
+  if (stewardEmails.includes("*")) {
+    return true;
+  }
+
   return stewardEmails.includes(user.email.toLowerCase());
 }
