@@ -22,7 +22,18 @@ type Session = {
   hosts: Set<WebSocket>;
   lastState: StateSnapshot | null;
   createdAt: number;
+  /** Last time the session did something (connected or navigated). */
+  lastActivityAt: number;
 };
+
+/**
+ * The lobby lists only sessions active within this window, so idle/abandoned
+ * tabs (still connected, but nobody's clicking) drop off and reappear on the
+ * next navigation. Configurable for tests.
+ */
+const ACTIVE_WINDOW_MS = Number(
+  process.env.RELAY_ACTIVE_WINDOW_MS ?? 15 * 60 * 1000,
+);
 
 /**
  * Tracks which remote-control sessions are currently live so the lobby can list
@@ -43,6 +54,7 @@ function createSessionRegistry() {
         hosts: new Set(),
         lastState: null,
         createdAt: Date.now(),
+        lastActivityAt: Date.now(),
       };
       sessions.set(code, session);
     }
@@ -53,6 +65,7 @@ function createSessionRegistry() {
     join(code: string, role: string, ws: WebSocket): void {
       const session = ensure(code);
       session.peers.add(ws);
+      session.lastActivityAt = Date.now();
       if (role === "host") {
         session.hosts.add(ws);
       }
@@ -68,6 +81,7 @@ function createSessionRegistry() {
         heading: state.heading,
         sceneTitle: state.sceneTitle,
       };
+      session.lastActivityAt = Date.now();
     },
 
     leave(code: string, ws: WebSocket): void {
@@ -82,10 +96,15 @@ function createSessionRegistry() {
       }
     },
 
-    /** Only sessions that have a live experience (a host) are listed. */
+    /** Live (a host present) and active within the window are listed. */
     list(): SessionSummary[] {
+      const now = Date.now();
       return [...sessions.entries()]
-        .filter(([, session]) => session.hosts.size > 0)
+        .filter(
+          ([, session]) =>
+            session.hosts.size > 0 &&
+            now - session.lastActivityAt < ACTIVE_WINDOW_MS,
+        )
         .sort((a, b) => a[1].createdAt - b[1].createdAt)
         .map(([code, session]) => ({
           code,

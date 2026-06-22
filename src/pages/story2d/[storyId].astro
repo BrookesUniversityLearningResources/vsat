@@ -76,8 +76,10 @@ const serializedStory = DOMPurify.sanitize(
         isLinkBlock,
         isPlaintextBlock,
       } from "@domain/story/publish/support/isBlock";
+      import { startRemoteHost } from "@components/story/remote/remoteHost";
 
       const story = (window as any).current.story;
+      let host = null;
       const navigate = changePage(story);
 
       let scene = openingSceneFor(story);
@@ -137,6 +139,7 @@ const serializedStory = DOMPurify.sanitize(
         render();
         syncUrl(true);
         scrollTop();
+        host?.notifyChange();
       }
 
       function render() {
@@ -177,6 +180,7 @@ const serializedStory = DOMPurify.sanitize(
           page = openingPageFor(scene);
         }
         render();
+        host?.notifyChange();
       });
 
       // Movable nav block (overlay layout): drag by its header. The offset lives
@@ -218,9 +222,42 @@ const serializedStory = DOMPurify.sanitize(
         handle.addEventListener("pointercancel", end);
       }
 
+      function getState() {
+        return {
+          type: "state",
+          storyTitle: story.title || "",
+          sceneId: scene.id,
+          sceneTitle: scene.title || "",
+          heading: page.content.find(isHeadingBlock)?.text || scene.title || "",
+          body: page.content
+            .filter(isPlaintextBlock)
+            .map((b) => b.text)
+            .join("\n\n"),
+          image: (scene.image && scene.image.url) || null,
+          pageNumber: page.number,
+          links: page.content
+            .filter(isLinkBlock)
+            .map((b) => ({ text: b.text, link: b.link })),
+        };
+      }
+
       applyFromUrl();
       render();
       syncUrl(false);
+
+      // Join the remote-control lobby (auto-arm) — drivable like the 360° viewer.
+      host = startRemoteHost({
+        getState,
+        navigate: (link) => go(link),
+        restart: () => {
+          scene = openingSceneFor(story);
+          page = openingPageFor(scene);
+          render();
+          syncUrl(true);
+          scrollTop();
+          host?.notifyChange();
+        },
+      });
     </script>
 
     <style is:global>
