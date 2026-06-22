@@ -37,13 +37,13 @@ import styles from "./SceneFiction.module.css";
 import type { LinkTarget } from "@domain/story/publish/types";
 
 type SceneFictionProps = {
-  story: PersistentStory;
+  storyId: PersistentStory["id"];
   scene: PersistentScene;
   onSceneChanged: OnSceneChanged;
 };
 
 const SceneFiction: FC<SceneFictionProps> = ({
-  story,
+  storyId,
   scene,
   onSceneChanged,
 }) => {
@@ -59,7 +59,7 @@ const SceneFiction: FC<SceneFictionProps> = ({
 
   const saveTheSceneContent = useMutation<string, Error, string>({
     mutationFn: (content) =>
-      saveSceneContent({ storyId: story.id, sceneId: scene.id, content }).then(
+      saveSceneContent({ storyId, sceneId: scene.id, content }).then(
         (result) => {
           switch (result.kind) {
             case "sceneContentSaved": {
@@ -98,7 +98,7 @@ const SceneFiction: FC<SceneFictionProps> = ({
 
   const deleteTheScene = useMutation<unknown, Error, PersistentScene["id"]>({
     mutationFn: (sceneId) =>
-      deleteScene({ storyId: story.id, sceneId }).then((result) => {
+      deleteScene({ storyId, sceneId }).then((result) => {
         switch (result.kind) {
           case "sceneDeleted":
             return;
