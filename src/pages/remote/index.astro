@@ -51,6 +51,17 @@
       <section class="control" data-control hidden>
         <a class="back" href="/remote">← Sessions</a>
 
+        <figure class="headset" data-headset hidden>
+          <div class="headset-pano">
+            <img class="headset-img" data-headset-img alt="" />
+            <p class="headset-noimg" data-headset-noimg hidden>no photosphere</p>
+          </div>
+          <figcaption class="headset-fiction">
+            <strong class="headset-heading" data-headset-heading></strong>
+            <span class="headset-body" data-headset-body></span>
+          </figcaption>
+        </figure>
+
         <section class="now" data-now hidden>
           <p class="now-story" data-story></p>
           <h2 class="now-scene" data-scene></h2>
@@ -63,6 +74,12 @@
         </section>
 
         <p class="empty" data-empty hidden>No exits from this page.</p>
+
+        <div class="control-actions">
+          <button type="button" class="restart-btn" data-restart>
+            ⟲ Back to start
+          </button>
+        </div>
       </section>
     </main>
 
@@ -81,9 +98,15 @@
         story: document.querySelector("[data-story]"),
         scene: document.querySelector("[data-scene]"),
         context: document.querySelector("[data-context]"),
+        headset: document.querySelector("[data-headset]"),
+        headsetImg: document.querySelector("[data-headset-img]"),
+        headsetNoimg: document.querySelector("[data-headset-noimg]"),
+        headsetHeading: document.querySelector("[data-headset-heading]"),
+        headsetBody: document.querySelector("[data-headset-body]"),
         links: document.querySelector("[data-links]"),
         linksList: document.querySelector("[data-links-list]"),
         empty: document.querySelector("[data-empty]"),
+        restart: document.querySelector("[data-restart]"),
       };
 
       const room = new URLSearchParams(location.search).get("room");
@@ -245,6 +268,12 @@
           socket.addEventListener("error", () => socket.close());
         };
 
+        el.restart.addEventListener("click", () => {
+          if (socket && socket.readyState === WebSocket.OPEN) {
+            socket.send(JSON.stringify({ type: "restart" }));
+          }
+        });
+
         open();
       }
 
@@ -266,6 +295,21 @@
           parts.push(`Page ${state.pageNumber + 1}`);
         }
         el.context.textContent = parts.join(" · ");
+
+        // Headset window: the scene photosphere with the page fiction over it —
+        // a 2D peek at roughly what's on the headset/projection screen.
+        el.headset.hidden = false;
+        if (state.image) {
+          el.headsetImg.src = state.image;
+          el.headsetImg.hidden = false;
+          el.headsetNoimg.hidden = true;
+        } else {
+          el.headsetImg.removeAttribute("src");
+          el.headsetImg.hidden = true;
+          el.headsetNoimg.hidden = false;
+        }
+        el.headsetHeading.textContent = heading;
+        el.headsetBody.textContent = state.body || "";
 
         el.linksList.replaceChildren();
         const links = Array.isArray(state.links) ? state.links : [];
@@ -423,6 +467,58 @@
         text-decoration: none;
         font-size: 0.9rem;
       }
+      .headset {
+        margin: 0;
+        border: 1px solid #2c3340;
+        border-radius: 0.9rem;
+        overflow: hidden;
+        background: #0e1014;
+      }
+      /* `.headset-img`/`.headset-noimg` set `display`, which would override the
+         `hidden` attribute; this scoped rule lets `hidden` win again. */
+      .headset [hidden] {
+        display: none;
+      }
+      .headset-pano {
+        position: relative;
+        height: 190px;
+        background: #0e1014;
+      }
+      .headset-img {
+        width: 100%;
+        height: 190px;
+        object-fit: cover;
+        object-position: center;
+        display: block;
+      }
+      .headset-noimg {
+        position: absolute;
+        inset: 0;
+        margin: 0;
+        display: grid;
+        place-items: center;
+        color: #5b6472;
+        font-style: italic;
+        font-size: 0.85rem;
+      }
+      .headset-fiction {
+        padding: 0.7rem 0.9rem;
+        background: rgba(20, 23, 28, 0.92);
+        display: grid;
+        gap: 0.3rem;
+      }
+      .headset-heading {
+        font-size: 1rem;
+        color: #ecf0f1;
+      }
+      .headset-body {
+        font-size: 0.85rem;
+        line-height: 1.35;
+        color: #b9c2cc;
+        white-space: pre-wrap;
+        max-height: 6.5em;
+        overflow-y: auto;
+      }
       .now {
         border: 1px solid #2c3340;
         border-radius: 0.9rem;
@@ -477,6 +573,25 @@
       .empty {
         opacity: 0.55;
         font-style: italic;
+      }
+      .control-actions {
+        margin-top: 0.25rem;
+      }
+      .restart-btn {
+        width: 100%;
+        padding: 0.7rem 1rem;
+        border-radius: 0.8rem;
+        border: 1px solid #3c4250;
+        background: transparent;
+        color: #9fb3c8;
+        font-family: inherit;
+        font-size: 0.95rem;
+        cursor: pointer;
+        transition: background 0.12s ease, color 0.12s ease;
+      }
+      .restart-btn:active {
+        background: #1f232b;
+        color: #ecf0f1;
       }
     </style>
   </body>

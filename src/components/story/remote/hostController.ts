@@ -1,7 +1,10 @@
 import {
   isHeadingBlock,
   isLinkBlock,
+  isPlaintextBlock,
 } from "@domain/story/publish/support/isBlock";
+import openingPageFor from "@domain/story/publish/support/openingPage";
+import openingSceneFor from "@domain/story/publish/support/openingScene";
 import { isTitleCardScene } from "../published/aframe/titleCardSceneFor";
 import type { Current } from "../published/aframe/types";
 
@@ -27,6 +30,10 @@ type StateMessage = {
   sceneTitle: string;
   /** The current page's `# Heading` — the big text the reader sees on screen. */
   heading: string;
+  /** The page's fiction body (plaintext paragraphs), for the headset window. */
+  body: string;
+  /** URL of the current scene's 360° photosphere, or null for a title card with none. */
+  image: string | null;
   pageNumber: number;
   links: LinkOption[];
 };
@@ -116,12 +123,21 @@ export function startHostController(): void {
     // it's the most recognisable "where am I now" label for the remote.
     const heading = current.page.content.find(isHeadingBlock)?.text ?? "";
 
+    // The fiction body + photosphere let the remote render a "headset window".
+    const body = current.page.content
+      .filter(isPlaintextBlock)
+      .map((block) => block.text)
+      .join("\n\n");
+    const image = current.scene?.image?.url ?? null;
+
     return {
       type: "state",
       storyTitle: current.story?.title ?? "",
       sceneId: current.scene?.id,
       sceneTitle,
       heading,
+      body,
+      image,
       pageNumber: current.page.number,
       links,
     };
@@ -165,6 +181,32 @@ export function startHostController(): void {
           new CustomEvent("linkactivated", { detail: message.link }),
         );
       }
+      return;
+    }
+
+    if (message.type === "restart") {
+      // Pull the experience back to the story's opening scene/page (e.g. to
+      // recover a headset user from a dead end). Re-render directly rather than
+      // via a link so it works from any page, including ones with no exits.
+      const current = (window as unknown as { current?: Current }).current;
+      const storyEl = document.querySelector("[story]") as
+        | (Element & {
+            components?: {
+              story?: {
+                render?: (c: Current, o: { isSceneChange: boolean }) => void;
+              };
+            };
+          })
+        | null;
+      const story = current?.story;
+      const render = storyEl?.components?.story?.render;
+      if (!story || !render) {
+        return;
+      }
+      const openingScene = openingSceneFor(story);
+      current.scene = openingScene;
+      current.page = openingPageFor(openingScene);
+      render.call(storyEl.components?.story, current, { isSceneChange: true });
     }
   };
 
