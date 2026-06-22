@@ -91,10 +91,38 @@ const serializedStory = DOMPurify.sanitize(
         body: document.querySelector("[data-body]"),
         links: document.querySelector("[data-links]"),
         end: document.querySelector("[data-end]"),
-        panel: document.querySelector("[data-panel]"),
+        panel: document.querySelector("[data-panel]") as HTMLElement,
       };
 
       el.title.textContent = story.title || "";
+
+      // Deep linking: honour ?scene=&page= on load (the 360° viewer reads
+      // ?scene= on load too) and keep it in sync on navigation so links are
+      // shareable and the browser Back button walks the history.
+      function pageByNumber(s, n) {
+        for (const p of Object.values(s.pages)) if (p.number === n) return p;
+        return openingPageFor(s);
+      }
+      function applyFromUrl() {
+        const params = new URLSearchParams(location.search);
+        const sid = Number(params.get("scene"));
+        if (!Number.isFinite(sid) || sid <= 0) return false;
+        const s = story.scenes.find((x) => x.id === sid);
+        if (!s) return false;
+        scene = s;
+        const pnum = Number(params.get("page"));
+        page = Number.isFinite(pnum) ? pageByNumber(s, pnum) : openingPageFor(s);
+        return true;
+      }
+      function syncUrl(push) {
+        const params = new URLSearchParams(location.search);
+        params.set("scene", String(scene.id));
+        params.set("page", String(page.number));
+        const url = `${location.pathname}?${params.toString()}`;
+        const state = { scene: scene.id, page: page.number };
+        if (push) history.pushState(state, "", url);
+        else history.replaceState(state, "", url);
+      }
 
       function scrollTop() {
         el.panel?.scrollTo?.({ top: 0, behavior: "smooth" });
@@ -107,6 +135,7 @@ const serializedStory = DOMPurify.sanitize(
         page = change.toPage;
         if (change.toScene) scene = change.toScene;
         render();
+        syncUrl(true);
         scrollTop();
       }
 
@@ -142,7 +171,56 @@ const serializedStory = DOMPurify.sanitize(
         el.end.hidden = linkBlocks.length > 0;
       }
 
+      window.addEventListener("popstate", () => {
+        if (!applyFromUrl()) {
+          scene = openingSceneFor(story);
+          page = openingPageFor(scene);
+        }
+        render();
+      });
+
+      // Movable nav block (overlay layout): drag by its header. The offset lives
+      // on the panel's transform, which render() never resets, so it persists
+      // across scene jumps — reposition the "sticky" once and it stays put.
+      const isOverlay = document
+        .querySelector(".flat")
+        ?.classList.contains("flat--overlay");
+      if (isOverlay && el.panel) {
+        const handle = el.panel.querySelector(".flat-panel-head") as HTMLElement;
+        let dx = 0, dy = 0, sx = 0, sy = 0, bx = 0, by = 0, dragging = false;
+        handle.style.cursor = "grab";
+        handle.style.touchAction = "none";
+        handle.title = "Drag to move";
+        const apply = () => {
+          el.panel.style.transform = `translate(${dx}px, ${dy}px)`;
+        };
+        handle.addEventListener("pointerdown", (e) => {
+          dragging = true;
+          handle.setPointerCapture(e.pointerId);
+          sx = e.clientX; sy = e.clientY; bx = dx; by = dy;
+          handle.style.cursor = "grabbing";
+        });
+        handle.addEventListener("pointermove", (e) => {
+          if (!dragging) return;
+          const mx = window.innerWidth / 2;
+          const my = window.innerHeight / 2;
+          dx = Math.max(-mx, Math.min(mx, bx + (e.clientX - sx)));
+          dy = Math.max(-my, Math.min(my, by + (e.clientY - sy)));
+          apply();
+        });
+        const end = (e) => {
+          if (!dragging) return;
+          dragging = false;
+          handle.style.cursor = "grab";
+          try { handle.releasePointerCapture(e.pointerId); } catch (_) {}
+        };
+        handle.addEventListener("pointerup", end);
+        handle.addEventListener("pointercancel", end);
+      }
+
+      applyFromUrl();
       render();
+      syncUrl(false);
     </script>
 
     <style>
