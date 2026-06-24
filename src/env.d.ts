@@ -38,8 +38,8 @@ declare namespace App {
     repositoryStoryLink: import("./domain/index.js").RepositoryStoryLink;
   };
 
-  type WithPilotRepository = {
-    repositoryPilot: import("./domain/index.js").RepositoryPilot;
+  type WithAnthologyRepository = {
+    repositoryAnthology: import("./domain/index.js").RepositoryAnthology;
   };
 
   type WithSceneRepository = {
@@ -63,7 +63,7 @@ declare namespace App {
       WithAuthorRepository &
       WithStoryRepository &
       WithStoryLinkRepository &
-      WithPilotRepository &
+      WithAnthologyRepository &
       WithSceneRepository &
       WithImageRepository &
       WithAudioRepository &

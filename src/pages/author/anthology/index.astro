@@ -3,25 +3,27 @@ import Layout from "@layouts/AuthoringLayout.astro";
 
 export const prerender = false;
 
-const { repositoryPilot } = Astro.locals.environment<App.WithPilotRepository>();
+const { repositoryAnthology } = Astro.locals.environment<App.WithAnthologyRepository>();
 
-const pilots = await repositoryPilot.getPilots();
+const anthologies = await repositoryAnthology.getAnthologies();
 ---
 
-<Layout title="Pilots" description="Pilot overview">
-  <main class="pilot-page">
-    <header class="pilot-header">
+<Layout title="Anthologies" description="Anthology overview">
+  <main class="anthology-page">
+    <header class="anthology-header">
       <div>
-        <p class="pilot-kicker">Pilot dashboard</p>
-        <h1>Pilots</h1>
-        <p class="pilot-help">Create pilots and review questions and outputs.</p>
+        <p class="anthology-kicker">Anthology dashboard</p>
+        <h1>Anthologies</h1>
+        <p class="anthology-help">
+          Curate sets of stories, then filter the planetarium by anthology.
+        </p>
       </div>
       <a href="/author/story/">Back to stories</a>
     </header>
 
-    <section class="pilot-section">
-      <h2>Create a pilot</h2>
-      <form id="pilot-form" class="pilot-form">
+    <section class="anthology-section">
+      <h2>Create an anthology</h2>
+      <form id="anthology-form" class="anthology-form">
         <label>
           Title
           <input type="text" name="title" required minlength="3" />
@@ -42,37 +44,37 @@ const pilots = await repositoryPilot.getPilots();
             <option value="complete">Complete</option>
           </select>
         </label>
-        <button type="submit">Create pilot</button>
-        <p class="pilot-form__status" id="pilot-form-status"></p>
+        <button type="submit">Create anthology</button>
+        <p class="anthology-form__status" id="anthology-form-status"></p>
       </form>
     </section>
 
-    <section class="pilot-section">
-      <h2>Existing pilots</h2>
-      {pilots.length ? (
-        <ul class="pilot-list">
-          {pilots.map((pilot) => (
-            <li class="pilot-card">
+    <section class="anthology-section">
+      <h2>Existing anthologies</h2>
+      {anthologies.length ? (
+        <ul class="anthology-list">
+          {anthologies.map((anthology) => (
+            <li class="anthology-card">
               <div>
-                <strong>{pilot.title}</strong>
-                <p>{pilot.question}</p>
+                <strong>{anthology.title}</strong>
+                <p>{anthology.question}</p>
               </div>
-              <div class="pilot-meta">
-                <span>{pilot.status}</span>
-                <a href={`/author/pilot/${pilot.id}`}>Open</a>
+              <div class="anthology-meta">
+                <span>{anthology.status}</span>
+                <a href={`/author/anthology/${anthology.id}`}>Open</a>
               </div>
             </li>
           ))}
         </ul>
       ) : (
-        <p>No pilots yet.</p>
+        <p>No anthologies yet.</p>
       )}
     </section>
   </main>
 
   <script is:inline>
-    const form = document.getElementById("pilot-form");
-    const status = document.getElementById("pilot-form-status");
+    const form = document.getElementById("anthology-form");
+    const status = document.getElementById("anthology-form-status");
 
     form?.addEventListener("submit", async (event) => {
       event.preventDefault();
@@ -85,109 +87,116 @@ const pilots = await repositoryPilot.getPilots();
       };
 
       status.textContent = "Submitting...";
-      const res = await fetch(`/api/pilot`, {
+      const res = await fetch(`/api/anthology`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
 
       if (res.ok) {
-        status.textContent = "Pilot created.";
+        status.textContent = "Anthology created.";
         window.location.reload();
       } else {
-        status.textContent = "Failed to create pilot.";
+        status.textContent = "Failed to create anthology.";
       }
     });
   </script>
 </Layout>
 
 <style>
-  .pilot-page {
+  .anthology-page {
     max-width: 980px;
     margin: 2rem auto;
     padding: 0 1.5rem 3rem;
   }
 
-  .pilot-header {
+  .anthology-header {
     display: flex;
     justify-content: space-between;
     gap: 1.5rem;
     align-items: flex-start;
   }
 
-  .pilot-kicker {
+  .anthology-kicker {
     text-transform: uppercase;
     letter-spacing: 0.08em;
     font-size: 0.75rem;
   }
 
-  .pilot-section {
+  .anthology-section {
     margin-top: 2rem;
   }
 
-  .pilot-form {
-    display: grid;
-    gap: 1rem;
-    max-width: 520px;
-  }
-
-  .pilot-form textarea,
-  .pilot-form input,
-  .pilot-form select {
-    width: 100%;
-    padding: 0.5rem;
-  }
-
-  .pilot-list {
+  .anthology-list {
     list-style: none;
     padding: 0;
     display: grid;
     gap: 1rem;
   }
 
-  .pilot-card {
+  .anthology-card {
     border: 1px solid #222;
     border-radius: 0.75rem;
     padding: 1rem;
     display: flex;
     justify-content: space-between;
     gap: 1rem;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
   }
 
-  .pilot-meta {
+  .anthology-card:hover {
+    border-color: #1f4d7a;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  }
+
+  .anthology-meta {
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
   }
 
-  .pilot-form__status {
-    font-size: 0.9rem;
+  .anthology-meta span {
+    display: inline-block;
+    background: #e7f2ff;
+    color: #1f4d7a;
+    border: 1px solid #1f4d7a;
+    border-radius: 999px;
+    padding: 0.15rem 0.55rem;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
   }
 
-  /* Form container styling */
-  .pilot-form {
+  .anthology-form {
+    display: grid;
+    gap: 1rem;
+    max-width: 520px;
     background: #f9f9f9;
     padding: 1.5rem;
     border: 1px solid #ddd;
     border-radius: 0.75rem;
   }
 
-  /* Label font-weight */
-  .pilot-form label {
+  .anthology-form label {
     font-weight: 600;
   }
 
-  /* Input/select/textarea focus states */
-  .pilot-form input:focus,
-  .pilot-form select:focus,
-  .pilot-form textarea:focus {
+  .anthology-form textarea,
+  .anthology-form input,
+  .anthology-form select {
+    width: 100%;
+    padding: 0.5rem;
+  }
+
+  .anthology-form input:focus,
+  .anthology-form select:focus,
+  .anthology-form textarea:focus {
     outline: 2px solid #1f4d7a;
     outline-offset: 1px;
     border-color: #1f4d7a;
   }
 
-  /* Submit button styled as primary pill */
-  .pilot-form button[type="submit"] {
+  .anthology-form button[type="submit"] {
     background: #e7f2ff;
     color: #1f4d7a;
     border: 1px solid #1f4d7a;
@@ -199,35 +208,16 @@ const pilots = await repositoryPilot.getPilots();
     transition: background 0.2s ease;
   }
 
-  .pilot-form button[type="submit"]:hover {
+  .anthology-form button[type="submit"]:hover {
     background: #cce3ff;
   }
 
-  .pilot-form button[type="submit"]:focus-visible {
+  .anthology-form button[type="submit"]:focus-visible {
     outline: 2px solid #1f4d7a;
     outline-offset: 2px;
   }
 
-  /* Pilot card hover effects */
-  .pilot-card {
-    transition: border-color 0.2s ease, box-shadow 0.2s ease;
-  }
-
-  .pilot-card:hover {
-    border-color: #1f4d7a;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  }
-
-  /* Status badge as inline pill */
-  .pilot-meta span {
-    display: inline-block;
-    background: #e7f2ff;
-    color: #1f4d7a;
-    border: 1px solid #1f4d7a;
-    border-radius: 999px;
-    padding: 0.15rem 0.55rem;
-    font-size: 0.8rem;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
+  .anthology-form__status {
+    font-size: 0.9rem;
   }
 </style>

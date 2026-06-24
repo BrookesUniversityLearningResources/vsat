@@ -3,27 +3,32 @@ import Layout from "../../layouts/PublicSiteLayout.astro";
 
 export const prerender = false;
 
-const { i18n, repositoryStory, repositoryStoryLink, repositoryPilot } =
+const { i18n, repositoryStory, repositoryStoryLink, repositoryAnthology } =
   Astro.locals.environment<
     App.WithI18N &
       App.WithStoryRepository &
       App.WithStoryLinkRepository &
-      App.WithPilotRepository
+      App.WithAnthologyRepository
   >();
 
-const pilotParam = Astro.url.searchParams.get("pilot");
-const pilotId = pilotParam ? Number(pilotParam) : null;
+// Accept ?anthology=, falling back to the legacy ?pilot= for old links.
+const anthologyParam =
+  Astro.url.searchParams.get("anthology") ??
+  Astro.url.searchParams.get("pilot");
+const anthologyId = anthologyParam ? Number(anthologyParam) : null;
 
-const [allStories, allLinks, pilots, pilotStories] = await Promise.all([
+const [allStories, allLinks, anthologies, anthologyStories] = await Promise.all([
   repositoryStory.getPublishedStorySummaries({}),
   repositoryStoryLink.getAllStoryLinks(),
-  repositoryPilot.getPilots(),
-  pilotId ? repositoryPilot.getPilotStories(pilotId) : Promise.resolve([]),
+  repositoryAnthology.getAnthologies(),
+  anthologyId
+    ? repositoryAnthology.getAnthologyStories(anthologyId)
+    : Promise.resolve([]),
 ]);
 
-const pilotStoryIds = new Set(pilotStories.map((story) => story.id));
-const visibleStories = pilotId
-  ? allStories.filter((story) => pilotStoryIds.has(story.id))
+const anthologyStoryIds = new Set(anthologyStories.map((story) => story.id));
+const visibleStories = anthologyId
+  ? allStories.filter((story) => anthologyStoryIds.has(story.id))
   : allStories;
 const visibleStoryIds = new Set(visibleStories.map((story) => story.id));
 const visibleLinks = allLinks.filter(
@@ -38,8 +43,8 @@ const linkCounts = visibleLinks.reduce((acc, link) => {
   return acc;
 }, new Map<number, number>());
 
-const selectedPilot =
-  pilotId && pilots.find((pilot) => pilot.id === pilotId);
+const selectedAnthology =
+  anthologyId && anthologies.find((anthology) => anthology.id === anthologyId);
 ---
 
 <Layout
@@ -61,20 +66,20 @@ const selectedPilot =
 
   <section class="manifold-filters">
     <div class="filter-group">
-      <span class="filter-label">Pilot filter</span>
+      <span class="filter-label">Anthology filter</span>
       <div class="filter-options">
         <a
-          class={`filter-chip ${pilotId ? "" : "filter-chip--active"}`}
+          class={`filter-chip ${anthologyId ? "" : "filter-chip--active"}`}
           href="/story/manifold"
         >
-          All pilots
+          All anthologies
         </a>
-        {pilots.map((pilot) => (
+        {anthologies.map((anthology) => (
           <a
-            class={`filter-chip ${pilot.id === pilotId ? "filter-chip--active" : ""}`}
-            href={`/story/manifold?pilot=${pilot.id}`}
+            class={`filter-chip ${anthology.id === anthologyId ? "filter-chip--active" : ""}`}
+            href={`/story/manifold?anthology=${anthology.id}`}
           >
-            {pilot.title}
+            {anthology.title}
           </a>
         ))}
       </div>
@@ -82,9 +87,9 @@ const selectedPilot =
     <div class="filter-summary">
       <span>{visibleStories.length} stories</span>
       <span>{visibleLinks.length} links</span>
-      {selectedPilot && (
-        <span class="filter-pilot">
-          Pilot: {selectedPilot.title} ({selectedPilot.status})
+      {selectedAnthology && (
+        <span class="filter-anthology">
+          Anthology: {selectedAnthology.title} ({selectedAnthology.status})
         </span>
       )}
     </div>
@@ -106,7 +111,7 @@ const selectedPilot =
         ))}
       </div>
     ) : (
-      <p class="empty-state">No stories match this pilot yet.</p>
+      <p class="empty-state">No stories match this anthology yet.</p>
     )}
   </main>
 
@@ -211,7 +216,7 @@ const selectedPilot =
     border-radius: 0.5rem;
   }
 
-  .filter-pilot {
+  .filter-anthology {
     font-style: italic;
   }
 

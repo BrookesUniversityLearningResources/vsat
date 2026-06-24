@@ -1,6 +1,6 @@
 -- live-demo-anthologies.sql
 --
--- Demo pilots and interpretive links for the "live" profile (Brookes
+-- Demo anthologies and interpretive links for the "live" profile (Brookes
 -- community content from the 2026-04-12 VSP dump). Wipes existing
 -- demo state and reseeds in a single transaction.
 --
@@ -18,13 +18,13 @@
 
 BEGIN;
 
--- Wipe previous demo state. CASCADE is safe because pilot_story,
--- link_vote and interpretive_note all hang off pilot/story_link.
-TRUNCATE TABLE link_vote, story_link, pilot_story, pilot RESTART IDENTITY CASCADE;
+-- Wipe previous demo state. CASCADE is safe because anthology_story,
+-- link_vote and interpretive_note all hang off anthology/story_link.
+TRUNCATE TABLE link_vote, story_link, anthology_story, anthology RESTART IDENTITY CASCADE;
 
 -- Anthology A — Cities & Public Space
 -- Anthology B — Lived Experience
-INSERT INTO pilot (title, question, partner, status, start_at, end_at) VALUES
+INSERT INTO anthology (title, question, partner, status, start_at, end_at) VALUES
   ('Cities & Public Space',
    'How does community storytelling reframe contested urban places?',
    'Brookes / Oxford', 'active',
@@ -34,22 +34,22 @@ INSERT INTO pilot (title, question, partner, status, start_at, end_at) VALUES
    'Brookes / SP', 'active',
    '2026-05-01'::timestamp, '2026-06-30'::timestamp);
 
--- Pilot membership.
-INSERT INTO pilot_story (pilot_id, story_id) VALUES
+-- Anthology membership.
+INSERT INTO anthology_story (anthology_id, story_id) VALUES
   -- Anthology A
-  ((SELECT id FROM pilot WHERE title = 'Cities & Public Space'), 109),
-  ((SELECT id FROM pilot WHERE title = 'Cities & Public Space'), 196),
-  ((SELECT id FROM pilot WHERE title = 'Cities & Public Space'), 398),
-  ((SELECT id FROM pilot WHERE title = 'Cities & Public Space'), 1070),
-  ((SELECT id FROM pilot WHERE title = 'Cities & Public Space'), 411),
+  ((SELECT id FROM anthology WHERE title = 'Cities & Public Space'), 109),
+  ((SELECT id FROM anthology WHERE title = 'Cities & Public Space'), 196),
+  ((SELECT id FROM anthology WHERE title = 'Cities & Public Space'), 398),
+  ((SELECT id FROM anthology WHERE title = 'Cities & Public Space'), 1070),
+  ((SELECT id FROM anthology WHERE title = 'Cities & Public Space'), 411),
   -- Anthology B
-  ((SELECT id FROM pilot WHERE title = 'Lived Experience'), 134),
-  ((SELECT id FROM pilot WHERE title = 'Lived Experience'), 165),
-  ((SELECT id FROM pilot WHERE title = 'Lived Experience'), 188),
-  ((SELECT id FROM pilot WHERE title = 'Lived Experience'), 379),
-  ((SELECT id FROM pilot WHERE title = 'Lived Experience'), 407),
-  ((SELECT id FROM pilot WHERE title = 'Lived Experience'), 409),
-  ((SELECT id FROM pilot WHERE title = 'Lived Experience'), 154);
+  ((SELECT id FROM anthology WHERE title = 'Lived Experience'), 134),
+  ((SELECT id FROM anthology WHERE title = 'Lived Experience'), 165),
+  ((SELECT id FROM anthology WHERE title = 'Lived Experience'), 188),
+  ((SELECT id FROM anthology WHERE title = 'Lived Experience'), 379),
+  ((SELECT id FROM anthology WHERE title = 'Lived Experience'), 407),
+  ((SELECT id FROM anthology WHERE title = 'Lived Experience'), 409),
+  ((SELECT id FROM anthology WHERE title = 'Lived Experience'), 154);
 
 -- Interpretive links. Eleven total: eight accepted (preseeded with
 -- one accept vote each so the audit trail is honest), three left as
@@ -81,7 +81,7 @@ WHERE status = 'accepted';
 COMMIT;
 
 -- Sanity output (psql will print these).
-SELECT 'pilots' AS what, count(*) FROM pilot
-UNION ALL SELECT 'pilot_story', count(*) FROM pilot_story
+SELECT 'anthologies' AS what, count(*) FROM anthology
+UNION ALL SELECT 'anthology_story', count(*) FROM anthology_story
 UNION ALL SELECT 'story_link (accepted)', count(*) FROM story_link WHERE status = 'accepted'
 UNION ALL SELECT 'story_link (proposed)', count(*) FROM story_link WHERE status = 'proposed';

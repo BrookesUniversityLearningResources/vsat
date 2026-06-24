@@ -7,7 +7,7 @@ import devAuthBypass from "./authentication/devAuthBypass.js";
 import passportWithMagicLogin from "./authentication/passport/passportWithMagicLogin.js";
 import routeAuthenticate from "./authentication/routeAuthenticate.js";
 import routeLogout from "./authentication/routeLogout.js";
-import routePilot from "./domain/pilot/route/routePilot.js";
+import routeAnthology from "./domain/anthology/route/routeAnthology.js";
 import canVoteOnStoryLinkInDatabase from "./domain/story/link/canVoteOnStoryLinkInDatabase.js";
 import routeCreateScene from "./domain/story/route/routeCreateScene.js";
 import routeCreateStory from "./domain/story/route/routeCreateStory.js";
@@ -51,7 +51,7 @@ export async function createAppParts(): Promise<{
     repositoryAuthor,
     repositoryStory,
     repositoryStoryLink,
-    repositoryPilot,
+    repositoryAnthology,
     repositoryScene,
     database: { connectionPool, db },
   } = getEnvironment<
@@ -60,7 +60,7 @@ export async function createAppParts(): Promise<{
       App.WithAuthorRepository &
       App.WithStoryRepository &
       App.WithStoryLinkRepository &
-      App.WithPilotRepository &
+      App.WithAnthologyRepository &
       App.WithSceneRepository
   >();
 
@@ -189,14 +189,17 @@ export async function createAppParts(): Promise<{
       canVoteOnStoryLinkInDatabase(() => db),
       repositoryStoryLink.retireStoryLink,
     ),
-    routePilot(
-      repositoryPilot.createPilot,
-      repositoryPilot.getPilot,
-      repositoryPilot.getPilots,
-      repositoryPilot.assignStoryToPilot,
-      repositoryPilot.getPilotStories,
-      repositoryPilot.createInterpretiveNote,
-      repositoryPilot.getInterpretiveNotes,
+    routeAnthology(
+      repositoryAnthology.createAnthology,
+      repositoryAnthology.getAnthology,
+      repositoryAnthology.getAnthologies,
+      repositoryAnthology.updateAnthology,
+      repositoryAnthology.deleteAnthology,
+      repositoryAnthology.assignStoryToAnthology,
+      repositoryAnthology.removeStoryFromAnthology,
+      repositoryAnthology.getAnthologyStories,
+      repositoryAnthology.createInterpretiveNote,
+      repositoryAnthology.getInterpretiveNotes,
       repositoryStoryLink.getStoryLinksForStory,
     ),
     routeDeleteScene(repositoryScene.deleteScene, assertIsAuthorOfTheStory),

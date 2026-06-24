@@ -13,7 +13,7 @@ export default function createInterpretiveNoteInDatabase(
     return db()
       .insertInto("interpretiveNote")
       .values({
-        pilotId: request.pilotId,
+        anthologyId: request.anthologyId,
         storyId: request.storyId,
         authorId: request.authorId,
         note: request.note,

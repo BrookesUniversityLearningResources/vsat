@@ -1,0 +1,573 @@
+---
+import Layout from "@layouts/AuthoringLayout.astro";
+import { ErrorCodes } from "@domain/error/errorCode";
+
+export const prerender = false;
+
+const { repositoryAnthology, repositoryStory } = Astro.locals.environment<
+  App.WithAnthologyRepository & App.WithStoryRepository
+>();
+const anthologyId = Number(Astro.params.anthologyId);
+
+if (!anthologyId) {
+  return Astro.redirect(`/author/anthology?err=${ErrorCodes.StoryNotFound}`);
+}
+
+const anthology = await repositoryAnthology.getAnthology(anthologyId);
+if (!anthology) {
+  return Astro.redirect(`/author/anthology?err=${ErrorCodes.StoryNotFound}`);
+}
+
+const stories = await repositoryAnthology.getAnthologyStories(anthologyId);
+const notes = await repositoryAnthology.getInterpretiveNotes(anthologyId);
+const allStories = await repositoryStory.getPublishedStorySummaries({});
+const assignedIds = new Set(stories.map((s) => s.id));
+const availableStories = allStories.filter((s) => !assignedIds.has(s.id));
+---
+
+<Layout title={`Anthology • ${anthology.title}`} description={anthology.question}>
+  <main class="anthology-page" data-anthology-id={anthology.id}>
+    <header class="anthology-header">
+      <div>
+        <p class="anthology-kicker">Anthology</p>
+        <h1>{anthology.title}</h1>
+        <p class="anthology-question">{anthology.question}</p>
+      </div>
+      <div class="anthology-meta">
+        <span class="anthology-status">Status: {anthology.status}</span>
+        <a href={`/story/vsatlatarium?anthology=${anthology.id}`}>
+          Open in planetarium
+        </a>
+        <a href="/author/anthology">Back to anthologies</a>
+      </div>
+    </header>
+
+    <section class="anthology-section">
+      <div class="section-head">
+        <h2>Details</h2>
+        <button type="button" class="ghost-button" id="edit-toggle">Edit</button>
+      </div>
+      <form id="edit-form" class="anthology-form" hidden>
+        <label>
+          Title
+          <input type="text" name="title" value={anthology.title} required minlength="3" />
+        </label>
+        <label>
+          Question
+          <textarea name="question" rows="3" required minlength="5">{anthology.question}</textarea>
+        </label>
+        <label>
+          Partner
+          <input type="text" name="partner" value={anthology.partner ?? ""} />
+        </label>
+        <label>
+          Status
+          <select name="status">
+            <option value="draft" selected={anthology.status === "draft"}>Draft</option>
+            <option value="active" selected={anthology.status === "active"}>Active</option>
+            <option value="complete" selected={anthology.status === "complete"}>Complete</option>
+          </select>
+        </label>
+        <div class="form-actions">
+          <button type="submit">Save changes</button>
+          <button type="button" class="danger-button" id="delete-anthology">
+            Delete anthology
+          </button>
+        </div>
+        <p class="anthology-form__status" id="edit-status"></p>
+      </form>
+    </section>
+
+    <section class="anthology-section">
+      <h2>Stories</h2>
+      <p class="sort-help">
+        Drag story cards between columns to add or remove them from this
+        anthology. Changes save automatically.
+      </p>
+      <div class="sort-board">
+        <div class="sort-col" data-bucket="available">
+          <h3>Available stories <span class="count" data-count></span></h3>
+          <ul class="sort-list" data-list>
+            {availableStories.map((story) => (
+              <li
+                class="sort-card"
+                draggable="true"
+                data-story-id={story.id}
+                data-story-title={story.title}
+              >
+                <span class="sort-grip" aria-hidden="true">⠿</span>
+                <span class="sort-card-title">{story.title}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+        <div class="sort-col sort-col--in" data-bucket="in">
+          <h3>In this anthology <span class="count" data-count></span></h3>
+          <ul class="sort-list" data-list>
+            {stories.map((story) => (
+              <li
+                class="sort-card"
+                draggable="true"
+                data-story-id={story.id}
+                data-story-title={story.title}
+              >
+                <span class="sort-grip" aria-hidden="true">⠿</span>
+                <span class="sort-card-title">{story.title}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+      <p class="anthology-form__status" id="sort-status"></p>
+    </section>
+
+    <section class="anthology-section">
+      <h2>Add interpretive note</h2>
+      <form id="note-form" class="anthology-form">
+        <label>
+          Story
+          <select name="storyId" id="note-story" required>
+            <option value="">Select a story</option>
+            {stories.map((story) => (
+              <option value={story.id}>{story.title}</option>
+            ))}
+          </select>
+        </label>
+        <label>
+          Note
+          <textarea name="note" rows="4" required minlength="3"></textarea>
+        </label>
+        <button type="submit">Add note</button>
+        <p class="anthology-form__status" id="note-form-status"></p>
+      </form>
+    </section>
+
+    <section class="anthology-section">
+      <h2>Interpretive notes</h2>
+      {notes.length ? (
+        <ul class="notes-list">
+          {notes.map((note) => (
+            <li class="note-card">
+              <p class="note-text">{note.note}</p>
+              <p class="note-meta">
+                {note.author.name} • {note.story.title}
+              </p>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <div class="anthology-prompt">
+          <p>No notes yet. Add the first interpretive note for this anthology.</p>
+          <p class="anthology-prompt__hint">
+            Notes should capture patterns, tensions, or emerging questions.
+          </p>
+        </div>
+      )}
+    </section>
+
+    <section class="anthology-section">
+      <h2>Report</h2>
+      <p>
+        <a href={`/api/anthology/${anthology.id}/report`} target="_blank">
+          View JSON report
+        </a>
+      </p>
+    </section>
+  </main>
+
+  <script is:inline>
+    const main = document.querySelector("[data-anthology-id]");
+    const anthologyId = Number(main.dataset.anthologyId);
+    const sortStatus = document.getElementById("sort-status");
+    const noteStory = document.getElementById("note-story");
+
+    // --- Edit / delete -----------------------------------------------------
+    const editToggle = document.getElementById("edit-toggle");
+    const editForm = document.getElementById("edit-form");
+    const editStatus = document.getElementById("edit-status");
+    editToggle?.addEventListener("click", () => {
+      editForm.hidden = !editForm.hidden;
+    });
+    editForm?.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const data = new FormData(editForm);
+      editStatus.textContent = "Saving...";
+      const res = await fetch(`/api/anthology/${anthologyId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: data.get("title"),
+          question: data.get("question"),
+          partner: data.get("partner") || null,
+          status: data.get("status"),
+        }),
+      });
+      if (res.ok) {
+        window.location.reload();
+      } else {
+        editStatus.textContent = "Failed to save changes.";
+      }
+    });
+    document
+      .getElementById("delete-anthology")
+      ?.addEventListener("click", async () => {
+        if (!confirm("Delete this anthology? Its stories stay, but the anthology and its notes are removed.")) {
+          return;
+        }
+        const res = await fetch(`/api/anthology/${anthologyId}`, {
+          method: "DELETE",
+        });
+        if (res.ok) {
+          window.location.href = "/author/anthology";
+        } else {
+          editStatus.textContent = "Failed to delete anthology.";
+        }
+      });
+
+    // --- Card sort ---------------------------------------------------------
+    const cols = {
+      available: document.querySelector('.sort-col[data-bucket="available"]'),
+      in: document.querySelector('.sort-col[data-bucket="in"]'),
+    };
+
+    function refreshCounts() {
+      for (const col of Object.values(cols)) {
+        const n = col.querySelectorAll(".sort-card").length;
+        col.querySelector("[data-count]").textContent = `(${n})`;
+      }
+    }
+
+    function rebuildNoteOptions() {
+      const inCards = cols.in.querySelectorAll(".sort-card");
+      noteStory.innerHTML = '<option value="">Select a story</option>';
+      for (const card of inCards) {
+        const opt = document.createElement("option");
+        opt.value = card.dataset.storyId;
+        opt.textContent = card.dataset.storyTitle;
+        noteStory.appendChild(opt);
+      }
+    }
+
+    let dragged = null;
+    document.querySelectorAll(".sort-card").forEach(registerCard);
+
+    function registerCard(card) {
+      card.addEventListener("dragstart", () => {
+        dragged = card;
+        card.classList.add("dragging");
+      });
+      card.addEventListener("dragend", () => {
+        card.classList.remove("dragging");
+        dragged = null;
+      });
+    }
+
+    for (const [bucket, col] of Object.entries(cols)) {
+      col.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        col.classList.add("drop-active");
+      });
+      col.addEventListener("dragleave", () => col.classList.remove("drop-active"));
+      col.addEventListener("drop", (e) => {
+        e.preventDefault();
+        col.classList.remove("drop-active");
+        if (!dragged) return;
+        const from = dragged.parentElement.closest(".sort-col").dataset.bucket;
+        if (from === bucket) return;
+        moveCard(dragged, bucket);
+      });
+    }
+
+    async function moveCard(card, toBucket) {
+      const list = cols[toBucket].querySelector("[data-list]");
+      const origin = card.parentElement;
+      list.appendChild(card);
+      refreshCounts();
+      rebuildNoteOptions();
+
+      const storyId = Number(card.dataset.storyId);
+      const ok = await persist(toBucket, storyId);
+      if (!ok) {
+        origin.appendChild(card); // revert on failure
+        refreshCounts();
+        rebuildNoteOptions();
+        sortStatus.textContent = "Could not save that change — reverted.";
+      } else {
+        sortStatus.textContent =
+          toBucket === "in" ? "Added to anthology." : "Removed from anthology.";
+      }
+    }
+
+    async function persist(toBucket, storyId) {
+      try {
+        if (toBucket === "in") {
+          const res = await fetch(`/api/anthology/${anthologyId}/stories`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ storyId }),
+          });
+          return res.ok;
+        }
+        const res = await fetch(
+          `/api/anthology/${anthologyId}/stories/${storyId}`,
+          { method: "DELETE" },
+        );
+        return res.ok;
+      } catch {
+        return false;
+      }
+    }
+
+    refreshCounts();
+
+    // --- Interpretive note -------------------------------------------------
+    const noteForm = document.getElementById("note-form");
+    const noteStatus = document.getElementById("note-form-status");
+    noteForm?.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const data = new FormData(noteForm);
+      noteStatus.textContent = "Submitting...";
+      const res = await fetch(`/api/anthology/${anthologyId}/notes`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          storyId: Number(data.get("storyId")),
+          note: data.get("note"),
+        }),
+      });
+      if (res.ok) {
+        noteStatus.textContent = "Note added.";
+        window.location.reload();
+      } else {
+        noteStatus.textContent = "Failed to add note.";
+      }
+    });
+  </script>
+</Layout>
+
+<style>
+  .anthology-page {
+    max-width: 980px;
+    margin: 2rem auto;
+    padding: 0 1.5rem 3rem;
+  }
+
+  .anthology-header {
+    display: flex;
+    justify-content: space-between;
+    gap: 1.5rem;
+    align-items: flex-start;
+  }
+
+  .anthology-kicker {
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: 0.75rem;
+  }
+
+  .anthology-question {
+    font-style: italic;
+  }
+
+  .anthology-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    align-items: flex-end;
+    text-align: right;
+  }
+
+  .anthology-status {
+    font-weight: 600;
+  }
+
+  .anthology-section {
+    margin-top: 2rem;
+  }
+
+  .section-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  .ghost-button {
+    background: transparent;
+    border: 1px solid #1f4d7a;
+    color: #1f4d7a;
+    border-radius: 999px;
+    padding: 0.3rem 0.9rem;
+    cursor: pointer;
+    font-size: 0.85rem;
+  }
+
+  .danger-button {
+    background: #fff;
+    border: 1px solid #b3261e;
+    color: #b3261e;
+    border-radius: 999px;
+    padding: 0.45rem 1rem;
+    cursor: pointer;
+  }
+
+  .danger-button:hover {
+    background: #fdecea;
+  }
+
+  .form-actions {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+  }
+
+  .anthology-form {
+    display: grid;
+    gap: 1rem;
+    max-width: 520px;
+    margin-top: 1rem;
+  }
+
+  /* `display: grid` above would otherwise defeat the `hidden` attribute. */
+  .anthology-form[hidden] {
+    display: none;
+  }
+
+  .anthology-form textarea,
+  .anthology-form input,
+  .anthology-form select {
+    width: 100%;
+    padding: 0.5rem;
+  }
+
+  .anthology-form button[type="submit"] {
+    background: #e7f2ff;
+    color: #1f4d7a;
+    border: 1px solid #1f4d7a;
+    border-radius: 999px;
+    padding: 0.45rem 1.25rem;
+    font-weight: 600;
+    cursor: pointer;
+    justify-self: start;
+  }
+
+  .anthology-form__status {
+    font-size: 0.9rem;
+    min-height: 1.2em;
+  }
+
+  /* Card-sort board — flat rounded cards echoing the 2D viewer's links */
+  .sort-help {
+    font-size: 0.9rem;
+    opacity: 0.8;
+  }
+
+  .sort-board {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-top: 0.75rem;
+  }
+
+  .sort-col {
+    border: 1px solid #d4dbe2;
+    border-radius: 0.9rem;
+    padding: 0.85rem;
+    background: #f7f9fc;
+    min-height: 8rem;
+    transition: background 0.15s ease, border-color 0.15s ease;
+  }
+
+  .sort-col--in {
+    background: #eef6ff;
+    border-color: #b9d4f0;
+  }
+
+  .sort-col.drop-active {
+    border-color: #1f4d7a;
+    background: #e2efff;
+  }
+
+  .sort-col h3 {
+    margin: 0 0 0.6rem;
+    font-size: 0.95rem;
+  }
+
+  .sort-col .count {
+    opacity: 0.6;
+    font-weight: 400;
+  }
+
+  .sort-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 0.5rem;
+    min-height: 4rem;
+  }
+
+  .sort-card {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    padding: 0.7rem 0.85rem;
+    border-radius: 0.75rem;
+    border: 1px solid #3c5976;
+    background: #2c3e50;
+    color: #ecf0f1;
+    cursor: grab;
+    user-select: none;
+    font-size: 1rem;
+  }
+
+  .sort-card:active {
+    cursor: grabbing;
+  }
+
+  .sort-card.dragging {
+    opacity: 0.4;
+  }
+
+  .sort-grip {
+    opacity: 0.6;
+    font-size: 0.9rem;
+  }
+
+  .notes-list {
+    list-style: none;
+    padding: 0;
+    display: grid;
+    gap: 0.75rem;
+  }
+
+  .note-card {
+    border: 1px solid #222;
+    border-radius: 0.75rem;
+    padding: 0.75rem;
+  }
+
+  .note-meta {
+    font-size: 0.85rem;
+    opacity: 0.7;
+  }
+
+  .anthology-prompt {
+    border: 1px dashed #1f4d7a;
+    padding: 0.75rem;
+    border-radius: 0.75rem;
+    background: #eef6ff;
+  }
+
+  .anthology-prompt__hint {
+    margin-top: 0.35rem;
+    font-size: 0.9rem;
+    opacity: 0.75;
+  }
+
+  @media (max-width: 640px) {
+    .sort-board {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

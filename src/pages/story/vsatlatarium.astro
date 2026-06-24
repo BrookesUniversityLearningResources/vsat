@@ -9,22 +9,26 @@ import Layout from "../../layouts/PublicSiteLayout.astro";
 
 export const prerender = false;
 
-const { log, repositoryStory, repositoryStoryLink, repositoryPilot } =
+const { log, repositoryStory, repositoryStoryLink, repositoryAnthology } =
   Astro.locals.environment<
     App.WithLog &
       App.WithStoryRepository &
       App.WithStoryLinkRepository &
-      App.WithPilotRepository
+      App.WithAnthologyRepository
   >();
 
-const pilotParam = Astro.url.searchParams.get("pilot");
-const pilotId = pilotParam ? Number(pilotParam) : null;
+// Accept the new ?anthology= param, falling back to the legacy ?pilot= so old
+// shared links keep working.
+const anthologyParam =
+  Astro.url.searchParams.get("anthology") ??
+  Astro.url.searchParams.get("pilot");
+const anthologyId = anthologyParam ? Number(anthologyParam) : null;
 const MAX_VSATLATARIUM_STORIES = 60;
 const FULL_STORY_FETCH_CONCURRENCY = 3;
 const viewMode = Astro.url.searchParams.get("view") ?? "planetarium";
 const isPlanetarium = viewMode === "planetarium";
-const hrefForPilot = (id: number) =>
-  `/story/vsatlatarium?pilot=${id}${isPlanetarium ? "" : "&view=geomview"}`;
+const hrefForAnthology = (id: number) =>
+  `/story/vsatlatarium?anthology=${id}${isPlanetarium ? "" : "&view=geomview"}`;
 
 let summaries: Awaited<
   ReturnType<typeof repositoryStory.getPublishedStorySummaries>
@@ -33,37 +37,39 @@ let interStoryLinks: Awaited<
   ReturnType<typeof repositoryStoryLink.getAllStoryLinks>
 > = [];
 let fullStories: PublishedStory[] = [];
-let pilots: Awaited<ReturnType<typeof repositoryPilot.getPilots>> = [];
+let anthologies: Awaited<
+  ReturnType<typeof repositoryAnthology.getAnthologies>
+> = [];
 let storyDataUnavailable = false;
 let storyLimitExceeded = false;
-let requiresPilotSelection = false;
-let selectedPilot:
-  | Awaited<ReturnType<typeof repositoryPilot.getPilots>>[number]
+let requiresAnthologySelection = false;
+let selectedAnthology:
+  | Awaited<ReturnType<typeof repositoryAnthology.getAnthologies>>[number]
   | null = null;
 
 try {
-  pilots = await repositoryPilot.getPilots();
+  anthologies = await repositoryAnthology.getAnthologies();
 
-  selectedPilot = pilotId
-    ? (pilots.find((p) => p.id === pilotId) ?? null)
+  selectedAnthology = anthologyId
+    ? (anthologies.find((p) => p.id === anthologyId) ?? null)
     : null;
 
-  if (!selectedPilot && pilots.length > 0) {
-    return Astro.redirect(hrefForPilot(pilots[0].id));
+  if (!selectedAnthology && anthologies.length > 0) {
+    return Astro.redirect(hrefForAnthology(anthologies[0].id));
   }
 
-  if (selectedPilot) {
-    const [allSummaries, allLinks, pilotStories] = await Promise.all([
+  if (selectedAnthology) {
+    const [allSummaries, allLinks, anthologyStories] = await Promise.all([
       repositoryStory.getPublishedStorySummaries({}),
       repositoryStoryLink.getAllStoryLinks(),
-      repositoryPilot.getPilotStories(selectedPilot.id),
+      repositoryAnthology.getAnthologyStories(selectedAnthology.id),
     ]);
 
     // VSATLATARIUM is intentionally bounded: cap the full-story payload because
     // each published story carries scene content and media references.
-    const pilotStoryIds = new Set(pilotStories.map((s) => s.id));
+    const anthologyStoryIds = new Set(anthologyStories.map((s) => s.id));
     const scopedSummaries = allSummaries.filter((s) =>
-      pilotStoryIds.has(s.id),
+      anthologyStoryIds.has(s.id),
     );
     storyLimitExceeded = scopedSummaries.length > MAX_VSATLATARIUM_STORIES;
     summaries = scopedSummaries.slice(0, MAX_VSATLATARIUM_STORIES);
@@ -91,9 +97,9 @@ try {
   );
 }
 
-// Cache fingerprint: pilot, view mode, story ids, scene counts, link ids
+// Cache fingerprint: anthology, view mode, story ids, scene counts, link ids
 const layoutFingerprint = [
-  selectedPilot ? `P${selectedPilot.id}` : "none",
+  selectedAnthology ? `P${selectedAnthology.id}` : "none",
   viewMode,
   ...fullStories.map((s) => `${s.id}:${s.scenes.length}`),
   ...interStoryLinks.map((l) => `L${l.id}`),
@@ -658,7 +664,7 @@ const clientData = {
     <header class="vsatlatarium__header">
       <div>
         <p class="vsatlatarium__kicker">VSATLATARIUM</p>
-        <h1>{selectedPilot ? selectedPilot.title : "Story constellation"}</h1>
+        <h1>{selectedAnthology ? selectedAnthology.title : "Story constellation"}</h1>
         <p class="vsatlatarium__help">
           {isPlanetarium
             ? "You are inside the planetarium. Drag to look around. Each cluster is a story projected on the dome."
@@ -675,7 +681,7 @@ const clientData = {
       </aside>
     )}
 
-    {requiresPilotSelection && (
+    {requiresAnthologySelection && (
       <aside class="vsatlatarium__notice" role="status">
         Choose an anthology to load VSATLATARIUM.
       </aside>
@@ -694,11 +700,11 @@ const clientData = {
           <button type="button" id="vsat-toggle-wireframes" class="vsatlatarium__btn">Wireframes</button>
           <a
             class={`vsatlatarium__btn ${isPlanetarium ? "" : "vsatlatarium__btn--active"}`}
-            href={`/story/vsatlatarium?view=geomview${selectedPilot ? "&pilot=" + selectedPilot.id : ""}`}
+            href={`/story/vsatlatarium?view=geomview${selectedAnthology ? "&anthology=" + selectedAnthology.id : ""}`}
           >GeomView</a>
           <a
             class={`vsatlatarium__btn ${isPlanetarium ? "vsatlatarium__btn--active" : ""}`}
-            href={`/story/vsatlatarium${selectedPilot ? "?pilot=" + selectedPilot.id : ""}`}
+            href={`/story/vsatlatarium${selectedAnthology ? "?anthology=" + selectedAnthology.id : ""}`}
           >Planetarium</a>
         </div>
         <a-scene
@@ -885,26 +891,32 @@ const clientData = {
           connections within stories and interpretive links between them.
         </p>
 
-        {pilots.length > 0 && (
-          <div class="vsatlatarium__pilots">
+        {anthologies.length > 0 && (
+          <div class="vsatlatarium__anthologies">
             <h3>Anthology</h3>
-            <div class="pilot-chips">
-              {pilots.map((pilot) => (
+            <div class="anthology-chips">
+              {anthologies.map((anthology) => (
                 <a
-                  class={`pilot-chip ${pilot.id === selectedPilot?.id ? "pilot-chip--active" : ""}`}
-                  href={`/story/vsatlatarium?pilot=${pilot.id}${isPlanetarium ? "" : "&view=geomview"}`}
-                >{pilot.title}</a>
+                  class={`anthology-chip ${anthology.id === selectedAnthology?.id ? "anthology-chip--active" : ""}`}
+                  href={`/story/vsatlatarium?anthology=${anthology.id}${isPlanetarium ? "" : "&view=geomview"}`}
+                >{anthology.title}</a>
               ))}
             </div>
-            {selectedPilot && (
-              <p class="pilot-question">{selectedPilot.question}</p>
+            {selectedAnthology && (
+              <p class="anthology-question">{selectedAnthology.question}</p>
             )}
+            <a class="anthology-manage" href="/author/anthology">
+              Manage anthologies →
+            </a>
           </div>
         )}
-        {pilots.length === 0 && (
-          <div class="vsatlatarium__pilots">
+        {anthologies.length === 0 && (
+          <div class="vsatlatarium__anthologies">
             <h3>Anthology</h3>
-            <p class="pilot-question">No anthologies are available yet.</p>
+            <p class="anthology-question">No anthologies are available yet.</p>
+            <a class="anthology-manage" href="/author/anthology">
+              Create an anthology →
+            </a>
           </div>
         )}
 
@@ -2588,19 +2600,19 @@ const clientData = {
     line-height: 1.5;
   }
 
-  .vsatlatarium__pilots {
+  .vsatlatarium__anthologies {
     border-top: 1px solid #1a2244;
     padding-top: 0.5rem;
   }
 
-  .pilot-chips {
+  .anthology-chips {
     display: flex;
     flex-wrap: wrap;
     gap: 0.3rem;
     margin-top: 0.4rem;
   }
 
-  .pilot-chip {
+  .anthology-chip {
     border: 1px solid #334;
     background: rgba(6, 7, 20, 0.85);
     color: #c8d6ff;
@@ -2612,22 +2624,34 @@ const clientData = {
     transition: border-color 0.2s;
   }
 
-  .pilot-chip:hover {
+  .anthology-chip:hover {
     border-color: #4cc9f0;
   }
 
-  .pilot-chip--active {
+  .anthology-chip--active {
     border-color: #4cc9f0;
     background: rgba(76, 201, 240, 0.12);
     color: #e2eaff;
   }
 
-  .pilot-question {
+  .anthology-question {
     font-size: 0.8rem;
     font-style: italic;
     opacity: 0.6;
     margin-top: 0.3rem;
     line-height: 1.4;
+  }
+
+  .anthology-manage {
+    display: inline-block;
+    margin-top: 0.5rem;
+    font-size: 0.78rem;
+    color: #4cc9f0;
+    text-decoration: none;
+  }
+
+  .anthology-manage:hover {
+    text-decoration: underline;
   }
 
   .vsatlatarium__legend {

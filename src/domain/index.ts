@@ -271,7 +271,7 @@ export type GetStory = (
   request: GetStoryRequest,
 ) => Promise<PersistentStory | null>;
 
-export type { Pilot, PilotStatus } from "./pilot/types.js";
+export type { Anthology, AnthologyStatus } from "./anthology/types.js";
 
 export type GetPublishedStory = (
   id: PersistentStory["id"],
@@ -332,14 +332,17 @@ export type RepositoryStoryLink = Readonly<{
   retireStoryLink: RetireStoryLink;
 }>;
 
-export type RepositoryPilot = Readonly<{
-  createPilot: import("./pilot/types.js").CreatePilot;
-  getPilot: import("./pilot/types.js").GetPilot;
-  getPilots: import("./pilot/types.js").GetPilots;
-  assignStoryToPilot: import("./pilot/types.js").AssignStoryToPilot;
-  getPilotStories: import("./pilot/types.js").GetPilotStories;
-  createInterpretiveNote: import("./pilot/interpretiveNotes.js").CreateInterpretiveNote;
-  getInterpretiveNotes: import("./pilot/interpretiveNotes.js").GetInterpretiveNotes;
+export type RepositoryAnthology = Readonly<{
+  createAnthology: import("./anthology/types.js").CreateAnthology;
+  getAnthology: import("./anthology/types.js").GetAnthology;
+  getAnthologies: import("./anthology/types.js").GetAnthologies;
+  updateAnthology: import("./anthology/types.js").UpdateAnthology;
+  deleteAnthology: import("./anthology/types.js").DeleteAnthology;
+  assignStoryToAnthology: import("./anthology/types.js").AssignStoryToAnthology;
+  removeStoryFromAnthology: import("./anthology/types.js").RemoveStoryFromAnthology;
+  getAnthologyStories: import("./anthology/types.js").GetAnthologyStories;
+  createInterpretiveNote: import("./anthology/interpretiveNotes.js").CreateInterpretiveNote;
+  getInterpretiveNotes: import("./anthology/interpretiveNotes.js").GetInterpretiveNotes;
 }>;
 
 export type VoteOnStoryLinkRequest = {

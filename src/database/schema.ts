@@ -24,8 +24,8 @@ export interface Database {
   authorToStory: TableAuthorToStory;
   storyLink: TableStoryLink;
   linkVote: TableLinkVote;
-  pilot: TablePilot;
-  pilotStory: TablePilotStory;
+  anthology: TableAnthology;
+  anthologyStory: TableAnthologyStory;
   interpretiveNote: TableInterpretiveNote;
 }
 
@@ -185,9 +185,9 @@ export type LinkVoteInsert = Insertable<TableLinkVote>;
 
 // #endregion StoryLink
 
-// #region Pilot
+// #region Anthology
 
-export interface TablePilot {
+export interface TableAnthology {
   id: Generated<number>;
   title: string;
   question: string;
@@ -198,20 +198,20 @@ export interface TablePilot {
   createdAt: Generated<Date>;
 }
 
-export type PilotDto = Selectable<TablePilot>;
-export type PilotInsert = Insertable<TablePilot>;
+export type AnthologyDto = Selectable<TableAnthology>;
+export type AnthologyInsert = Insertable<TableAnthology>;
 
-export interface TablePilotStory {
-  pilotId: number;
+export interface TableAnthologyStory {
+  anthologyId: number;
   storyId: number;
 }
 
-export type PilotStoryDto = Selectable<TablePilotStory>;
-export type PilotStoryInsert = Insertable<TablePilotStory>;
+export type AnthologyStoryDto = Selectable<TableAnthologyStory>;
+export type AnthologyStoryInsert = Insertable<TableAnthologyStory>;
 
 export interface TableInterpretiveNote {
   id: Generated<number>;
-  pilotId: number;
+  anthologyId: number;
   storyId: number;
   authorId: number;
   note: string;
@@ -221,7 +221,7 @@ export interface TableInterpretiveNote {
 export type InterpretiveNoteDto = Selectable<TableInterpretiveNote>;
 export type InterpretiveNoteInsert = Insertable<TableInterpretiveNote>;
 
-// #endregion Pilot
+// #endregion Anthology
 
 // #region Scene
 

@@ -13,13 +13,16 @@ import saveSceneAudio from "../domain/audio/saveSceneAudio.js";
 import createAuthorInDatabase from "../domain/author/createAuthorInDatabase.js";
 import getAuthorByEmailInDatabase from "../domain/author/getAuthorByEmailInDatabase.js";
 import saveAuthorNameInDatabase from "../domain/author/saveAuthorNameInDatabase.js";
-import assignStoryToPilotInDatabase from "../domain/pilot/assignStoryToPilotInDatabase.js";
-import createInterpretiveNoteInDatabase from "../domain/pilot/createInterpretiveNoteInDatabase.js";
-import createPilotInDatabase from "../domain/pilot/createPilotInDatabase.js";
-import getInterpretiveNotesInDatabase from "../domain/pilot/getInterpretiveNotesInDatabase.js";
-import getPilotInDatabase from "../domain/pilot/getPilotInDatabase.js";
-import getPilotsInDatabase from "../domain/pilot/getPilotsInDatabase.js";
-import getPilotStoriesInDatabase from "../domain/pilot/getPilotStoriesInDatabase.js";
+import assignStoryToAnthologyInDatabase from "../domain/anthology/assignStoryToAnthologyInDatabase.js";
+import createInterpretiveNoteInDatabase from "../domain/anthology/createInterpretiveNoteInDatabase.js";
+import createAnthologyInDatabase from "../domain/anthology/createAnthologyInDatabase.js";
+import deleteAnthologyInDatabase from "../domain/anthology/deleteAnthologyInDatabase.js";
+import getInterpretiveNotesInDatabase from "../domain/anthology/getInterpretiveNotesInDatabase.js";
+import getAnthologyInDatabase from "../domain/anthology/getAnthologyInDatabase.js";
+import getAnthologiesInDatabase from "../domain/anthology/getAnthologiesInDatabase.js";
+import getAnthologyStoriesInDatabase from "../domain/anthology/getAnthologyStoriesInDatabase.js";
+import removeStoryFromAnthologyInDatabase from "../domain/anthology/removeStoryFromAnthologyInDatabase.js";
+import updateAnthologyInDatabase from "../domain/anthology/updateAnthologyInDatabase.js";
 import deleteImageFromCloudinary from "../domain/image/cloudinary/deleteImageFromCloudinary.js";
 import uploadImageToCloudinary from "../domain/image/cloudinary/uploadImageToCloudinary.js";
 import createImageInDatabase from "../domain/image/createImageInDatabase.js";
@@ -29,7 +32,7 @@ import type {
   RepositoryAudio,
   RepositoryAuthor,
   RepositoryImage,
-  RepositoryPilot,
+  RepositoryAnthology,
   RepositoryScene,
   RepositoryStory,
   RepositoryStoryLink,
@@ -198,12 +201,17 @@ const getEnvironment: App.GetEnvironment = (() => {
     retireStoryLink: tx(retireStoryLinkInDatabase(logDb, getDB)),
   };
 
-  const repositoryPilot: RepositoryPilot = {
-    createPilot: tx(createPilotInDatabase(logDb, getDB)),
-    getPilot: tx(getPilotInDatabase(logDb, getDB)),
-    getPilots: tx(getPilotsInDatabase(logDb, getDB)),
-    assignStoryToPilot: tx(assignStoryToPilotInDatabase(logDb, getDB)),
-    getPilotStories: tx(getPilotStoriesInDatabase(logDb, getDB)),
+  const repositoryAnthology: RepositoryAnthology = {
+    createAnthology: tx(createAnthologyInDatabase(logDb, getDB)),
+    getAnthology: tx(getAnthologyInDatabase(logDb, getDB)),
+    getAnthologies: tx(getAnthologiesInDatabase(logDb, getDB)),
+    updateAnthology: tx(updateAnthologyInDatabase(logDb, getDB)),
+    deleteAnthology: tx(deleteAnthologyInDatabase(logDb, getDB)),
+    assignStoryToAnthology: tx(assignStoryToAnthologyInDatabase(logDb, getDB)),
+    removeStoryFromAnthology: tx(
+      removeStoryFromAnthologyInDatabase(logDb, getDB),
+    ),
+    getAnthologyStories: tx(getAnthologyStoriesInDatabase(logDb, getDB)),
     createInterpretiveNote: tx(createInterpretiveNoteInDatabase(logDb, getDB)),
     getInterpretiveNotes: tx(getInterpretiveNotesInDatabase(logDb, getDB)),
   };
@@ -230,7 +238,7 @@ const getEnvironment: App.GetEnvironment = (() => {
     repositoryScene,
     repositoryStory,
     repositoryStoryLink,
-    repositoryPilot,
+    repositoryAnthology,
   });
 
   return () => environment;

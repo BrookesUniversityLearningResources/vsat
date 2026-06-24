@@ -19,10 +19,10 @@ test("screenshot polished 2D pages", async ({ browser }) => {
   await page.waitForTimeout(1000);
   await page.screenshot({ path: "test-results/page-author-links.png" });
 
-  // Pilot index
-  await page.goto("/author/pilot");
+  // Anthology index
+  await page.goto("/author/anthology");
   await page.waitForTimeout(1000);
-  await page.screenshot({ path: "test-results/page-pilot.png" });
+  await page.screenshot({ path: "test-results/page-anthology.png" });
 
   await context.close();
 });

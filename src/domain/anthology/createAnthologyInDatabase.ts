@@ -1,17 +1,17 @@
 import type { Logger } from "pino";
 
 import type { GetDatabase } from "../../database/schema.js";
-import type { CreatePilot, Pilot } from "../pilot/types.js";
+import type { Anthology, CreateAnthology } from "./types.js";
 
-export default function createPilotInDatabase(
+export default function createAnthologyInDatabase(
   log: Logger,
   db: GetDatabase,
-): CreatePilot {
+): CreateAnthology {
   return async (request) => {
-    log.debug({ request }, "Creating pilot");
+    log.debug({ request }, "Creating anthology");
 
-    const pilot = await db()
-      .insertInto("pilot")
+    const anthology = await db()
+      .insertInto("anthology")
       .values({
         title: request.title,
         question: request.question,
@@ -23,6 +23,6 @@ export default function createPilotInDatabase(
       .returningAll()
       .executeTakeFirstOrThrow();
 
-    return pilot as Pilot;
+    return anthology as Anthology;
   };
 }

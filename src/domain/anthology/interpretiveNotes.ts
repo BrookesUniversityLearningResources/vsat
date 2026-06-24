@@ -13,7 +13,7 @@ export type InterpretiveNote = {
 };
 
 export type CreateInterpretiveNoteRequest = {
-  pilotId: number;
+  anthologyId: number;
   storyId: number;
   authorId: number;
   note: string;
@@ -23,7 +23,7 @@ export type CreateInterpretiveNote = (
   request: CreateInterpretiveNoteRequest,
 ) => Promise<{
   id: number;
-  pilotId: number;
+  anthologyId: number;
   storyId: number;
   authorId: number;
   note: string;
@@ -31,5 +31,5 @@ export type CreateInterpretiveNote = (
 }>;
 
 export type GetInterpretiveNotes = (
-  pilotId: number,
+  anthologyId: number,
 ) => Promise<ReadonlyArray<InterpretiveNote>>;

@@ -7,8 +7,8 @@ export default function getInterpretiveNotesInDatabase(
   log: Logger,
   db: GetDatabase,
 ): GetInterpretiveNotes {
-  return async (pilotId) => {
-    log.debug({ pilotId }, "Getting interpretive notes");
+  return async (anthologyId) => {
+    log.debug({ anthologyId }, "Getting interpretive notes");
 
     const rows = await db()
       .selectFrom("interpretiveNote")
@@ -23,7 +23,7 @@ export default function getInterpretiveNotesInDatabase(
         "story.id as storyId",
         "story.title as storyTitle",
       ])
-      .where("interpretiveNote.pilotId", "=", pilotId)
+      .where("interpretiveNote.anthologyId", "=", anthologyId)
       .orderBy("interpretiveNote.createdAt", "desc")
       .execute();
 
