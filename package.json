@@ -48,7 +48,7 @@
   "dependencies": {
     "@astrojs/check": "^0.9.6",
     "@astrojs/node": "^9.5.2",
-    "@astrojs/react": "^4.4.2",
+    "@astrojs/react": "^5.0.7",
     "@fontsource/source-sans-pro": "^5.2.5",
     "@magic-sdk/admin": "^2.8.0",
     "@tanstack/react-query": "^5.90.20",
