@@ -78,7 +78,7 @@
     "slate": "^0.120.0",
     "slate-history": "^0.113.1",
     "slate-react": "^0.118.2",
-    "sweetalert2": "^11.26.18",
+    "sweetalert2": "^11.26.25",
     "zod": "^3.25.76"
   },
   "devDependencies": {
