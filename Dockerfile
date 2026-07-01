@@ -1,4 +1,4 @@
-FROM node:24-slim AS build
+FROM node:26-slim AS build
 
 WORKDIR /app
 
@@ -19,7 +19,7 @@ COPY ./src ./src
 RUN npm ci
 RUN npm run build
 
-FROM node:24-slim AS release
+FROM node:26-slim AS release
 
 WORKDIR /app
 
