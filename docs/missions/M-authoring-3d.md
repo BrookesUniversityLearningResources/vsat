@@ -559,3 +559,20 @@ fold into the planetarium spec-suite rewrite.
 
 Together these complete the board's verb set: read, edit, connect,
 create, remove — plus slice 3's original move-and-persist.
+
+### The verb set is the voice grammar (2026-07-11, operator insight)
+
+Joe: "the verbs we are collecting could be used for the edit-by-voice
+commands later."
+
+Adopted as increment B's design principle: the focus board's verbs —
+READ, EDIT, CONNECT, CREATE, REMOVE, ARRANGE — are the intent schema.
+One relay intent kind per verb, executed host-applies through the same
+shared write path the mouse uses. The focus board also solves voice's
+reference-resolution problem: a focused story bounds the namespace to
+its scene titles, so a fixed grammar ("connect X to Y", "add a scene
+called Z", "delete the link from X to Y") resolves unambiguously — no
+LLM needed (as the June remote-control note anticipated). Dictation
+covers EDIT; the gaze mirror gives the audience the same board the
+voice operates on. Same verbs, three input skins: mouse, voice,
+controller.
