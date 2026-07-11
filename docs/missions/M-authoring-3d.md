@@ -576,3 +576,21 @@ LLM needed (as the June remote-control note anticipated). Dictation
 covers EDIT; the gaze mirror gives the audience the same board the
 voice operates on. Same verbs, three input skins: mouse, voice,
 controller.
+
+### Future note (2026-07-11, operator): Cardboard as audience client
+
+Joe: "I wonder if a future version of the Cardboard viewer can act as
+a client while we author in VR with voice. Not to build today."
+
+Shape: the phone-in-cardboard joins the authoring session's relay room
+(the QR handoff can carry ?room= — pairing already solved) as a
+FOLLOWER client: it renders the same 3D scene and receives content
+state (focused story, board edits landing, highlights) while the
+author works by voice (increment B intents). The June principle
+extends: cardboard-spectator is one more "client onto one VSAT
+experience." Design constraint: NEVER drive a follower headset's
+camera remotely — sync content state and attention cues (gaze-mirror
+style), not pose; the wearer's head owns the view. Depends on:
+planetarium-as-relay-host (increment C item) + increment B intents.
+Demo it enables: Eric in cardboard, watching the constellation
+restructure itself as Joe speaks.
