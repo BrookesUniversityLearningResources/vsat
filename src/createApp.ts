@@ -9,6 +9,7 @@ import passportWithMagicLogin from "./authentication/passport/passportWithMagicL
 import routeAuthenticate from "./authentication/routeAuthenticate.js";
 import routeLogout from "./authentication/routeLogout.js";
 import routeAnthology from "./domain/anthology/route/routeAnthology.js";
+import auditStoryEdits from "./domain/story/editLog/auditStoryEdits.js";
 import canVoteOnStoryLinkInDatabase from "./domain/story/link/canVoteOnStoryLinkInDatabase.js";
 import routeCreateScene from "./domain/story/route/routeCreateScene.js";
 import routeCreateStory from "./domain/story/route/routeCreateStory.js";
@@ -35,8 +36,8 @@ import isAuthorOfTheStory from "./domain/story/support/isAuthorOfTheStory.js";
 import loadConfig from "./environment/config.js";
 import getEnvironment from "./environment/getEnvironment.js";
 import type { StartServer } from "./server/createServer.js";
-import routeSessions from "./server/relay/routeSessions.js";
 import httpSession from "./server/httpSessionMiddleware.js";
+import routeSessions from "./server/relay/routeSessions.js";
 import routeHealthcheck from "./server/routeHealthcheck.js";
 import { withHeadersToEnableSharedArrayBufferUsage } from "./server/staticHeadersMiddleware.js";
 
@@ -52,6 +53,7 @@ export async function createAppParts(): Promise<{
     log,
     repositoryAuthor,
     repositoryStory,
+    repositoryStoryEditLog,
     repositoryStoryLink,
     repositoryAnthology,
     repositoryScene,
@@ -61,6 +63,7 @@ export async function createAppParts(): Promise<{
       App.WithDatabase &
       App.WithAuthorRepository &
       App.WithStoryRepository &
+      App.WithStoryEditLogRepository &
       App.WithStoryLinkRepository &
       App.WithAnthologyRepository &
       App.WithSceneRepository
@@ -126,6 +129,10 @@ export async function createAppParts(): Promise<{
       log,
       config.authentication.pathsRequiringAuthentication,
     ),
+    // After auth so req.user is populated: record every successful
+    // story-scoped mutation to the edit changelog (the accountability trail
+    // for author+steward editing).
+    auditStoryEdits(log, repositoryStoryEditLog.recordStoryEdit),
     ...(sharedArrayBufferHeadersEnabled
       ? [withHeadersToEnableSharedArrayBufferUsage()]
       : []),
@@ -133,10 +140,8 @@ export async function createAppParts(): Promise<{
 
   const assertIsAuthor = assertIsAuthorHandler(log);
 
-  const assertIsAuthorOrStewardOfTheStory = assertIsAuthorOrStewardOfTheStoryHandler(
-    log,
-    isAuthorOfTheStory(db),
-  );
+  const assertIsAuthorOrStewardOfTheStory =
+    assertIsAuthorOrStewardOfTheStoryHandler(log, isAuthorOfTheStory(db));
 
   const assertIsSteward = assertIsStewardHandler(log);
 
@@ -212,7 +217,10 @@ export async function createAppParts(): Promise<{
       repositoryStoryLink.getStoryLinksForStory,
       assertIsSteward,
     ),
-    routeDeleteScene(repositoryScene.deleteScene, assertIsAuthorOrStewardOfTheStory),
+    routeDeleteScene(
+      repositoryScene.deleteScene,
+      assertIsAuthorOrStewardOfTheStory,
+    ),
     routeDeleteStory(
       log,
       repositoryStory.deleteStory,

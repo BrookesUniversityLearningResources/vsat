@@ -95,6 +95,9 @@ const sortedLinks = [...links].sort((a, b) => {
       <div class="links-actions">
         {isSteward && <span class="steward-flair">Steward mode</span>}
         <a href={storyReturnHref}>{storyReturnLabel}</a>
+        {(canEditStory || isSteward) && (
+          <a href={`/author/story/${story.id}/history`}>Edit history</a>
+        )}
         <a href="/author/links">Review all links</a>
       </div>
     </header>

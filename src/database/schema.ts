@@ -1,3 +1,4 @@
+import type { NonEmptyArray } from "@util/nonEmptyArray.js";
 import type {
   Generated,
   Insertable,
@@ -5,8 +6,6 @@ import type {
   Kysely,
   Selectable,
 } from "kysely";
-
-import type { NonEmptyArray } from "@util/nonEmptyArray.js";
 import type { PersistentScene, PersistentStory } from "../domain/index.js";
 import type {
   PublishedScene,
@@ -28,6 +27,7 @@ export interface Database {
   anthology: TableAnthology;
   anthologyStory: TableAnthologyStory;
   interpretiveNote: TableInterpretiveNote;
+  storyEditLog: TableStoryEditLog;
 }
 
 // #region Author
@@ -285,5 +285,48 @@ export type SaveSceneContentInDatabase = (
 ) => Promise<unknown>;
 
 // #endregion Scene
+
+// #region StoryEditLog
+
+export interface TableStoryEditLog {
+  id: Generated<number>;
+  storyId: number;
+  sceneId: number | null;
+  editorId: number;
+  action: string;
+  summary: string | null;
+  createdAt: Generated<Date>;
+}
+
+export type StoryEditLogDto = Selectable<TableStoryEditLog>;
+
+type RecordStoryEditInDatabaseRequest = {
+  storyId: StoryDto["id"];
+  sceneId?: SceneDto["id"] | null;
+  editorId: AuthorDto["id"];
+  action: string;
+  summary?: string | null;
+};
+
+export type RecordStoryEditInDatabase = (
+  request: RecordStoryEditInDatabaseRequest,
+) => Promise<unknown>;
+
+export type StoryEditLogEntry = {
+  id: number;
+  storyId: number;
+  sceneId: number | null;
+  action: string;
+  summary: string | null;
+  createdAt: Date;
+  editorId: number;
+  editorName: string | null;
+};
+
+export type GetStoryEditLogInDatabase = (
+  storyId: StoryDto["id"],
+) => Promise<StoryEditLogEntry[]>;
+
+// #endregion StoryEditLog
 
 export type GetDatabase = () => Kysely<Database>;

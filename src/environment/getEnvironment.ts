@@ -5,6 +5,16 @@ import pino from "pino";
 import createKysely from "../database/createKysely.js";
 import type { Database } from "../database/schema.js";
 import withTransaction from "../database/transaction/withTransaction.js";
+import assignStoryToAnthologyInDatabase from "../domain/anthology/assignStoryToAnthologyInDatabase.js";
+import createAnthologyInDatabase from "../domain/anthology/createAnthologyInDatabase.js";
+import createInterpretiveNoteInDatabase from "../domain/anthology/createInterpretiveNoteInDatabase.js";
+import deleteAnthologyInDatabase from "../domain/anthology/deleteAnthologyInDatabase.js";
+import getAnthologiesInDatabase from "../domain/anthology/getAnthologiesInDatabase.js";
+import getAnthologyInDatabase from "../domain/anthology/getAnthologyInDatabase.js";
+import getAnthologyStoriesInDatabase from "../domain/anthology/getAnthologyStoriesInDatabase.js";
+import getInterpretiveNotesInDatabase from "../domain/anthology/getInterpretiveNotesInDatabase.js";
+import removeStoryFromAnthologyInDatabase from "../domain/anthology/removeStoryFromAnthologyInDatabase.js";
+import updateAnthologyInDatabase from "../domain/anthology/updateAnthologyInDatabase.js";
 import deleteAudioFromCloudinary from "../domain/audio/cloudinary/deleteAudioFromCloudinary.js";
 import uploadAudioToCloudinary from "../domain/audio/cloudinary/uploadAudioToCloudinary.js";
 import createAudioInDatabase from "../domain/audio/createAudioInDatabase.js";
@@ -13,28 +23,19 @@ import saveSceneAudio from "../domain/audio/saveSceneAudio.js";
 import createAuthorInDatabase from "../domain/author/createAuthorInDatabase.js";
 import getAuthorByEmailInDatabase from "../domain/author/getAuthorByEmailInDatabase.js";
 import saveAuthorNameInDatabase from "../domain/author/saveAuthorNameInDatabase.js";
-import assignStoryToAnthologyInDatabase from "../domain/anthology/assignStoryToAnthologyInDatabase.js";
-import createInterpretiveNoteInDatabase from "../domain/anthology/createInterpretiveNoteInDatabase.js";
-import createAnthologyInDatabase from "../domain/anthology/createAnthologyInDatabase.js";
-import deleteAnthologyInDatabase from "../domain/anthology/deleteAnthologyInDatabase.js";
-import getInterpretiveNotesInDatabase from "../domain/anthology/getInterpretiveNotesInDatabase.js";
-import getAnthologyInDatabase from "../domain/anthology/getAnthologyInDatabase.js";
-import getAnthologiesInDatabase from "../domain/anthology/getAnthologiesInDatabase.js";
-import getAnthologyStoriesInDatabase from "../domain/anthology/getAnthologyStoriesInDatabase.js";
-import removeStoryFromAnthologyInDatabase from "../domain/anthology/removeStoryFromAnthologyInDatabase.js";
-import updateAnthologyInDatabase from "../domain/anthology/updateAnthologyInDatabase.js";
 import deleteImageFromCloudinary from "../domain/image/cloudinary/deleteImageFromCloudinary.js";
 import uploadImageToCloudinary from "../domain/image/cloudinary/uploadImageToCloudinary.js";
 import createImageInDatabase from "../domain/image/createImageInDatabase.js";
 import getImageByIdInDatabase from "../domain/image/getImageByIdInDatabase.js";
 import saveSceneImage from "../domain/image/saveSceneImage.js";
 import type {
+  RepositoryAnthology,
   RepositoryAudio,
   RepositoryAuthor,
   RepositoryImage,
-  RepositoryAnthology,
   RepositoryScene,
   RepositoryStory,
+  RepositoryStoryEditLog,
   RepositoryStoryLink,
 } from "../domain/index.js";
 import createScene from "../domain/story/createScene.js";
@@ -49,6 +50,8 @@ import deleteSceneImageInDatabase from "../domain/story/deleteSceneImageInDataba
 import deleteSceneInDatabase from "../domain/story/deleteSceneInDatabase.js";
 import deleteStory from "../domain/story/deleteStory.js";
 import deleteStoryInDatabase from "../domain/story/deleteStoryInDatabase.js";
+import getStoryEditLogInDatabase from "../domain/story/editLog/getStoryEditLogInDatabase.js";
+import recordStoryEditInDatabase from "../domain/story/editLog/recordStoryEditInDatabase.js";
 import getPublishedStoryInDatabase from "../domain/story/getPublishedStoryInDatabase.js";
 import getPublishedStorySummariesInDatabase from "../domain/story/getPublishedStorySummariesInDatabase.js";
 import getSceneForStoryInDatabase from "../domain/story/getSceneForStoryInDatabase.js";
@@ -195,6 +198,11 @@ const getEnvironment: App.GetEnvironment = (() => {
     saveStoryMode: tx(saveStoryModeInDatabase(logDb, getDB, getStory)),
   };
 
+  const repositoryStoryEditLog: RepositoryStoryEditLog = {
+    recordStoryEdit: tx(recordStoryEditInDatabase(logDb, getDB)),
+    getStoryEditLog: tx(getStoryEditLogInDatabase(logDb, getDB)),
+  };
+
   const repositoryStoryLink: RepositoryStoryLink = {
     createStoryLink: tx(createStoryLinkInDatabase(logDb, getDB)),
     getStoryLinksForStory: tx(getStoryLinksForStoryInDatabase(logDb, getDB)),
@@ -239,6 +247,7 @@ const getEnvironment: App.GetEnvironment = (() => {
     repositoryImage,
     repositoryScene,
     repositoryStory,
+    repositoryStoryEditLog,
     repositoryStoryLink,
     repositoryAnthology,
   });

@@ -1,0 +1,160 @@
+---
+import isStewardUser from "@authentication/isStewardUser";
+import { ErrorCodes } from "@domain/error/errorCode";
+import toStoryId from "@domain/story/toStoryId";
+import Layout from "@layouts/AuthoringLayout.astro";
+
+export const prerender = false;
+
+const { repositoryStory, repositoryStoryEditLog } = Astro.locals.environment<
+  App.WithStoryRepository & App.WithStoryEditLogRepository
+>();
+
+const storyId = toStoryId(Astro.params.storyId);
+
+if (!storyId) {
+  return Astro.redirect(`/author/story?err=${ErrorCodes.StoryNotFound}`);
+}
+
+const story = await repositoryStory.getStory({ id: storyId });
+
+if (!story) {
+  return Astro.redirect(`/author/story?err=${ErrorCodes.StoryNotFound}`);
+}
+
+// Gated to the same audience that may edit the story: its authors, or a
+// steward. Everyone else is bounced (the log names who changed the story, so
+// it is not public).
+const user = Astro.locals.user;
+const isSteward = isStewardUser(user, Astro.request.headers.get("cookie"));
+const authorStories = user
+  ? await repositoryStory.getStorySummariesByAuthor(user.id)
+  : null;
+const isAuthor = new Set(authorStories?.stories.map((s) => s.id) ?? []).has(
+  storyId,
+);
+
+if (!isAuthor && !isSteward) {
+  return Astro.redirect(`/author/story?err=${ErrorCodes.Unauthorized}`);
+}
+
+const entries = await repositoryStoryEditLog.getStoryEditLog(storyId);
+
+const ACTION_LABELS: Record<string, string> = {
+  "edit-content": "Edited a scene",
+  "create-scene": "Added a scene",
+  "delete-scene": "Deleted a scene",
+  "rename-scene": "Renamed a scene",
+  "rename-story": "Renamed the story",
+  "set-mode": "Changed the story mode",
+  publish: "Published the story",
+  unpublish: "Unpublished the story",
+  "delete-story": "Deleted the story",
+  "set-scene-image": "Set a scene image",
+  "remove-scene-image": "Removed a scene image",
+  "set-scene-audio": "Set a scene audio",
+  "remove-scene-audio": "Removed a scene audio",
+};
+
+const labelFor = (action: string) => ACTION_LABELS[action] ?? action;
+
+const dateFormatter = new Intl.DateTimeFormat("en-GB", {
+  dateStyle: "medium",
+  timeStyle: "short",
+});
+---
+
+<Layout
+  title={`Edit history — ${story.title}`}
+  description="Who changed this story, and when"
+>
+  <main class="history">
+    <header class="history__head">
+      <a class="history__back" href={`/author/story/${storyId}`}
+        >← Back to editor</a
+      >
+      <h1>Edit history</h1>
+      <p class="history__story">{story.title}</p>
+    </header>
+
+    {
+      entries.length === 0 ? (
+        <p class="history__empty">No edits recorded yet.</p>
+      ) : (
+        <table class="history__table">
+          <thead>
+            <tr>
+              <th>When</th>
+              <th>Who</th>
+              <th>What</th>
+              <th>Scene</th>
+            </tr>
+          </thead>
+          <tbody>
+            {entries.map((entry) => (
+              <tr>
+                <td>{dateFormatter.format(new Date(entry.createdAt))}</td>
+                <td>{entry.editorName ?? `#${entry.editorId}`}</td>
+                <td>{labelFor(entry.action)}</td>
+                <td>{entry.sceneId ?? "—"}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )
+    }
+  </main>
+</Layout>
+
+<style>
+  .history {
+    max-width: 60rem;
+    margin: 0 auto;
+    padding: 1.5rem;
+    color: #e2eaff;
+    font-family: "Source Sans Pro", system-ui, sans-serif;
+  }
+  .history__head {
+    margin-bottom: 1.5rem;
+  }
+  .history__back {
+    color: #9fb3c8;
+    font-size: 0.85rem;
+    text-decoration: none;
+  }
+  .history__back:hover {
+    text-decoration: underline;
+  }
+  .history__head h1 {
+    margin: 0.5rem 0 0.25rem;
+    font-size: 1.5rem;
+  }
+  .history__story {
+    margin: 0;
+    color: #9fb3c8;
+  }
+  .history__empty {
+    color: #9fb3c8;
+  }
+  .history__table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+  }
+  .history__table th,
+  .history__table td {
+    text-align: left;
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid rgba(150, 170, 190, 0.2);
+  }
+  .history__table th {
+    color: #9fb3c8;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.72rem;
+    letter-spacing: 0.05em;
+  }
+  .history__table tbody tr:hover {
+    background: rgba(150, 170, 190, 0.06);
+  }
+</style>

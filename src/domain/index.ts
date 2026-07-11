@@ -2,7 +2,9 @@ import type {
   AudioDto,
   AuthorDto,
   AuthorInsert,
+  GetStoryEditLogInDatabase,
   ImageDto,
+  RecordStoryEditInDatabase,
   SaveAuthorNameInDatabase,
   SaveSceneContentInDatabase,
   SaveSceneTitleInDatabase,
@@ -332,6 +334,11 @@ export type RepositoryStory = Readonly<{
   getPublishedStorySummaries: GetPublishedStorySummaries;
   saveStoryTitle: SaveStoryTitleInDatabase;
   saveStoryMode: SaveStoryModeInDatabase;
+}>;
+
+export type RepositoryStoryEditLog = Readonly<{
+  recordStoryEdit: RecordStoryEditInDatabase;
+  getStoryEditLog: GetStoryEditLogInDatabase;
 }>;
 
 export type RepositoryStoryLink = Readonly<{
