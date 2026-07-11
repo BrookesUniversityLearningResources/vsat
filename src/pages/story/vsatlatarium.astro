@@ -2558,6 +2558,11 @@ const clientData = {
       const exitFocus3D = () => {
         if (!focus3D.storyId) return;
         cancelAnimationFrame(focus3D.raf);
+        if (focus3D.holdPivot) {
+          window.removeEventListener("mousemove", focus3D.holdPivot);
+          canvas.removeEventListener("wheel", focus3D.holdPivot);
+          focus3D.holdPivot = null;
+        }
         if (turntable?.object3D) turntable.object3D.position.set(0, 0, 0);
         for (const el of focus3D.entities) el.remove();
         for (const el of focus3D.hidden) el.setAttribute("visible", "true");
@@ -2627,9 +2632,10 @@ const clientData = {
         applyTransform();
 
         // while focused, dragging should rotate the card model about ITS OWN
-        // centre — not swing it around the distant world origin. Each frame,
-        // offset the turntable so the cluster centre stays put under the
-        // current rotation.
+        // centre — not swing it around the distant world origin. The
+        // correction must run SYNCHRONOUSLY in the same events that rotate
+        // the world: a rAF-only correction lags a frame behind the mouse
+        // and the model jitters during drags.
         const pivotLocal = new THREE.Vector3(cluster.center.x, cluster.center.y, cluster.center.z);
         const pivotWorld = pivotLocal.clone().applyQuaternion(turntable.object3D.quaternion);
         const pivotTmp = new THREE.Vector3();
@@ -2637,9 +2643,20 @@ const clientData = {
           if (!focus3D.storyId) return;
           pivotTmp.copy(pivotLocal).applyQuaternion(turntable.object3D.quaternion);
           turntable.object3D.position.copy(pivotWorld).sub(pivotTmp);
-          focus3D.raf = requestAnimationFrame(holdPivot);
         };
+        focus3D.holdPivot = holdPivot;
+        // registered after the turntable's own handlers, so these run last
+        // within the same event and the render sees a consistent pair
+        window.addEventListener("mousemove", holdPivot);
+        canvas.addEventListener("wheel", holdPivot);
         holdPivot();
+        // low-cost safety net for programmatic rotations (reset button etc.)
+        const rafLoop = () => {
+          if (!focus3D.storyId) return;
+          holdPivot();
+          focus3D.raf = requestAnimationFrame(rafLoop);
+        };
+        rafLoop();
 
         for (const sn of cluster.scenes) {
           const card = document.createElement("a-entity");
