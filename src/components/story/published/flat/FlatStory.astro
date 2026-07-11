@@ -133,6 +133,10 @@ const serializedStory = DOMPurify.sanitize(
     isLinkBlock,
     isPlaintextBlock,
   } from "@domain/story/publish/support/isBlock";
+  import {
+    allTargetsIn,
+    placeHotspot,
+  } from "@components/story/published/placeHotspot";
   import { startRemoteHost } from "@components/story/remote/remoteHost";
 
   const story = (window as any).current.story;
@@ -480,10 +484,7 @@ const serializedStory = DOMPurify.sanitize(
     main.classList.add("flat--editing");
 
     const datalist = document.getElementById("flat-hotspot-targets");
-    const targets = new Set<string>();
-    for (const s of story.scenes)
-      for (const key of Object.keys(s.pages)) targets.add(key);
-    for (const t of [...targets].sort()) {
+    for (const t of allTargetsIn(story)) {
       const option = document.createElement("option");
       option.value = t;
       datalist.appendChild(option);
@@ -528,65 +529,24 @@ const serializedStory = DOMPurify.sanitize(
         pending = null;
       });
 
-    // Insert the markup line at the end of this page's section of the draft
-    // content; pages are delimited by `#` heading lines. If the draft has
-    // drifted so far that the page no longer exists, append at the end.
-    function insertLine(content, pageNumber, line) {
-      const lines = content.split("\n");
-      const headings = [];
-      lines.forEach((l, i) => {
-        if (/^\s*#/.test(l)) headings.push(i);
-      });
-      if (!headings.length || pageNumber >= headings.length) {
-        return `${content.replace(/\s+$/, "")}\n${line}\n`;
-      }
-      let at =
-        pageNumber + 1 < headings.length
-          ? headings[pageNumber + 1]
-          : lines.length;
-      while (at > headings[pageNumber] + 1 && !lines[at - 1].trim()) at--;
-      lines.splice(at, 0, line);
-      return lines.join("\n");
-    }
-
     el.form.addEventListener("submit", async (e) => {
       e.preventDefault();
       if (!pending) return;
       const label = labelInput.value.trim();
       const target = targetInput.value.trim();
       if (!label || !target) return;
-      const line = `[${label}](${target} @ ${pending.x},${pending.y})`;
       submitButton.disabled = true;
       formError.hidden = true;
       try {
-        const sceneRes = await fetch(
-          `/api/story/${story.id}/scene/${scene.id}`,
-        );
-        if (!sceneRes.ok)
-          throw new Error(`couldn't load the draft scene (${sceneRes.status})`);
-        const draft = await sceneRes.json();
-        const content = insertLine(draft.content ?? "", page.number, line);
-        const saveRes = await fetch(
-          `/api/story/${story.id}/scene/${scene.id}/content`,
-          {
-            method: "PUT",
-            headers: { "content-type": "text/plain" },
-            body: content,
-          },
-        );
-        if (!saveRes.ok)
-          throw new Error(
-            saveRes.status === 401
-              ? "you need to be signed in as this story's author"
-              : `couldn't save (${saveRes.status})`,
-          );
-        const publishRes = await fetch(`/api/story/${story.id}/publish`, {
-          method: "POST",
+        await placeHotspot({
+          storyId: story.id,
+          sceneId: scene.id,
+          pageNumber: page.number,
+          label,
+          target,
+          x: pending.x,
+          y: pending.y,
         });
-        if (!publishRes.ok)
-          throw new Error(
-            `saved, but couldn't republish (${publishRes.status})`,
-          );
         location.reload();
       } catch (err) {
         formError.textContent = String(err?.message ?? err);

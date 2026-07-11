@@ -1,0 +1,308 @@
+---
+import ImportAFrameScripts from "@components/story/published/aframe/ImportAFrameScripts.astro";
+
+export const prerender = false;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>VSAT · 3D Foil Letters</title>
+
+    <ImportAFrameScripts />
+
+    {/*
+      The three.js text addons (FontLoader + TextGeometry) live in
+      examples/jsm and import the bare specifier "three". A-Frame bundles
+      its own copy of three as a global, so we point the importmap at a
+      vendored module of the SAME revision (r173) used to build the geometry.
+      The meshes/materials/textures themselves are created with AFRAME.THREE
+      so the renderer always sees its own classes.
+
+      Everything is vendored under /public/scripts/three so it works under
+      the site's COEP headers (no cross-origin script/font fetches).
+    */}
+    <script type="importmap" is:inline>
+      { "imports": { "three": "/scripts/three/three.module.js" } }
+    </script>
+
+    <style>
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        overflow: hidden;
+        background: #aee3ff;
+        font-family: system-ui, sans-serif;
+      }
+      .hud {
+        position: fixed;
+        left: 50%;
+        bottom: 18px;
+        transform: translateX(-50%);
+        z-index: 10;
+        padding: 8px 16px;
+        border-radius: 999px;
+        background: rgba(20, 24, 48, 0.55);
+        color: #eaf2ff;
+        font-size: 13px;
+        letter-spacing: 0.2px;
+        backdrop-filter: blur(6px);
+        pointer-events: none;
+        white-space: nowrap;
+      }
+      .hud code {
+        color: #ffe08a;
+      }
+    </style>
+  </head>
+
+  <body>
+    <a-scene
+      renderer="colorManagement: true; toneMapping: ACESFilmic; exposure: 1.1; antialias: true"
+      background="color: #aee3ff"
+      vr-mode-ui="enabled: true"
+    >
+      {/* Soft, cheerful lighting with a warm key for foil speculars */}
+      <a-entity light="type: ambient; intensity: 0.8; color: #dfeeff"></a-entity>
+      <a-entity
+        light="type: directional; intensity: 1.2; color: #ffffff"
+        position="4 6 5"></a-entity>
+      <a-entity
+        light="type: point; intensity: 0.9; color: #ffd8a0"
+        position="-5 2 3"></a-entity>
+      <a-entity
+        light="type: point; intensity: 0.6; color: #a0c8ff"
+        position="3 -2 4"></a-entity>
+
+      {/* The balloon letters. Override with ?word=HELLO and ?font=gentilis */}
+      <a-entity
+        id="balloons"
+        position="0 2.2 -4.5"
+        balloon-letters="word: VSAT; soup: true"></a-entity>
+
+      <a-entity id="rig" position="0 1.6 2">
+        <a-camera
+          look-controls="reverseMouseDrag: false"
+          wasd-controls-enabled="false"></a-camera>
+      </a-entity>
+    </a-scene>
+
+    <div class="hud">
+      drag to look around · try <code>?word=HELLO</code> ·
+      <code>?font=gentilis</code>
+    </div>
+
+    <script type="module" is:inline>
+      import * as VENDOR from "/scripts/three/three.module.js";
+      import { FontLoader } from "/scripts/three/addons/loaders/FontLoader.js";
+      import { TextGeometry } from "/scripts/three/addons/geometries/TextGeometry.js";
+
+      // Build geometry with the vendored module, but create every renderable
+      // object (mesh/material/texture/light) with A-Frame's own three so the
+      // WebGLRenderer always works with classes it owns.
+      const T = AFRAME.THREE;
+
+      const FOIL = [
+        0xff4d4d, 0xffd24d, 0x4db4ff, 0xff7ed4, 0x6ee36e, 0xc77dff, 0xff9f43,
+      ];
+
+      const FONTS = {
+        helvetiker: "/scripts/three/fonts/helvetiker_bold.typeface.json",
+        gentilis: "/scripts/three/fonts/gentilis_bold.typeface.json",
+      };
+
+      // A vertical gradient used as an equirect env map → reads as a bright
+      // sky-to-ground reflection, which is what sells the "foil" look.
+      function makeEnvMap() {
+        const canvas = document.createElement("canvas");
+        canvas.width = 16;
+        canvas.height = 128;
+        const ctx = canvas.getContext("2d");
+        const g = ctx.createLinearGradient(0, 0, 0, 128);
+        g.addColorStop(0.0, "#ffffff");
+        g.addColorStop(0.42, "#cfe6ff");
+        g.addColorStop(0.5, "#ffffff");
+        g.addColorStop(0.58, "#7fa8d8");
+        g.addColorStop(1.0, "#162038");
+        ctx.fillStyle = g;
+        ctx.fillRect(0, 0, 16, 128);
+        const tex = new T.CanvasTexture(canvas);
+        tex.mapping = T.EquirectangularReflectionMapping;
+        tex.colorSpace = T.SRGBColorSpace;
+        return tex;
+      }
+
+      let fontPromise = null;
+      function loadFont(url) {
+        if (!fontPromise) {
+          fontPromise = new Promise((res, rej) =>
+            new FontLoader().load(url, res, undefined, rej),
+          );
+        }
+        return fontPromise;
+      }
+
+      function foilMaterial(color, intensity) {
+        return new T.MeshPhysicalMaterial({
+          color,
+          metalness: 0.7,
+          roughness: 0.2,
+          envMap: ENV,
+          envMapIntensity: intensity,
+          clearcoat: 0.85,
+          clearcoatRoughness: 0.15,
+          // A little self-color emissive so foil never reads as black where it
+          // faces away from the reflection — keeps every balloon candy-bright.
+          emissive: color,
+          emissiveIntensity: 0.16,
+        });
+      }
+
+      let ENV = null;
+
+      AFRAME.registerComponent("balloon-letters", {
+        schema: {
+          word: { default: "VSAT" },
+          font: { default: "helvetiker" },
+          size: { default: 1.15 },
+          soup: { default: true },
+        },
+
+        init() {
+          this.letters = [];
+          this.soup = [];
+          this.t = 0;
+          if (!ENV) ENV = makeEnvMap();
+
+          // URL overrides so the demo is tweakable without editing code.
+          const params = new URLSearchParams(location.search);
+          this.word = (params.get("word") || this.data.word).toUpperCase();
+          const fontKey = (params.get("font") || this.data.font).toLowerCase();
+          const fontUrl = FONTS[fontKey] || FONTS.helvetiker;
+
+          loadFont(fontUrl).then((font) => this.build(font));
+        },
+
+        build(font) {
+          const size = this.data.size;
+          const gap = size * 0.28;
+
+          // Measure each glyph to center the whole word.
+          const glyphs = [];
+          let total = 0;
+          for (const ch of this.word) {
+            if (ch === " ") {
+              glyphs.push({ geo: null, w: size * 0.55 });
+              total += size * 0.55 + gap;
+              continue;
+            }
+            const geo = new TextGeometry(ch, {
+              font,
+              size,
+              depth: size * 0.34,
+              curveSegments: 8,
+              bevelEnabled: true,
+              bevelThickness: size * 0.17,
+              bevelSize: size * 0.14,
+              bevelOffset: 0,
+              bevelSegments: 5,
+            });
+            geo.computeBoundingBox();
+            const bb = geo.boundingBox;
+            const w = bb.max.x - bb.min.x;
+            geo.center();
+            glyphs.push({ geo, w });
+            total += w + gap;
+          }
+
+          let x = -total / 2;
+          glyphs.forEach((g, i) => {
+            if (g.geo) {
+              const mesh = new T.Mesh(g.geo, foilMaterial(FOIL[i % FOIL.length], 1.3));
+              mesh.position.x = x + g.w / 2;
+
+              // A little dangling balloon string.
+              const string = new T.Mesh(
+                new T.CylinderGeometry(size * 0.012, size * 0.012, size * 2.3, 6),
+                new T.MeshBasicMaterial({
+                  color: 0xffffff,
+                  transparent: true,
+                  opacity: 0.45,
+                }),
+              );
+              string.position.y = -size * 1.45;
+              mesh.add(string);
+
+              mesh.userData.phase = i * 0.7;
+              this.el.object3D.add(mesh);
+              this.letters.push(mesh);
+            }
+            x += g.w + gap;
+          });
+
+          if (this.data.soup) this.buildSoup(font, size);
+        },
+
+        // A drifting scatter of small "alphabet soup" letters behind the word.
+        buildSoup(font, size) {
+          const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+          const ssize = size * 0.4;
+          for (let i = 0; i < 14; i++) {
+            const ch = chars[(i * 7 + 3) % 26];
+            const geo = new TextGeometry(ch, {
+              font,
+              size: ssize,
+              depth: ssize * 0.3,
+              curveSegments: 6,
+              bevelEnabled: true,
+              bevelThickness: ssize * 0.14,
+              bevelSize: ssize * 0.11,
+              bevelSegments: 4,
+            });
+            geo.center();
+            const mesh = new T.Mesh(geo, foilMaterial(FOIL[i % FOIL.length], 1.1));
+            const a = (i / 14) * Math.PI * 2;
+            const r = 4.5 + (i % 3);
+            mesh.position.set(
+              Math.cos(a) * r,
+              ((i % 5) - 2) * 1.1 - 0.5,
+              -2 + Math.sin(a) * r * 0.5,
+            );
+            mesh.userData = {
+              phase: i * 1.3,
+              spin: (i % 2 ? 1 : -1) * 0.3,
+              baseY: mesh.position.y,
+              a,
+              r,
+            };
+            this.el.object3D.add(mesh);
+            this.soup.push(mesh);
+          }
+        },
+
+        tick(time, dt) {
+          if (!dt) return;
+          this.t += dt / 1000;
+          for (const m of this.letters) {
+            const p = m.userData.phase;
+            m.position.y = Math.sin(this.t * 1.3 + p) * 0.12;
+            m.rotation.z = Math.sin(this.t * 0.9 + p) * 0.08;
+            m.rotation.y = Math.sin(this.t * 0.6 + p) * 0.12;
+          }
+          for (const m of this.soup) {
+            const u = m.userData;
+            u.a += (dt / 1000) * 0.08;
+            m.position.x = Math.cos(u.a) * u.r;
+            m.position.z = -2 + Math.sin(u.a) * u.r * 0.5;
+            m.position.y = u.baseY + Math.sin(this.t + u.phase) * 0.25;
+            m.rotation.y += (dt / 1000) * u.spin;
+            m.rotation.x = Math.sin(this.t * 0.5 + u.phase) * 0.3;
+          }
+        },
+      });
+    </script>
+  </body>
+</html>

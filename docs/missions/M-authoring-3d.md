@@ -214,3 +214,52 @@ only steer must not silently start to write.
 
 Open MAP questions Q1/Q2/Q5/Q7 (WebXR entry, controller input, 3D
 picking, COEP-in-XR) remain and gate increment C only.
+
+**Hardware plan (Joe, 2026-07-11):** desktop monitor first (increment
+A needs no headset). For headset increments: a proper headset from the
+library, or a phone in a cardboard rig — the lobby QR is the natural
+way to land the phone/headset on the right page. Expectation: the
+feature will be MUCH nicer on the Steam Frame, which hasn't launched —
+design for it, don't wait for it.
+
+## INSTANTIATE — increment A (2026-07-11): hotspots in the photosphere
+
+Scope: render `blockHotspot` markers inside the 360° viewer via the
+inverse calibrated mapping; place-at-gaze from the viewer (keypress
+while looking + the same draft-insert → save → republish loop as the
+flat editor). Desktop controls; checkpoint appended when built.
+
+### Increment A checkpoint (2026-07-11) — built + verified
+
+**Built** (desktop monitor, per hardware plan — no headset needed):
+- `placeHotspot.ts` — shared authoring write path extracted from the
+  flat editor: `EQUIRECT_U0` (the calibrated constant),
+  `gazeToImagePercent` / `imagePercentToGaze`, `insertHotspotLine`,
+  `placeHotspot` (draft → insert → save → republish), `allTargetsIn`.
+  FlatStory refactored onto it — the 2D and 3D editors now share one
+  write path by construction.
+- `scene-hotspot` A-Frame component + `#hotspots` container: each
+  `blockHotspot` renders inside the photosphere at its
+  percent-of-image coordinates (inverse calibrated mapping → point at
+  r=9 facing the viewer): pulsing ring, troika label, enlarged
+  raycastable click target; click emits `linkactivated` (same
+  navigation path as fiction buttons). Skipped on the synthetic title
+  card.
+- **Place-at-gaze**: press `h` in the 360° viewer while looking at a
+  spot → form (label + target datalist of the story's anchors) →
+  persists via the shared write path → reload shows the marker.
+  Author-gated upstream as ever.
+
+**Verified:** CDP run — the "secret passage" hotspot placed by
+CLICKING THE FLAT PHOTO this morning renders at the calibrated spot
+inside the photosphere and navigates on click (scene 1307 → 1388);
+placement form opens with computed percent coords. e2e:
+`tests/e2e/authoring-3d.spec.ts` (3 tests: marker positions within
+0.05 of the calibrated direction at r=9; click navigation; h-form).
+Full flat-mode + gaze-mirror regression green; 140 unit tests; no new
+type errors. One first-run flake of the h-form test (compile-latency
+suspected) — passed clean on rerun; harden if it recurs.
+
+**Next:** increment B (voice/paired intents over the relay — the
+folded-in M-relay-authoring) then C (planetarium/WebXR, needs
+headset).

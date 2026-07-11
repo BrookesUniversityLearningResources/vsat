@@ -26,12 +26,15 @@ const serializedStory = DOMPurify.sanitize(
   import countLines from "@domain/story/publish/support/countLines";
   import {
     isHeadingBlock,
+    isHotspotBlock,
     isLinkBlock,
     isPlaintextBlock,
   } from "@domain/story/publish/support/isBlock";
   import openingPageFor from "@domain/story/publish/support/openingPage";
   import openingSceneFor from "@domain/story/publish/support/openingScene";
   import type { LinkTarget } from "@domain/story/publish/types";
+
+  import { imagePercentToGaze } from "@components/story/published/placeHotspot";
 
   import changePage from "./changePage";
   import { EVENT_LINK_ACTIVATED } from "./linkActivated";
@@ -267,6 +270,24 @@ const serializedStory = DOMPurify.sanitize(
         }
       }
 
+      // Positioned links live on the photosphere itself: one marker per
+      // blockHotspot, at the same percent-of-image coordinates the flat
+      // viewer uses (via the calibrated equirect mapping).
+      const hotspots = document.getElementById("hotspots");
+      if (hotspots) {
+        removeAllChildNodes(hotspots);
+        if (!isTitleCardScene(current.scene)) {
+          current.page.content.filter(isHotspotBlock).forEach((block) => {
+            const entity = document.createElement("a-entity");
+            entity.setAttribute(
+              "scene-hotspot",
+              `text: ${block.text}; link: ${block.link}; x: ${block.x}; y: ${block.y}`,
+            );
+            hotspots.appendChild(entity);
+          });
+        }
+      }
+
       const contextDetail = {
         sceneId: current.scene.id,
         sceneTitle: current.scene.title,
@@ -399,6 +420,70 @@ const serializedStory = DOMPurify.sanitize(
 
       this.el.appendChild(theButton);
       this.el.appendChild(theText);
+    },
+    events: {
+      click: function () {
+        this.el.emit(EVENT_LINK_ACTIVATED, this.data.link);
+      },
+    },
+  });
+
+  AFRAME.registerComponent("scene-hotspot", {
+    schema: {
+      text: { type: "string", default: "" },
+      link: { type: "string", default: "" },
+      x: { type: "number", default: 50 },
+      y: { type: "number", default: 50 },
+    },
+    init: function () {
+      // percent-of-image → direction → a point on a sphere well inside the
+      // sky, facing back at the viewer
+      const { yaw, pitch } = imagePercentToGaze(this.data.x, this.data.y);
+      const HOTSPOT_RADIUS = 9;
+      const yawRadians = (yaw * Math.PI) / 180;
+      const pitchRadians = (pitch * Math.PI) / 180;
+      const px = -Math.sin(yawRadians) * Math.cos(pitchRadians) * HOTSPOT_RADIUS;
+      const py = Math.sin(pitchRadians) * HOTSPOT_RADIUS;
+      const pz = -Math.cos(yawRadians) * Math.cos(pitchRadians) * HOTSPOT_RADIUS;
+      this.el.setAttribute("position", `${px} ${py} ${pz}`);
+      this.el.setAttribute("rotation", `${pitch} ${yaw} 0`);
+
+      const clickTarget = document.createElement("a-circle");
+      clickTarget.setAttribute("radius", 0.55);
+      clickTarget.setAttribute("opacity", 0.12);
+      clickTarget.setAttribute("color", "#ffffff");
+      clickTarget.setAttribute("data-raycastable", "");
+      clickTarget.setAttribute(
+        "event-set__mouseenter",
+        "opacity: 0.3",
+      );
+      clickTarget.setAttribute(
+        "event-set__mouseleave",
+        "opacity: 0.12",
+      );
+
+      const ring = document.createElement("a-ring");
+      ring.setAttribute("radius-inner", 0.28);
+      ring.setAttribute("radius-outer", 0.4);
+      ring.setAttribute("color", "#ecf0f1");
+      ring.setAttribute("opacity", 0.9);
+      ring.setAttribute("position", "0 0 0.01");
+      ring.setAttribute(
+        "animation",
+        "property: scale; from: 1 1 1; to: 1.18 1.18 1; dir: alternate; dur: 1200; loop: true; easing: easeInOutSine",
+      );
+
+      const label = document.createElement("a-troika-text");
+      label.setAttribute("value", this.data.text);
+      label.setAttribute("font-size", "0.32");
+      label.setAttribute("anchor", "center");
+      label.setAttribute("outline-width", "0.02");
+      label.setAttribute("outline-color", "#0e1014");
+      label.setAttribute("position", "0 -0.75 0.01");
+
+      this.el.appendChild(clickTarget);
+      this.el.appendChild(ring);
+      this.el.appendChild(label);
     },
     events: {
       click: function () {
