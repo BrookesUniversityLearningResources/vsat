@@ -444,3 +444,9 @@ chip malforms the line and surfaces as the editor's usual parse error
 on publish. Two pre-existing editor normalizations observed (heading
 anchors expand to normalized form; blank lines drop) — unrelated to
 the new block kinds.
+
+**Increment 4 amendment (2026-07-11, same day):** `@panel x,y`
+semantics unified to **percent-of-image** (was percent-of-viewport)
+when the directive gained its photosphere interpretation — one
+coordinate system for hotspots and the card across flat, poster-era
+maths, and 360°. See M-authoring-3d increment A2.

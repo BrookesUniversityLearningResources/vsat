@@ -84,3 +84,27 @@ test("pressing h opens the place-at-gaze form with percent coordinates", async (
   await form.locator("[data-cancel]").click();
   await expect(form).toBeHidden();
 });
+
+test("pressing m moves the fiction panel to the gaze direction", async ({
+  page,
+}) => {
+  await enterStory(page);
+  // look due 'left' (yaw 90) and move the panel there
+  await page.evaluate(() => {
+    const camera = document.querySelector("a-camera") as any;
+    camera.components["look-controls"].yawObject.rotation.y = Math.PI / 2;
+    camera.components["look-controls"].pitchObject.rotation.x = 0;
+  });
+  const saved = page.waitForResponse(
+    (res) => res.url().includes("/publish") && res.status() === 200,
+  );
+  await page.keyboard.press("m");
+  await saved;
+  const position = await page.evaluate(() =>
+    (document.getElementById("fiction") as any).getAttribute("position"),
+  );
+  // gaze at yaw 90 → direction (-1, 0, 0) · 6.32, entity offset -1.8 in y
+  expect(position.x).toBeLessThan(-6);
+  expect(Math.abs(position.y - -1.8)).toBeLessThan(0.05);
+  expect(Math.abs(position.z)).toBeLessThan(0.3);
+});

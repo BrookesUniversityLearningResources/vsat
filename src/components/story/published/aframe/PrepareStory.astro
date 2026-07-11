@@ -28,6 +28,7 @@ const serializedStory = DOMPurify.sanitize(
     isHeadingBlock,
     isHotspotBlock,
     isLinkBlock,
+    isPanelBlock,
     isPlaintextBlock,
   } from "@domain/story/publish/support/isBlock";
   import openingPageFor from "@domain/story/publish/support/openingPage";
@@ -270,6 +271,16 @@ const serializedStory = DOMPurify.sanitize(
         }
       }
 
+      // A `@panel x,y` directive floats the fiction panel at that
+      // percent-of-image direction (same coordinate system as hotspots);
+      // without one it keeps its classic home at 0 -2 -6.
+      if (fiction) {
+        const panelBlock = isTitleCardScene(current.scene)
+          ? undefined
+          : current.page.content.find(isPanelBlock);
+        positionFictionPanel(fiction, panelBlock);
+      }
+
       // Positioned links live on the photosphere itself: one marker per
       // blockHotspot, at the same percent-of-image coordinates the flat
       // viewer uses (via the calibrated equirect mapping).
@@ -427,6 +438,31 @@ const serializedStory = DOMPurify.sanitize(
       },
     },
   });
+
+  /**
+   * Place the fiction panel at a percent-of-image direction. The entity
+   * origin sits ~1.8 units below the card's visual centre (content is laid
+   * out upward in local space), so offset to land the CARD at the target.
+   */
+  const FICTION_DISTANCE = 6.32;
+  function positionFictionPanel(
+    fictionEl: Element & { setAttribute: (n: string, v: string) => void },
+    panelBlock?: { x: number; y: number },
+  ) {
+    if (!panelBlock) {
+      fictionEl.setAttribute("position", "0 -2 -6");
+      fictionEl.setAttribute("rotation", "0 0 0");
+      return;
+    }
+    const { yaw, pitch } = imagePercentToGaze(panelBlock.x, panelBlock.y);
+    const yawRadians = (yaw * Math.PI) / 180;
+    const pitchRadians = (pitch * Math.PI) / 180;
+    const px = -Math.sin(yawRadians) * Math.cos(pitchRadians) * FICTION_DISTANCE;
+    const py = Math.sin(pitchRadians) * FICTION_DISTANCE - 1.8;
+    const pz = -Math.cos(yawRadians) * Math.cos(pitchRadians) * FICTION_DISTANCE;
+    fictionEl.setAttribute("position", `${px} ${py} ${pz}`);
+    fictionEl.setAttribute("rotation", `${pitch} ${yaw} 0`);
+  }
 
   AFRAME.registerComponent("scene-hotspot", {
     schema: {

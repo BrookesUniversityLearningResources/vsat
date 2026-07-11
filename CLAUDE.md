@@ -79,8 +79,11 @@ story editor header, read live at render time (no republish needed).
 - **Hotspots**: `[text](target @ x,y)` — a positioned link at x%,y% of the
   photo (`blockHotspot`, parsed before `parseLink`). Rendered as pulsing
   markers on the flat photo AND inside the photosphere (`scene-hotspot`).
-- **Panel placement**: `@panel x,y` — per-page directive (percent of
-  viewport) anchoring the fiction/nav panel's centre (`blockPanel`).
+- **Panel placement**: `@panel x,y` — per-page directive, percent-of-IMAGE
+  (same coordinate system as hotspots), anchoring the fiction/nav card at
+  that point of the scene: the flat view renders it there (cover-crop
+  mapped, clamped on screen); the photosphere floats the fiction panel at
+  that direction. Press `m` in the 360° viewer to move the card to gaze.
 - **The ✎ pill (`?edit=hotspots`) is the WYSIWYG editor**: click the photo
   → drop a hotspot; drag the panel → its position persists as `@panel`;
   click the heading/body → edit in place (heading anchor preserved);

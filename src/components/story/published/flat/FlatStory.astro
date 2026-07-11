@@ -391,23 +391,36 @@ const serializedStory = DOMPurify.sanitize(
     positionHotspots();
   }
 
-  window.addEventListener("resize", positionHotspots);
-  el.img?.addEventListener("load", positionHotspots);
+  window.addEventListener("resize", () => {
+    positionHotspots();
+    positionPanel(undefined);
+  });
+  el.img?.addEventListener("load", () => {
+    positionHotspots();
+    positionPanel(undefined);
+  });
 
-  // A persisted `@panel x,y` directive anchors the panel's centre at
-  // viewport percents (overlay layout only); without one, the panel keeps
-  // its default flex-centred home. Applying a placement clears any session
-  // drag offset.
+  // A persisted `@panel x,y` directive anchors the panel's centre at that
+  // percent-of-image point — the SAME coordinate system as hotspots, so the
+  // photosphere can interpret the identical line as a direction. Mapped
+  // through the cover crop and clamped so the panel stays on screen;
+  // without a directive the panel keeps its default flex-centred home.
+  // Applying a placement clears any session drag offset.
+  let panelBlock = null;
   function positionPanel(block) {
+    if (block !== undefined) panelBlock = block;
     if (!el.panel || !main?.classList.contains("flat--overlay")) return;
     drag.dx = 0;
     drag.dy = 0;
-    if (block) {
+    const geom = view === "flat" ? coverGeometry() : null;
+    if (panelBlock && geom) {
+      const px = geom.ox + (panelBlock.x / 100) * geom.dw;
+      const py = geom.oy + (panelBlock.y / 100) * geom.dh;
       el.panel.style.position = "absolute";
-      el.panel.style.left = `${block.x}%`;
-      el.panel.style.top = `${block.y}%`;
+      el.panel.style.left = `${Math.max(0.1 * window.innerWidth, Math.min(0.9 * window.innerWidth, px))}px`;
+      el.panel.style.top = `${Math.max(0.12 * window.innerHeight, Math.min(0.88 * window.innerHeight, py))}px`;
       el.panel.style.transform = "translate(-50%, -50%)";
-    } else {
+    } else if (!panelBlock) {
       el.panel.style.position = "";
       el.panel.style.left = "";
       el.panel.style.top = "";
@@ -552,13 +565,20 @@ const serializedStory = DOMPurify.sanitize(
       try { handle.releasePointerCapture(e.pointerId); } catch (_) {}
       // in edit mode a real drag persists the panel's new home
       if (editing && moved) {
+        const geom = coverGeometry();
+        if (!geom) return;
         const rect = el.panel.getBoundingClientRect();
+        const heroRect = el.hero.getBoundingClientRect();
+        const cx = rect.left + rect.width / 2 - heroRect.left;
+        const cy = rect.top + rect.height / 2 - heroRect.top;
         const x =
-          Math.round(((rect.left + rect.width / 2) / window.innerWidth) * 1000) /
-          10;
+          Math.round(
+            Math.max(0, Math.min(100, ((cx - geom.ox) / geom.dw) * 100)) * 10,
+          ) / 10;
         const y =
-          Math.round(((rect.top + rect.height / 2) / window.innerHeight) * 1000) /
-          10;
+          Math.round(
+            Math.max(0, Math.min(100, ((cy - geom.oy) / geom.dh) * 100)) * 10,
+          ) / 10;
         positionPanel({ x, y });
         mutateDraftContent(story.id, scene.id, (content) =>
           upsertPanelLine(content, page.number, x, y),

@@ -96,8 +96,9 @@ test("edit mode opens the placement form on photo click", async ({ page }) => {
   await page.goto(`/story/${FLAT_STORY}?view=flat&edit=hotspots`);
   await expect(page.locator("main.flat")).toHaveClass(/flat--editing/);
 
+  // far left-bottom: clear of the (possibly @panel-placed) floating panel
   const vp = page.viewportSize() ?? { width: 1280, height: 720 };
-  await page.mouse.click(vp.width * 0.75, vp.height * 0.75);
+  await page.mouse.click(vp.width * 0.08, vp.height * 0.85);
   const form = page.locator("[data-hotspot-form]");
   await expect(form).toBeVisible();
   // the target datalist offers the story's known link targets
@@ -135,15 +136,21 @@ test("edit mode makes the panel text editable and offers + link", async ({
 });
 
 test("a persisted @panel directive places the panel", async ({ page }) => {
-  // fixture: story 1137's opening page carries `@panel 72.8,27.7`
+  // fixture: story 1137's opening page carries an @panel directive
+  // (percent-of-image, mapped through the cover crop to px)
   await page.goto(`/story/${FLAT_STORY}?view=flat`);
   await expect(page.locator(".flat-panel")).toBeVisible();
+  await page.waitForFunction(
+    () =>
+      (document.querySelector("[data-panel]") as HTMLElement).style
+        .position === "absolute",
+  );
   const style = await page.evaluate(() => {
     const panel = document.querySelector("[data-panel]") as HTMLElement;
     return { position: panel.style.position, left: panel.style.left };
   });
   expect(style.position).toBe("absolute");
-  expect(style.left).toBe("72.8%");
+  expect(style.left).toMatch(/px$/);
 });
 
 test("legacy /story2d/ URLs redirect with params preserved", async ({

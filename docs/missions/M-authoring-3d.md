@@ -311,3 +311,34 @@ to R³ and adds the pinning persistence.
 Increment C scope accordingly grows one item: **node drag-to-pin**
 alongside arc-drawing and dictated rationale — arrange, connect,
 annotate: the full Miro verb set.
+
+### Increment A2 checkpoint (2026-07-11) — the card in space
+
+Provenance: Joe — "we could port our WYSIWYG to the floating panel in
+regular VSAT photospheres. Eric said something about needing to be
+able to position that (in 3D) which could be a good warm-up for moving
+around other cards in the more spatially-informed model."
+
+**Design unification:** `@panel x,y` re-semanticised from
+percent-of-viewport to **percent-of-image** — the same coordinate
+system as hotspots, so one directive means one thing everywhere: "the
+card lives at this point of the scene." Flat view maps it through the
+cover crop (clamped on screen; drag-persist writes image percents);
+the photosphere floats the fiction panel at that direction
+(`positionFictionPanel`: r=6.32, entity −1.8 y-offset so the card's
+visual centre lands on target, billboarded).
+
+**The gesture:** press `m` in the 360° viewer while looking where the
+card should live — it floats there immediately (no reload) and the
+directive persists through the shared write path. This is drag-to-pin
+one substrate early: the same verb increment C gives planetarium
+nodes. In-card text editing in 3D deliberately deferred to increment B
+(voice/dictation is the natural 3D text input).
+
+**Verified:** CDP numeric run (directive → card at 30.4° right /
+40.1° up exactly as computed; `m` at yaw 90 → card due left at
+(−6.32, −1.8, 0); `@panel 56.3,50` persisted) + screenshot of the
+card hanging in front of the waterfall. e2e: m-key test asserts the
+entity lands within 0.05/0.3 of the computed position; flat placement
+test updated for image-percent semantics; 17 feature tests green
+combined (one transient pass-on-rerun noted), 150 unit tests.
