@@ -30,7 +30,7 @@ import routeUnpublishStory from "./domain/story/route/routeUnpublishStory.js";
 import routeUploadSceneAudio from "./domain/story/route/routeUploadSceneAudio.js";
 import routeUploadSceneImage from "./domain/story/route/routeUploadSceneImage.js";
 import assertIsAuthorHandler from "./domain/story/support/assertIsAuthorHandler.js";
-import assertIsAuthorOfTheStoryHandler from "./domain/story/support/assertIsAuthorOfTheStoryHandler.js";
+import assertIsAuthorOrStewardOfTheStoryHandler from "./domain/story/support/assertIsAuthorOrStewardOfTheStoryHandler.js";
 import isAuthorOfTheStory from "./domain/story/support/isAuthorOfTheStory.js";
 import loadConfig from "./environment/config.js";
 import getEnvironment from "./environment/getEnvironment.js";
@@ -133,7 +133,7 @@ export async function createAppParts(): Promise<{
 
   const assertIsAuthor = assertIsAuthorHandler(log);
 
-  const assertIsAuthorOfTheStory = assertIsAuthorOfTheStoryHandler(
+  const assertIsAuthorOrStewardOfTheStory = assertIsAuthorOrStewardOfTheStoryHandler(
     log,
     isAuthorOfTheStory(db),
   );
@@ -145,51 +145,51 @@ export async function createAppParts(): Promise<{
     routeCreateScene(
       log,
       repositoryScene.createScene,
-      assertIsAuthorOfTheStory,
+      assertIsAuthorOrStewardOfTheStory,
     ),
-    routeGetStory(repositoryStory.getStory, assertIsAuthorOfTheStory),
-    routeGetScene(repositoryScene.getScene, assertIsAuthorOfTheStory),
+    routeGetStory(repositoryStory.getStory, assertIsAuthorOrStewardOfTheStory),
+    routeGetScene(repositoryScene.getScene, assertIsAuthorOrStewardOfTheStory),
     routeUploadSceneImage(
       log,
       repositoryScene.saveSceneImage,
       config.uploads.image,
-      assertIsAuthorOfTheStory,
+      assertIsAuthorOrStewardOfTheStory,
     ),
     routeDeleteSceneImage(
       log,
       repositoryScene.deleteSceneImage,
-      assertIsAuthorOfTheStory,
+      assertIsAuthorOrStewardOfTheStory,
     ),
     routeUploadSceneAudio(
       log,
       repositoryScene.saveSceneAudio,
       config.uploads.audio,
-      assertIsAuthorOfTheStory,
+      assertIsAuthorOrStewardOfTheStory,
     ),
     routeDeleteSceneAudio(
       repositoryScene.deleteSceneAudio,
-      assertIsAuthorOfTheStory,
+      assertIsAuthorOrStewardOfTheStory,
     ),
     routeSaveAuthorName(log, repositoryAuthor.saveAuthorName, assertIsAuthor),
     routeSaveSceneContent(
       log,
       repositoryScene.saveSceneContent,
-      assertIsAuthorOfTheStory,
+      assertIsAuthorOrStewardOfTheStory,
     ),
     routeSaveStoryTitle(
       log,
       repositoryStory.saveStoryTitle,
-      assertIsAuthorOfTheStory,
+      assertIsAuthorOrStewardOfTheStory,
     ),
     routeSaveStoryMode(
       log,
       repositoryStory.saveStoryMode,
-      assertIsAuthorOfTheStory,
+      assertIsAuthorOrStewardOfTheStory,
     ),
     routeSaveSceneTitle(
       log,
       repositoryScene.saveSceneTitle,
-      assertIsAuthorOfTheStory,
+      assertIsAuthorOrStewardOfTheStory,
     ),
     routeStoryLinks(
       repositoryStoryLink.createStoryLink,
@@ -212,21 +212,21 @@ export async function createAppParts(): Promise<{
       repositoryStoryLink.getStoryLinksForStory,
       assertIsSteward,
     ),
-    routeDeleteScene(repositoryScene.deleteScene, assertIsAuthorOfTheStory),
+    routeDeleteScene(repositoryScene.deleteScene, assertIsAuthorOrStewardOfTheStory),
     routeDeleteStory(
       log,
       repositoryStory.deleteStory,
-      assertIsAuthorOfTheStory,
+      assertIsAuthorOrStewardOfTheStory,
     ),
     routePublishStory(
       log,
       repositoryStory.publishStory,
-      assertIsAuthorOfTheStory,
+      assertIsAuthorOrStewardOfTheStory,
     ),
     routeUnpublishStory(
       log,
       repositoryStory.unpublishStory,
-      assertIsAuthorOfTheStory,
+      assertIsAuthorOrStewardOfTheStory,
     ),
     routeGetPublishedStories(log, repositoryStory.getPublishedStorySummaries),
     routeSessions(),
