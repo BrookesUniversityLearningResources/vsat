@@ -624,6 +624,16 @@ const clientData = {
           baseScale: { type: "number", default: 1 },
           refDist: { type: "number", default: 25 },
           maxScale: { type: "number", default: 0 },
+          // occlude: let real geometry (arcs, nodes) in front hide this card.
+          // Off (default) = planetarium behavior: dome labels always render on
+          // top so they stay readable. On = GeomView: cards test the depth
+          // buffer so a nearer arc occludes a card behind it.
+          occlude: { type: "boolean", default: false },
+          // depthBias: world-space nudge toward the camera. Lets a card pop in
+          // front of geometry AT ITS OWN spot (its node orb, arcs terminating
+          // there) while the small fixed offset preserves global z-ordering —
+          // anything genuinely further in front still occludes it.
+          depthBias: { type: "number", default: 0 },
         },
         init: function () {
           this._camWorldPos = new THREE.Vector3();
@@ -631,20 +641,27 @@ const clientData = {
           this._camWorldQuat = new THREE.Quaternion();
           this._parentWorldQuat = new THREE.Quaternion();
           this._inverseParentQuat = new THREE.Quaternion();
+          this._basePos = new THREE.Vector3();
+          this._haveBase = false;
+          this._biasVec = new THREE.Vector3();
         },
         _fixDepth: function () {
           var obj = this.el.object3D;
-          obj.renderOrder = 999;
+          // Capture per-instance so the render-time hook honors this card's
+          // occlude setting. depthWrite stays OFF either way: cards must not
+          // pollute the depth buffer for each other (card-vs-card ordering is
+          // handled by the distance-biased renderOrder below), and troika's
+          // alpha edges would otherwise punch depth halos over arcs behind.
+          var wantDepthTest = this.data.occlude;
           obj.traverse(function (child) {
-            child.renderOrder = 999;
-            // Use onBeforeRender to force depthTest off at render time
-            // This can't be overridden by troika recreating materials
+            // Force depth flags at render time via onBeforeRender — troika
+            // recreates its material, so setting them once wouldn't stick.
             if (!child.userData._depthHooked) {
               child.userData._depthHooked = true;
               var origOnBefore = child.onBeforeRender;
               child.onBeforeRender = function (renderer, scene, camera, geometry, material) {
                 if (material) {
-                  material.depthTest = false;
+                  material.depthTest = wantDepthTest;
                   material.depthWrite = false;
                 }
                 if (origOnBefore) origOnBefore.apply(this, arguments);
@@ -658,6 +675,18 @@ const clientData = {
           var obj = this.el.object3D;
 
           this._fixDepth();
+
+          // When biasing, always measure from the card's true (unbiased) node
+          // position so scale/renderOrder reflect real depth; the bias is
+          // re-applied at the end of the tick.
+          var bias = this.data.depthBias;
+          if (bias > 0) {
+            if (!this._haveBase) {
+              this._basePos.copy(obj.position);
+              this._haveBase = true;
+            }
+            obj.position.copy(this._basePos);
+          }
 
           // Force parent world matrix update so transforms are fresh
           obj.parent?.updateWorldMatrix(true, false);
@@ -679,12 +708,39 @@ const clientData = {
 
           // Distance-compensated scale: keep apparent size constant
           var dist = this._worldPos.distanceTo(this._camWorldPos);
+
+          // Depth-aware render order: depthTest is off (labels must stay
+          // readable over nodes/dome), so occlusion between cards is decided
+          // by draw order alone. Bias renderOrder by distance so NEARER cards
+          // draw last (on top). Base 1000 keeps every card above scene
+          // geometry (renderOrder 0). Without this, three.js draws opaque
+          // troika text front-to-back, so the farthest card paints over the
+          // nearest — the reverse of correct perspective occlusion.
+          var ro = 1000 - dist;
+          obj.renderOrder = ro;
+          obj.traverse(function (child) {
+            child.renderOrder = ro;
+          });
+
           var s = this.data.baseScale * (dist / this.data.refDist);
           s = Math.max(s, this.data.baseScale * 0.6);
           if (this.data.maxScale > 0) {
             s = Math.min(s, this.data.maxScale);
           }
           obj.scale.set(s, s, s);
+
+          // Apply the camera-ward depth bias last (position only — leaves the
+          // billboard orientation and scale untouched). Converted into the
+          // parent's local frame since the turntable parent is rotated.
+          if (bias > 0) {
+            this._biasVec.copy(this._camWorldPos).sub(this._worldPos);
+            var bl = this._biasVec.length();
+            if (bl > 0.0001) {
+              this._biasVec.multiplyScalar(bias / bl);
+              if (obj.parent) this._biasVec.applyQuaternion(this._inverseParentQuat);
+              obj.position.add(this._biasVec);
+            }
+          }
         },
       });
     }
@@ -728,6 +784,7 @@ const clientData = {
           <button type="button" id="vsat-reset-cam" class="vsatlatarium__btn">Reset view</button>
           <button type="button" id="vsat-qr" class="vsatlatarium__btn" title="Open this view on a phone (Cardboard-ready)">Phone</button>
           <button type="button" id="vsat-toggle-wireframes" class="vsatlatarium__btn">Wireframes</button>
+          <button type="button" id="vsat-toggle-arcids" class="vsatlatarium__btn" title="Number and colour every arc so you can report a specific one">Arc IDs</button>
           <a
             class={`vsatlatarium__btn ${isPlanetarium ? "" : "vsatlatarium__btn--active"}`}
             href={`/story/vsatlatarium?view=geomview${selectedAnthology ? "&anthology=" + selectedAnthology.id : ""}`}
@@ -845,7 +902,7 @@ const clientData = {
                       class="story-label"
                       troika-text={`value: ${normalizeLabelText(cluster.title)}; align: center; color: ${isPlanetarium ? "#e2eaff" : "#c8d6ff"}; fontSize: 0.9; outlineWidth: 0.035; outlineColor: #000000; outlineBlur: 0.02; outlineOpacity: 0.85`}
                       position={`${labelPos.x.toFixed(3)} ${labelPos.y.toFixed(3)} ${labelPos.z.toFixed(3)}`}
-                      stabilcam={`baseScale: ${isPlanetarium ? "1.8" : "1"}; refDist: ${isPlanetarium ? clusterRadius : "24"}; maxScale: ${isPlanetarium ? "0" : "1.25"}`}
+                      stabilcam={`baseScale: ${isPlanetarium ? "1.8" : "1"}; refDist: ${isPlanetarium ? clusterRadius : "24"}; maxScale: ${isPlanetarium ? "0" : "1.25"}; occlude: ${isPlanetarium ? "false" : "true"}`}
                     />
                 );
               })()}
@@ -902,7 +959,7 @@ const clientData = {
                         class="scene-label"
                         troika-text={`value: ${normalizeLabelText(scene.title.length > 20 ? scene.title.substring(0, 20) + "..." : scene.title)}; align: center; color: #d8e5ff; fontSize: 0.62; outlineWidth: 0.038; outlineColor: #000000; outlineBlur: 0.018; outlineOpacity: 0.9`}
                         position={`0 ${(0.55 + scene.pageCount * 0.05).toFixed(3)} 0`}
-                        stabilcam="baseScale: 0.82; refDist: 20; maxScale: 0.95"
+                        stabilcam="baseScale: 0.82; refDist: 20; maxScale: 0.95; occlude: true"
                       />
                     );
                   })()}
@@ -1358,6 +1415,52 @@ const clientData = {
       wireframeBtn.classList.toggle("vsatlatarium__btn--active", wireframesVisible);
     });
 
+    // --- Debug: number + colour-code every arc for precise bug reports ---
+    let arcIdsVisible = false;
+    const arcLabelEls = [];
+    const arcIdBtn = document.getElementById("vsat-toggle-arcids");
+    arcIdBtn?.addEventListener("click", () => {
+      arcIdsVisible = !arcIdsVisible;
+      arcIdBtn.classList.toggle("vsatlatarium__btn--active", arcIdsVisible);
+
+      if (arcIdsVisible) {
+        // Give each arc its own colour so crossings are easy to trace.
+        document.querySelectorAll(".arc-segment[data-arc-uid]").forEach((el) => {
+          const uid = Number(el.getAttribute("data-arc-uid"));
+          el.setAttribute(
+            "material",
+            "color: " + arcDebugColor(uid) + "; opacity: 0.95; transparent: true; shader: flat",
+          );
+        });
+        // Drop a billboarded number at each arc's midpoint.
+        for (const a of debugArcs) {
+          const el = document.createElement("a-troika-text");
+          el.setAttribute(
+            "troika-text",
+            "value: " + a.uid + "; align: center; color: " + arcDebugColor(a.uid, 80) +
+              "; fontSize: 0.55; outlineWidth: 0.045; outlineColor: #000000; outlineOpacity: 0.95",
+          );
+          el.setAttribute("position", a.mid.x + " " + a.mid.y + " " + a.mid.z);
+          el.setAttribute("stabilcam", "baseScale: 0.9; refDist: 24; maxScale: 1.1; occlude: true");
+          el.classList.add("arc-debug-label");
+          turntable.appendChild(el);
+          arcLabelEls.push(el);
+        }
+      } else {
+        // Restore each segment's original type colour and remove labels.
+        document.querySelectorAll(".arc-segment[data-arc-uid]").forEach((el) => {
+          el.setAttribute(
+            "material",
+            "color: " + el.getAttribute("data-arc-color") +
+              "; opacity: " + el.getAttribute("data-arc-opacity") +
+              "; transparent: true; shader: flat",
+          );
+        });
+        for (const el of arcLabelEls) el.remove();
+        arcLabelEls.length = 0;
+      }
+    });
+
     // --- Legend arc type toggles ---
     const hiddenArcTypes = new Set();
     document.querySelectorAll(".legend-toggle").forEach((li) => {
@@ -1463,12 +1566,27 @@ const clientData = {
     const arcDefs = [];
     let currentBlend = 0;
 
+    // Debug "Arc IDs" mode: every arc gets a unique sequential number and a
+    // distinct colour so a specific arc can be named in a bug report. Built up
+    // as arcs are drawn, consumed by the #vsat-toggle-arcids handler below.
+    let arcUid = 0;
+    const debugArcs = [];
+    // Distinct colour per arc via the golden angle — adjacent uids never
+    // collide in hue. Returns an hsl() string (THREE.Color parses it).
+    const arcDebugColor = (uid, light) =>
+      "hsl(" + Math.round((uid * 137.508) % 360) + ",85%," + (light || 60) + "%)";
+
     const drawArc = (from, to, controlPoint, color, opacity, thickness, arcType, arcId, storyId) => {
       const radius = thickness || 0.04;
       // Store definition for later redraw on zoom
       if (domeRadius) {
         arcDefs.push({ from, to, controlPoint, color, opacity, radius, arcType, arcId, storyId });
       }
+      // Reserve this arc's debug id and record its midpoint for the label.
+      const uid = arcUid++;
+      let mid = bezierPoint(from, controlPoint, to, 0.5);
+      if (domeRadius) mid = projectToDome(mid, domeRadius);
+      debugArcs.push({ uid, mid, arcType, storyId });
       for (let i = 0; i < segments; i++) {
         const t0 = i / segments;
         const t1 = (i + 1) / segments;
@@ -1498,6 +1616,9 @@ const clientData = {
         el.object3D.quaternion.copy(quat);
 
         el.classList.add("arc-segment");
+        el.setAttribute("data-arc-uid", String(uid));
+        el.setAttribute("data-arc-color", color);
+        el.setAttribute("data-arc-opacity", String(opacity));
         if (arcType) el.setAttribute("data-arc-type", arcType);
         if (arcId !== undefined && arcId !== null) {
           el.setAttribute("data-arc-id", String(arcId));
@@ -2706,7 +2827,10 @@ const clientData = {
         for (const sn of cluster.scenes) {
           const card = document.createElement("a-entity");
           card.setAttribute("position", sn.position.x + " " + sn.position.y + " " + sn.position.z);
-          card.setAttribute("stabilcam", "baseScale: 1; refDist: 24; maxScale: 1.5");
+          // occlude: focus cards sit among this story's narrative arcs, so a
+          // card rotated to the back must be hidden by arcs in front of it
+          // (without occlude the card's depthTest is off and it always wins).
+          card.setAttribute("stabilcam", "baseScale: 1; refDist: 24; maxScale: 1.5; occlude: true; depthBias: 0.8");
           card.classList.add("focus3d-card");
           card.setAttribute("data-card-scene", String(sn.sceneId));
 
