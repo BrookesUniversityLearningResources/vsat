@@ -424,3 +424,44 @@ Order of play: **C1 narrative-arc drawing → C2 drag-to-pin
 (per-anthology pinned positions) → WebXR immersive pass over both**
 (headset). B (relay intents / voice) slots in whenever paired input
 is wanted.
+
+### Increment C1, slice 1 checkpoint (2026-07-11, branch `authoring-3d`)
+
+Joe's design: "right-clicking on Sinking City and everything else goes
+away and we just have the structure of the story... each [scene] shown
+here as a little card, and then when you click on the card, you can
+edit it."
+
+**Built — the focus board:**
+- Right-click a story node → a scrim falls over the constellation and
+  the story's scenes appear as **DOM cards** (title, opening-page
+  heading, body excerpt) wired by their narrative arcs (SVG lines),
+  tracking the projected 3D node positions via rAF — dragging the
+  turntable still moves the board. Cards are DOM so text is crisp and
+  natively editable. Server-side, SceneNode now carries
+  heading/excerpt for the cards.
+- The turntable auto-faces the cluster on entry (reusing the
+  story-list facing behaviour) and projected positions are spread
+  ~2.4× around their screen centroid (a dome cluster is angularly
+  compact; unspread, cards pile up).
+- **Click a card → edit in place**: the editor fetches the FULL draft
+  page first (cards show trimmed excerpts — editing an excerpt would
+  truncate the scene), heading + body go contenteditable, Save writes
+  through `replaceSectionText`/`mutateDraftContent` (module-bridged
+  into the inline script via `window.__vsatEdit`) — links, hotspots,
+  `@panel`, and the heading anchor all preserved. Esc / right-click
+  empty space / ✕ closes.
+- Verified live on Sinking City (13 cards, 25 wires, real Maceió
+  disaster content; edit round-trip confirmed in the draft and
+  restored). Read-only e2e spec `vsatlatarium-focus.spec.ts`.
+
+**Found & fixed along the way:** `getPublishedStorySummaries` returned
+one row per AUTHOR — a co-authored story duplicated its planetarium
+cluster (surfaced by the dev-user authorship fixture; latent for any
+legitimately co-authored story). Deduped in the mapper.
+
+**Auth note:** card saves are author-gated upstream (403 surfaces in
+the card); dev fixture makes dev@localhost co-author of 398 + 1137.
+
+**Deferred to slice 2:** drawing NEW narrative arcs card-to-card (the
+C1 connect verb); arc removal; multi-page cards (edits page 1 of N).

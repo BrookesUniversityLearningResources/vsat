@@ -37,20 +37,24 @@ export default function getPublishedStorySummariesInDatabase(
       .orderBy("storyPublished.createdAt", "desc")
       .execute();
 
-    const summaries: PublishedStorySummary[] = rows.map((row) => {
-      const imageUrl = row.storyImageUrl ?? row.openingSceneImageUrl;
-
-      return {
+    // the author join yields one row PER author — a co-authored story must
+    // still appear once (first author credited in the summary)
+    const summaries: PublishedStorySummary[] = [];
+    const seenStoryIds = new Set<number>();
+    for (const row of rows) {
+      if (seenStoryIds.has(row.storyId)) continue;
+      seenStoryIds.add(row.storyId);
+      summaries.push({
         id: row.storyId,
         title: row.storyTitle,
         publishedOn: row.storyPublishedOn,
-        imageUrl,
+        imageUrl: row.storyImageUrl ?? row.openingSceneImageUrl,
         author: {
           id: row.authorId,
           name: row.authorName,
         },
-      };
-    });
+      });
+    }
 
     log.debug({ request }, "Got %d published stories", summaries.length);
 

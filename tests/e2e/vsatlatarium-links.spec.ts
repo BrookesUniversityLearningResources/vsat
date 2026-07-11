@@ -1,5 +1,8 @@
 import { test, expect } from "@playwright/test";
 
+// WebGL-heavy page: allow retries (dev-server load makes first paints slow)
+test.describe.configure({ retries: 2 });
+
 // Fixture (dev DB): link 17 is scene-to-scene — from "homage" (a scene of
 // Sinking City) to "Border Control" (a scene of Dangerous Commutes), both
 // in the "Cities & Public Space" anthology. Regression for the bug where

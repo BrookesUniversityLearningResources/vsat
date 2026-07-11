@@ -4,6 +4,10 @@ import type {
   PublishedScene,
   PublishedStory,
 } from "@domain/story/publish/types";
+import {
+  isHeadingBlock,
+  isPlaintextBlock,
+} from "@domain/story/publish/support/isBlock";
 import { cached } from "@util/layoutCache";
 import Layout from "../../layouts/PublicSiteLayout.astro";
 
@@ -174,6 +178,9 @@ type SceneNode = {
   isOpening: boolean;
   position: Vec3;
   pageCount: number;
+  /** opening-page heading + trimmed body, for the focus-board cards */
+  heading: string;
+  excerpt: string;
 };
 type InternalArc = {
   from: string; // sceneNode id
@@ -234,6 +241,17 @@ const { clusters, interArcs } = cached<{
       const sr = Math.sqrt(1 - sy * sy);
       const sTheta = goldenAngle * si;
       const pages = Object.keys(scene.pages);
+      const openingPage = Object.values(scene.pages).find(
+        (page) => page.number === 0,
+      );
+      const headingText =
+        openingPage?.content.find(isHeadingBlock)?.text ?? "";
+      const bodyText = openingPage
+        ? openingPage.content
+            .filter(isPlaintextBlock)
+            .map((block) => block.text)
+            .join(" ")
+        : "";
       return {
         id: `story-${story.id}-scene-${scene.id}`,
         sceneId: scene.id,
@@ -241,6 +259,11 @@ const { clusters, interArcs } = cached<{
         title: scene.title,
         isOpening: scene.isOpeningScene,
         pageCount: pages.length,
+        heading: headingText,
+        excerpt:
+          bodyText.length > 200
+            ? `${bodyText.slice(0, 200).trimEnd()}…`
+            : bodyText,
         position: {
           x: Number(
             (center.x + localRadius * sr * Math.cos(sTheta)).toFixed(3),
@@ -2261,6 +2284,277 @@ const clientData = {
           window.location.href = "/story/" + storyId + sceneQuery;
         }
       });
+
+      // --- Focus board (M-authoring-3d C1): right-click a story and
+      // everything else falls away — its scenes become editable cards wired
+      // by their narrative arcs. Cards are DOM (crisp text, contenteditable)
+      // tracking the projected 3D node positions, so dragging the turntable
+      // still moves the board. Click a card to edit its opening page; saves
+      // go through the shared draft-insert → save → republish path.
+      const focusState = { storyId: null, raf: 0, els: null };
+
+      const focusCss = document.createElement("style");
+      focusCss.textContent = [
+        ".vsat-focus{position:absolute;inset:0;z-index:30;pointer-events:none;font-family:'Source Sans Pro',system-ui,sans-serif}",
+        ".vsat-focus__scrim{position:absolute;inset:0;background:rgba(5,7,12,0.88)}",
+        ".vsat-focus__wires{position:absolute;inset:0;width:100%;height:100%}",
+        ".vsat-focus__head{position:absolute;top:0.6rem;left:0.75rem;right:0.75rem;display:flex;gap:0.75rem;align-items:center;color:#e2eaff;pointer-events:auto}",
+        ".vsat-focus__head strong{font-size:1.05rem}",
+        ".vsat-focus__head span{opacity:0.6;font-size:0.8rem;flex:1}",
+        ".vsat-focus__head button{font:inherit;font-size:0.8rem;padding:0.25rem 0.7rem;border-radius:999px;border:1px solid #3c5976;background:#1b2129;color:#ecf0f1;cursor:pointer}",
+        ".vsat-focus__card{position:absolute;transform:translate(-50%,-50%);width:200px;padding:0.5rem 0.6rem;border-radius:0.6rem;background:rgba(18,21,27,0.95);border:1px solid rgba(150,170,190,0.35);color:#ecf0f1;pointer-events:auto;cursor:pointer;box-shadow:0 8px 30px rgba(0,0,0,0.5)}",
+        ".vsat-focus__card:hover{border-color:rgba(241,196,15,0.7)}",
+        ".vsat-focus__card--editing{width:320px;cursor:default;z-index:5;border-color:rgba(241,196,15,0.9)}",
+        ".vsat-focus__card-title{font-size:0.7rem;letter-spacing:0.06em;text-transform:uppercase;color:#9fb3c8;margin-bottom:0.25rem}",
+        ".vsat-focus__card-heading{font-weight:600;font-size:0.95rem;margin-bottom:0.2rem}",
+        ".vsat-focus__card-body{font-size:0.78rem;line-height:1.35;color:#c9d4de;white-space:pre-wrap;max-height:7.5em;overflow:hidden}",
+        ".vsat-focus__card--editing .vsat-focus__card-body{max-height:14em;overflow-y:auto}",
+        ".vsat-focus__card--editing [contenteditable]{outline:1px dashed rgba(150,170,190,0.5);outline-offset:2px;border-radius:0.25rem;cursor:text}",
+        ".vsat-focus__card-foot{font-size:0.66rem;color:#7d8b99;margin-top:0.3rem}",
+        ".vsat-focus__card-actions{display:flex;gap:0.4rem;justify-content:flex-end;margin-top:0.45rem}",
+        ".vsat-focus__card-actions button{font:inherit;font-size:0.75rem;padding:0.2rem 0.65rem;border-radius:0.45rem;border:1px solid #3c5976;background:#2c3e50;color:#ecf0f1;cursor:pointer}",
+        ".vsat-focus__card-actions button[data-save]{background:#3c5976}",
+        ".vsat-focus__card-err{font-size:0.72rem;color:#e74c3c;margin-top:0.3rem}",
+      ].join("");
+      document.head.appendChild(focusCss);
+
+      const exitFocus = () => {
+        if (!focusState.els) return;
+        cancelAnimationFrame(focusState.raf);
+        focusState.els.root.remove();
+        focusState.els = null;
+        focusState.storyId = null;
+      };
+
+      // read a page's heading + body out of raw draft content (pages are
+      // delimited by # heading lines; links/hotspots/@panel are preserved
+      // separately by the save path)
+      const readPageSection = (content, pageNumber) => {
+        const lines = content.split("\n");
+        const headings = [];
+        lines.forEach((l, i) => { if (/^\s*#/.test(l)) headings.push(i); });
+        const start = headings[pageNumber];
+        if (start === undefined) return null;
+        const end = pageNumber + 1 < headings.length ? headings[pageNumber + 1] : lines.length;
+        const headingLine = lines[start] || "#";
+        const heading = headingLine.replace(/^\s*#\s*/, "").replace(/\s*\|.*$/, "").trim();
+        const body = lines
+          .slice(start + 1, end)
+          .filter((l) => !/^\s*(\[|@panel\b)/i.test(l))
+          .join("\n")
+          .replace(/\n{3,}/g, "\n\n")
+          .trim();
+        return { heading, body };
+      };
+
+      const openCardEditor = async (sceneNode, card) => {
+        if (card.classList.contains("vsat-focus__card--editing")) return;
+        card.classList.add("vsat-focus__card--editing");
+        const headingEl = card.querySelector("[data-h]");
+        const bodyEl = card.querySelector("[data-b]");
+        const err = document.createElement("p");
+        err.className = "vsat-focus__card-err";
+        err.hidden = true;
+        const actions = document.createElement("div");
+        actions.className = "vsat-focus__card-actions";
+        actions.innerHTML = '<button type="button" data-cancel>Cancel</button><button type="button" data-save>Save</button>';
+        card.appendChild(err);
+        card.appendChild(actions);
+
+        // the card shows a trimmed excerpt — load the FULL draft page before
+        // letting anyone edit, or saving would truncate their scene
+        let section = null;
+        try {
+          const res = await fetch("/api/story/" + sceneNode.storyId + "/scene/" + sceneNode.sceneId);
+          if (!res.ok) throw new Error("couldn't load the draft (" + res.status + ")");
+          const draft = await res.json();
+          section = readPageSection(draft.content || "", 0);
+        } catch (e) {
+          err.textContent = String((e && e.message) || e);
+          err.hidden = false;
+        }
+        if (section) {
+          headingEl.textContent = section.heading;
+          bodyEl.textContent = section.body;
+          for (const el of [headingEl, bodyEl]) {
+            try { el.contentEditable = "plaintext-only"; } catch (_) { el.contentEditable = "true"; }
+          }
+          bodyEl.focus();
+        }
+
+        const closeEditor = () => {
+          card.classList.remove("vsat-focus__card--editing");
+          headingEl.contentEditable = "false";
+          bodyEl.contentEditable = "false";
+          err.remove();
+          actions.remove();
+        };
+        actions.querySelector("[data-cancel]").addEventListener("click", (e) => {
+          e.stopPropagation();
+          closeEditor();
+          headingEl.textContent = sceneNode.heading;
+          bodyEl.textContent = sceneNode.excerpt;
+        });
+        actions.querySelector("[data-save]").addEventListener("click", async (e) => {
+          e.stopPropagation();
+          if (!section) return;
+          const heading = (headingEl.textContent || "").trim();
+          const body = (bodyEl.innerText || "").trim();
+          if (!heading) return;
+          const edit = window.__vsatEdit;
+          if (!edit) { err.textContent = "edit bridge unavailable"; err.hidden = false; return; }
+          e.target.disabled = true;
+          err.hidden = true;
+          try {
+            await edit.mutateDraftContent(sceneNode.storyId, sceneNode.sceneId, (content) =>
+              edit.replaceSectionText(content, 0, heading, body));
+            sceneNode.heading = heading;
+            sceneNode.excerpt = body.length > 200 ? body.slice(0, 200).trimEnd() + "…" : body;
+            closeEditor();
+            headingEl.textContent = sceneNode.heading;
+            bodyEl.textContent = sceneNode.excerpt;
+          } catch (e2) {
+            err.textContent = String((e2 && e2.message) || e2);
+            err.hidden = false;
+            e.target.disabled = false;
+          }
+        });
+      };
+
+      const enterFocus = (storyId) => {
+        exitFocus();
+        const cluster = clientData.clusters.find((c) => String(c.storyId) === String(storyId));
+        if (!cluster) return;
+        focusState.storyId = storyId;
+
+        const host = canvas.parentElement;
+        if (getComputedStyle(host).position === "static") host.style.position = "relative";
+        const root = document.createElement("div");
+        root.className = "vsat-focus";
+        const scrim = document.createElement("div");
+        scrim.className = "vsat-focus__scrim";
+        root.appendChild(scrim);
+        const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+        svg.setAttribute("class", "vsat-focus__wires");
+        root.appendChild(svg);
+        const head = document.createElement("div");
+        head.className = "vsat-focus__head";
+        const title = document.createElement("strong");
+        title.textContent = cluster.title;
+        const hint = document.createElement("span");
+        hint.textContent = "story structure — click a card to edit · drag to rotate · Esc to close";
+        const closeBtn = document.createElement("button");
+        closeBtn.type = "button";
+        closeBtn.textContent = "✕ Close";
+        closeBtn.addEventListener("click", exitFocus);
+        head.append(title, hint, closeBtn);
+        root.appendChild(head);
+
+        const cards = new Map();
+        for (const sn of cluster.scenes) {
+          const card = document.createElement("div");
+          card.className = "vsat-focus__card";
+          card.dataset.sceneId = String(sn.sceneId);
+          const t = document.createElement("div");
+          t.className = "vsat-focus__card-title";
+          t.textContent = sn.title + (sn.isOpening ? " · start" : "");
+          const h = document.createElement("div");
+          h.className = "vsat-focus__card-heading";
+          h.setAttribute("data-h", "");
+          h.textContent = sn.heading || "";
+          const b = document.createElement("div");
+          b.className = "vsat-focus__card-body";
+          b.setAttribute("data-b", "");
+          b.textContent = sn.excerpt || "";
+          const f = document.createElement("div");
+          f.className = "vsat-focus__card-foot";
+          f.textContent = sn.pageCount > 1 ? "editing page 1 of " + sn.pageCount : "";
+          card.append(t, h, b, f);
+          card.addEventListener("click", (e) => {
+            e.stopPropagation();
+            openCardEditor(sn, card);
+          });
+          root.appendChild(card);
+          cards.set(sn.id, card);
+        }
+        focusState.els = { root, svg, cards, cluster };
+        host.appendChild(root);
+
+        // rotate the turntable to face this cluster (reuse the story-list
+        // facing behaviour) so the board opens roughly centred
+        for (const btn of document.querySelectorAll(".vsatlatarium__story")) {
+          if ((btn.textContent || "").trim() === cluster.title.trim()) {
+            btn.click();
+            break;
+          }
+        }
+
+        const project = () => {
+          if (!focusState.els) return;
+          const rect = canvas.getBoundingClientRect();
+          const rootRect = root.getBoundingClientRect();
+          const cam = sceneEl.camera;
+          const pts = new Map();
+          for (const [id, card] of cards) {
+            const entity = document.querySelector('.scene-node[data-scene-id="' + id + '"]');
+            if (!entity || !entity.object3D || !cam) continue;
+            entity.object3D.getWorldPosition(_worldPos);
+            _projected.copy(_worldPos).project(cam);
+            const behind = _projected.z > 1;
+            const x = rect.left - rootRect.left + ((_projected.x + 1) / 2) * rect.width;
+            const y = rect.top - rootRect.top + ((1 - _projected.y) / 2) * rect.height;
+            pts.set(id, { x, y, behind, card });
+          }
+          // a dome cluster is angularly compact — spread the board out
+          // around its screen centroid so cards don't pile up
+          const visible = [...pts.values()].filter((p) => !p.behind);
+          if (visible.length) {
+            const cx = visible.reduce((a, p) => a + p.x, 0) / visible.length;
+            const cy = visible.reduce((a, p) => a + p.y, 0) / visible.length;
+            const SPREAD = 2.4;
+            for (const p of pts.values()) {
+              p.x = cx + (p.x - cx) * SPREAD;
+              p.y = cy + (p.y - cy) * SPREAD;
+              p.x = Math.max(120, Math.min(rootRect.width - 120, p.x));
+              p.y = Math.max(90, Math.min(rootRect.height - 70, p.y));
+              p.card.style.left = p.x + "px";
+              p.card.style.top = p.y + "px";
+              p.card.style.display = p.behind ? "none" : "";
+            }
+          }
+          while (svg.firstChild) svg.firstChild.remove();
+          svg.setAttribute("viewBox", "0 0 " + rootRect.width + " " + rootRect.height);
+          for (const arc of cluster.internalArcs) {
+            const a = pts.get(arc.from);
+            const b = pts.get(arc.to);
+            if (!a || !b || a.behind || b.behind) continue;
+            const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+            line.setAttribute("x1", a.x); line.setAttribute("y1", a.y);
+            line.setAttribute("x2", b.x); line.setAttribute("y2", b.y);
+            line.setAttribute("stroke", "#e8a33d");
+            line.setAttribute("stroke-width", "1.6");
+            line.setAttribute("stroke-opacity", "0.75");
+            svg.appendChild(line);
+          }
+          focusState.raf = requestAnimationFrame(project);
+        };
+        project();
+      };
+
+      // right-click enters focus on the story under the cursor; right-click
+      // on empty space (or Esc) leaves it
+      canvas.addEventListener("contextmenu", (e) => {
+        const hit = findNearest(e.clientX, e.clientY);
+        if (hit) {
+          const storyId = hit.getAttribute("data-story-id");
+          if (storyId) enterFocus(storyId);
+        } else if (focusState.els) {
+          exitFocus();
+        }
+      });
+      window.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") exitFocus();
+      });
     };
 
     if (sceneEl.hasLoaded) {
@@ -2451,6 +2745,17 @@ const clientData = {
     };
     animateParticles();
   </script>
+
+<script>
+  // Bridge the shared authoring write-path into the inline planetarium
+  // script (which is is:inline and cannot import modules itself).
+  import {
+    mutateDraftContent,
+    replaceSectionText,
+  } from "@components/story/published/placeHotspot";
+  (window as any).__vsatEdit = { mutateDraftContent, replaceSectionText };
+</script>
+
 </Layout>
 
 <style>
