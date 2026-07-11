@@ -69,6 +69,39 @@ test("remote gaze indicator tracks the host camera orientation", async ({
     ).toBeLessThan(0.02);
   }
 
+  // the pointing cursor sits at the viewport's centre; the fiction panel
+  // ("the box") is projected and visible
+  const overlays = await remote.evaluate(() => {
+    const mid = (sel: string) => {
+      const box = document.querySelector(sel) as HTMLElement;
+      if (box.hidden) return null;
+      return {
+        x: parseFloat(box.style.left) + parseFloat(box.style.width) / 2,
+        y: parseFloat(box.style.top) + parseFloat(box.style.height) / 2,
+      };
+    };
+    return {
+      gaze: mid("[data-headset-gaze]"),
+      cursor: mid("[data-headset-cursor]"),
+      fiction: mid("[data-headset-fiction]"),
+    };
+  });
+  expect(overlays.gaze).not.toBeNull();
+  expect(overlays.cursor).not.toBeNull();
+  expect(overlays.fiction).not.toBeNull();
+  expect(Math.abs(overlays.cursor!.x - overlays.gaze!.x)).toBeLessThan(1);
+  expect(Math.abs(overlays.cursor!.y - overlays.gaze!.y)).toBeLessThan(1);
+
+  // tap-to-enlarge: the coaching view grows the panorama
+  const smallHeight = await remote.evaluate(
+    () => document.querySelector(".headset-pano")!.getBoundingClientRect().height,
+  );
+  await remote.locator(".headset-pano").click();
+  const bigHeight = await remote.evaluate(
+    () => document.querySelector(".headset-pano")!.getBoundingClientRect().height,
+  );
+  expect(bigHeight).toBeGreaterThan(smallHeight * 1.5);
+
   await remote
     .locator(".headset-pano")
     .screenshot({ path: "test-results/gaze-indicator.png" });

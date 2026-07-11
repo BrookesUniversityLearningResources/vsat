@@ -147,6 +147,76 @@ export function startHostController(): void {
       pitch,
       fov: threeCamera?.fov ?? 80,
       aspect: threeCamera?.aspect ?? window.innerWidth / window.innerHeight,
+      fiction: fictionAngularBox(cameraEl),
     });
   }, GAZE_INTERVAL_MS);
+}
+
+/**
+ * The fiction panel projected to viewer-relative angles: its THREE bounding
+ * box's corners converted to yaw/pitch as seen from the camera position, so
+ * the remote can draw "the box" on its panorama. World-anchored, so it only
+ * moves when a render moves it — but it rides the gaze packet because that's
+ * the channel watchers already consume.
+ */
+function fictionAngularBox(cameraEl: Element): {
+  yaw: number;
+  pitch: number;
+  width: number;
+  height: number;
+} | null {
+  const THREE = (window as unknown as { AFRAME?: { THREE?: unknown } }).AFRAME
+    ?.THREE as any;
+  const fictionObj = (
+    document.getElementById("fiction") as unknown as {
+      object3D?: unknown;
+    } | null
+  )?.object3D;
+  const cameraObj = (cameraEl as unknown as { object3D?: any }).object3D;
+  if (!THREE || !fictionObj || !cameraObj) {
+    return null;
+  }
+
+  const box = new THREE.Box3().setFromObject(fictionObj);
+  if (box.isEmpty()) {
+    return null;
+  }
+  const cameraPosition = new THREE.Vector3();
+  cameraObj.getWorldPosition(cameraPosition);
+
+  const toAngles = (point: any) => {
+    const d = point.clone().sub(cameraPosition);
+    return {
+      yaw: (Math.atan2(-d.x, -d.z) * 180) / Math.PI,
+      pitch: (Math.atan2(d.y, Math.hypot(d.x, d.z)) * 180) / Math.PI,
+    };
+  };
+
+  const center = toAngles(box.getCenter(new THREE.Vector3()));
+  let minYaw = 0;
+  let maxYaw = 0;
+  let minPitch = 0;
+  let maxPitch = 0;
+  for (const x of [box.min.x, box.max.x]) {
+    for (const y of [box.min.y, box.max.y]) {
+      for (const z of [box.min.z, box.max.z]) {
+        const corner = toAngles(new THREE.Vector3(x, y, z));
+        // unwrap corner yaw around the centre so the seam can't split the box
+        let dy = corner.yaw - center.yaw;
+        while (dy > 180) dy -= 360;
+        while (dy < -180) dy += 360;
+        minYaw = Math.min(minYaw, dy);
+        maxYaw = Math.max(maxYaw, dy);
+        minPitch = Math.min(minPitch, corner.pitch - center.pitch);
+        maxPitch = Math.max(maxPitch, corner.pitch - center.pitch);
+      }
+    }
+  }
+
+  return {
+    yaw: center.yaw + (minYaw + maxYaw) / 2,
+    pitch: center.pitch + (minPitch + maxPitch) / 2,
+    width: maxYaw - minYaw,
+    height: maxPitch - minPitch,
+  };
 }

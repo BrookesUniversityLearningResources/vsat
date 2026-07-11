@@ -191,3 +191,44 @@ Deploy verification appended after push.
 `ea8b0d5`); `/remote` serves the gaze-indicator markup. Live demo:
 open a 360° story with `?room=CODE`, open `/remote?room=CODE`
 elsewhere, look around.
+
+## RE-OPENED — increment 2 (2026-07-11, operator feedback after demo)
+
+Joe (operator voice): "we'd need a projection into 2D of any floating
+elements (notably the box) and ideally also some indication of where
+the operator is pointing (their little 'target' cursor)... and that
+needs to be big enough for Eric to follow along and say things like
+'tip up so that you can click the button'. Even though I like the
+little viewpoint window, it may be a little bit too small."
+
+Decomposition:
+1. **Fiction-panel projection** — the `#fiction` entity is
+   world-anchored (position `0 -2 -6`), so the host can compute its
+   THREE.Box3, convert the corners to yaw/pitch relative to the camera
+   position, and ship `{yaw, pitch, width, height}` (angular degrees)
+   in the gaze packet. Remote draws it through the same calibrated
+   mapping — world direction → u uses the SAME empirical constant as
+   camera yaw (both are directions from the viewer).
+2. **Pointing cursor** — the operator's target ring is camera-locked
+   at view center, so "where they point" = the center of the gaze
+   viewport. A dot at the gold box's center, no new data needed.
+   (VR laser-controls hand-ray pointing: deferred — would need the
+   raycaster direction relayed.)
+3. **Bigger window** — tap/click the panorama toggles an expanded
+   (~56vh) coaching view; indicator geometry recomputes on toggle.
+
+### Increment 2 checkpoint (2026-07-11)
+
+**Built:** gaze packet gains `fiction` — the `#fiction` entity's
+THREE.Box3 corners converted to viewer-relative yaw/pitch host-side
+(seam-safe unwrap around the centre), drawn on the remote as a dashed
+blue "panel" box through the same calibrated mapping. Pointing cursor
+= gold dot at the viewport centre (camera-locked gaze cursor; VR
+hand-ray pointing deferred). Tap the panorama → coaching view
+(~56vh), indicators re-place immediately. e2e extended: cursor centred
+on viewport (±1px), fiction visible, expand grows ≥1.5×.
+
+**Note:** the projected panel spans the fiction group's full bounding
+box (title text + buttons), so it reads larger than the visible text
+plate — acceptable for coaching ("the box is down there"), refine to
+per-child boxes if Eric wants button-level precision.
