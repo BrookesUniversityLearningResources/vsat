@@ -2557,6 +2557,8 @@ const clientData = {
 
       const exitFocus3D = () => {
         if (!focus3D.storyId) return;
+        cancelAnimationFrame(focus3D.raf);
+        if (turntable?.object3D) turntable.object3D.position.set(0, 0, 0);
         for (const el of focus3D.entities) el.remove();
         for (const el of focus3D.hidden) el.setAttribute("visible", "true");
         focus3D.entities = [];
@@ -2624,6 +2626,21 @@ const clientData = {
         camZ = clamp(centerLen + cluster.localRadius * 2.6, camZMin, camZMax);
         applyTransform();
 
+        // while focused, dragging should rotate the card model about ITS OWN
+        // centre — not swing it around the distant world origin. Each frame,
+        // offset the turntable so the cluster centre stays put under the
+        // current rotation.
+        const pivotLocal = new THREE.Vector3(cluster.center.x, cluster.center.y, cluster.center.z);
+        const pivotWorld = pivotLocal.clone().applyQuaternion(turntable.object3D.quaternion);
+        const pivotTmp = new THREE.Vector3();
+        const holdPivot = () => {
+          if (!focus3D.storyId) return;
+          pivotTmp.copy(pivotLocal).applyQuaternion(turntable.object3D.quaternion);
+          turntable.object3D.position.copy(pivotWorld).sub(pivotTmp);
+          focus3D.raf = requestAnimationFrame(holdPivot);
+        };
+        holdPivot();
+
         for (const sn of cluster.scenes) {
           const card = document.createElement("a-entity");
           card.setAttribute("position", sn.position.x + " " + sn.position.y + " " + sn.position.z);
@@ -2655,6 +2672,7 @@ const clientData = {
       // click a floating card (screen-space pick, same idiom as node hover)
       canvas.addEventListener("click", (e) => {
         if (!focus3D.storyId) return;
+        if (dragTotal > 5) return; // a drag ending near a card is not a pick
         const rect = canvas.getBoundingClientRect();
         const cam = sceneEl.camera;
         let best = null;
