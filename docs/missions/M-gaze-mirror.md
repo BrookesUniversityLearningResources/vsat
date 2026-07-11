@@ -1,7 +1,8 @@
 # M-gaze-mirror — Transmit the live 360° view so a watcher sees where the operator is looking
 
-**Status:** HEAD + IDENTIFY drafted (2026-07-11); needs verification
-with Eric, then MAP.
+**Status:** built + verified + deployed (2026-07-11); COMPLETE
+pending the phone legibility check (criterion 2, on
+~/docs/INTERACTIVE-QA.md).
 
 ## HEAD
 
@@ -95,3 +96,93 @@ with Eric, then MAP.
 
 **Exit criterion:** Eric (via Joe) confirms this matches his ask, and
 the viewport-on-panorama representation is accepted as the v1 target.
+
+## 2. MAP (2026-07-11)
+
+- **Host broadcast path:** `remoteHost.ts` owns the socket; `sendState`
+  serializes `hooks.getState()` on open/hello/`notifyChange`. There is
+  no generic send — the returned `RemoteHost` API must grow a
+  `send(message)` for lightweight gaze packets (state messages are
+  event-driven and carry the full payload; gaze must not).
+- **Camera orientation:** the 360° viewer's `<a-camera>` (look-controls)
+  exposes yaw/pitch via `getAttribute("rotation")` (degrees; look-controls
+  writes through to object3D). FOV: vertical `fov` (default 80) on the
+  camera component; horizontal derives from aspect.
+- **Remote headset window:** `.headset-pano` (position: relative) holds
+  the raw equirect in an `object-fit: cover` img — so indicator math
+  needs the same cover-crop geometry as FlatStory's hotspots
+  (image-space fraction → on-screen px, hidden when cropped out).
+- **Relay:** dumb forwarder; only `state` messages are peeked at by the
+  session registry. New message kinds pass through untouched. Multiple
+  watchers per room are free (broadcast).
+- **2D host:** `FlatStory` has no orientation; it simply never sends
+  gaze, and the indicator stays hidden.
+
+## 3. DERIVE (2026-07-11)
+
+- **Message:** `{type:"gaze", yaw, pitch, fov, aspect}` (degrees),
+  host → room. IF orientation changes continuously, HOWEVER state
+  messages carry the full story payload, THEN gaze is its own tiny
+  message kind, throttled (≥100 ms) and delta-gated (≥0.5°), BECAUSE
+  re-broadcasting full state at 10 Hz would be waste and the relay is
+  a dumb pipe that doesn't care about new kinds.
+- **Equirect mapping:** image-fraction u from yaw with the sphere-seam
+  offset — hypothesis `u = (0.25 − yaw/360) mod 1`, `v = 0.5 −
+  pitch/180` — to be verified EMPIRICALLY against the rendered canvas
+  (a-sky's inside-out sphere makes analytic sign-chasing error-prone;
+  one landmark comparison settles it). Viewport box size:
+  `h = fov/180`, `w = hfov/360` with `hfov = 2·atan(tan(fov/2)·aspect)`.
+- **Representation:** outlined viewport rectangle on the flat panorama
+  (v1), with a ghost twin drawn ±imageWidth for the seam-wrap case;
+  container clips. Hidden until the first gaze packet, and on scenes
+  without a photosphere.
+- **No new remote→host messages** — completion criterion 3 is
+  enforced by scope.
+
+## 5. VERIFY — mapping calibration (2026-07-11)
+
+The DERIVE hypothesis (`u = 0.25 − yaw/360`) was WRONG in both offset
+and sign-anchor. Method: painted the a-sky with a synthetic equirect of
+8 labeled color bands (canvas → material src), drove look-controls to
+yaw 0/90/180/−90, screenshotted the view center:
+
+| yaw | band at view center | u_center |
+|---|---|---|
+| 0 | G | 0.8125 |
+| 90 | E | 0.5625 |
+| 180 | C | 0.3125 |
+| −90 | A | 0.0625 |
+
+→ **`u = (0.8125 − yaw/360) mod 1`** (empirical constant; ±0.01),
+`v = 0.5 − pitch/180`. Letters render unmirrored and neighbor bands
+appear in texture order, so the flat pano's left-right matches the
+operator's experience, and turning left moves the indicator left.
+Also fixed during verification: a still camera never re-sent, so
+late-joining watchers saw nothing — added a ~2 s keepalive resend.
+Caveat: background-tab timer throttling drops gaze to ~1 Hz when the
+host tab is hidden (irrelevant for a real operator, matters for
+side-by-side testing).
+
+## 6. INSTANTIATE — checkpoint (2026-07-11)
+
+**Built:** `remoteHost.ts` gained a generic `send()` (drop-if-closed —
+gaze is ephemeral, the next packet supersedes). `hostController.ts`
+(360° host only) sends `{type:"gaze", yaw, pitch, fov, aspect}` every
+100 ms when orientation moves ≥0.5°, plus a ~2 s keepalive for
+late-joining watchers. `remote/index.astro` renders a gold viewport
+outline on the headset panorama via object-fit-cover geometry, with a
+ghost twin one image-width away for the seam wrap; hidden for scenes
+without a photosphere; the 2D host never sends gaze so the indicator
+simply stays hidden. No new remote→host message kinds (completion
+criterion 3 — by construction; the remote's send sites are unchanged:
+hello/navigate/restart).
+
+**Verified:** live CDP run (three yaws land within a pixel of the
+calibrated prediction; seam-wrap ghost visible) +
+`tests/e2e/gaze-mirror.spec.ts` (numeric: back-computed u within 0.02
+of expected at yaw 0/90/−90, screenshot artifact). Full flat-mode
+regression still 10/10.
+
+**Remaining:** completion criterion 2 — legibility judged on a real
+phone (Joe; ideally Eric) — parked on ~/docs/INTERACTIVE-QA.md.
+Deploy verification appended after push.

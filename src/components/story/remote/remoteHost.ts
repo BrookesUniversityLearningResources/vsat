@@ -37,6 +37,12 @@ export type RemoteHostHooks = {
 export type RemoteHost = {
   /** Call after the viewer's state changes so the host re-broadcasts. */
   notifyChange: () => void;
+  /**
+   * Send a lightweight message into the room (e.g. a `gaze` packet).
+   * Dropped silently if the socket isn't open — these are ephemeral
+   * signals, not state; the next one supersedes.
+   */
+  send: (message: object) => void;
 };
 
 /** Codes a person may read aloud — no easily-confused characters. */
@@ -138,5 +144,12 @@ export function startRemoteHost(hooks: RemoteHostHooks): RemoteHost {
 
   connect();
 
-  return { notifyChange: sendState };
+  return {
+    notifyChange: sendState,
+    send: (message) => {
+      if (socket?.readyState === WebSocket.OPEN) {
+        socket.send(JSON.stringify(message));
+      }
+    },
+  };
 }

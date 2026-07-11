@@ -96,4 +96,57 @@ export function startHostController(): void {
 
   // The story view dispatches this on every (re)render — re-broadcast then.
   window.addEventListener("vsat:story-context", host.notifyChange);
+
+  // Gaze mirroring (M-gaze-mirror): broadcast where the operator is looking
+  // so watchers on /remote see a live viewport indicator on the panorama.
+  // Throttled and delta-gated — orientation changes continuously but only
+  // meaningful movement is worth a packet.
+  const GAZE_INTERVAL_MS = 100;
+  const GAZE_MIN_DELTA_DEGREES = 0.5;
+  // resend a still camera every ~2s so late-joining watchers get a packet
+  const GAZE_KEEPALIVE_TICKS = 20;
+  let lastYaw = Number.NaN;
+  let lastPitch = Number.NaN;
+  let ticksSinceSend = 0;
+
+  window.setInterval(() => {
+    const cameraEl = document.querySelector("a-camera") as
+      | (Element & {
+          getAttribute: (name: string) => unknown;
+          components?: { camera?: { camera?: { fov: number; aspect: number } } };
+        })
+      | null;
+    if (!cameraEl) {
+      return;
+    }
+    const rotation = cameraEl.getAttribute("rotation") as {
+      x: number;
+      y: number;
+    } | null;
+    if (!rotation) {
+      return;
+    }
+    const yaw = rotation.y;
+    const pitch = rotation.x;
+    ticksSinceSend += 1;
+    if (
+      Math.abs(yaw - lastYaw) < GAZE_MIN_DELTA_DEGREES &&
+      Math.abs(pitch - lastPitch) < GAZE_MIN_DELTA_DEGREES &&
+      ticksSinceSend < GAZE_KEEPALIVE_TICKS
+    ) {
+      return;
+    }
+    lastYaw = yaw;
+    lastPitch = pitch;
+    ticksSinceSend = 0;
+
+    const threeCamera = cameraEl.components?.camera?.camera;
+    host.send({
+      type: "gaze",
+      yaw,
+      pitch,
+      fov: threeCamera?.fov ?? 80,
+      aspect: threeCamera?.aspect ?? window.innerWidth / window.innerHeight,
+    });
+  }, GAZE_INTERVAL_MS);
 }
