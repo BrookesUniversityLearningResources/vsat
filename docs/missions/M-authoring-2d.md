@@ -370,3 +370,11 @@ editor, with a pointer back to this mission record. Memory
 
 **Status: COMPLETE** (pending Heroku deploy verification, appended
 below).
+
+**Deploy verification (2026-07-11):** pushed to Heroku vsat-dev
+(release v26, commits `0aa86e2` + `c8db265` on `consolidated`).
+Migrate-on-boot applied `story.mode`. Verified live:
+`/story2d/1264?room=VBA8` → 301 → `/story/1264?room=VBA8&view=flat`
+(200; the mode join works in prod). Story modes on vsat-dev are all
+`'360'` — flip a story to 2D via the new editor toggle
+("Mode: 360°/2D" in the story header).

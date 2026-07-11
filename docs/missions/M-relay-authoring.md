@@ -1,6 +1,8 @@
 # M-relay-authoring — Authenticated authoring mutations over the relay
 
-**Status:** HEAD + IDENTIFY drafted (2026-07-11); MAP pending.
+**Status:** DEFERRED (2026-07-11, same day as drafting) — see HEAD
+amendment. Re-open when M-authoring-3d's paired-input work actually
+needs mutations over the relay.
 
 ## HEAD
 
@@ -42,6 +44,20 @@
 - **Provenance:** Roadmap conversation Joe ↔ Claude, 2026-07-11;
   June 2026 remote-control sessions (memory:
   `project_remote_control`).
+
+**HEAD amendment (2026-07-11, provenance correction):** Joe reviewed
+this draft and flagged that the client ask was misattributed. Eric
+asked for the live 3D/360° view to be *transmitted* so he can see
+where the operator is looking — a read-only mirroring feature (now
+[M-gaze-mirror](M-gaze-mirror.md)). Joe does not recall Eric asking
+for remote *actions* — not authoring, and possibly not even the
+click-through navigation that already exists. This mission's real
+justification is internal: infrastructure underwriting
+M-authoring-3d's paired keyboard/voice input. That justification
+stands, but the timing is wrong until M-authoring-3d demands it —
+hence DEFERRED, per the lifecycle's anti-glibness discipline (the
+draft's own warning about under-evidenced missions applied to its own
+premise).
 
 ## 1. IDENTIFY
 

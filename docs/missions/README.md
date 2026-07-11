@@ -17,7 +17,8 @@ the mission doc itself plus Playwright screenshots under `tests/e2e/`.
 | Mission | Feature | Status | Est. hours |
 |---|---|---|---|
 | [M-authoring-2d](M-authoring-2d.md) | 2D mode as a first-class, authorable story mode (WYSIWYG hotspots) | **COMPLETE** (2026-07-11) | 10–12 (actual: ~1 session) |
-| [M-relay-authoring](M-relay-authoring.md) | Authenticated authoring mutations over the relay | IDENTIFY drafted | 6–8 |
+| [M-gaze-mirror](M-gaze-mirror.md) | Live gaze mirroring: remote shows where the 360° operator is looking (Eric's ask) | IDENTIFY drafted; verify with Eric | 3–5 |
+| [M-relay-authoring](M-relay-authoring.md) | Authenticated authoring mutations over the relay | **DEFERRED** (client ask was misattributed; re-open when M-authoring-3d needs it) | 6–8 |
 | [M-authoring-3d](M-authoring-3d.md) | VR-native authoring ("Miro in 3D") in the planetarium + photosphere | IDENTIFY drafted | 14–18 |
 
 ## Dependency shape
@@ -25,6 +26,7 @@ the mission doc itself plus Playwright screenshots under `tests/e2e/`.
 ```
 M-authoring-2d ──(hotspot gesture, mode plumbing)──▶ M-authoring-3d
 M-relay-authoring ──(voice / paired-keyboard input)──▶ M-authoring-3d
+M-gaze-mirror (read-only; independent — needs none of the trust work)
 ```
 
 M-authoring-2d and M-relay-authoring are independent of each other and
