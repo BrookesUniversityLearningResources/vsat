@@ -31,6 +31,7 @@ function routeAnthology(
   createInterpretiveNote: CreateInterpretiveNote,
   getInterpretiveNotes: GetInterpretiveNotes,
   getStoryLinksForStory: GetStoryLinksForStory,
+  assertIsSteward: RequestHandler,
   ...otherHandlers: RequestHandler[]
 ): Router {
   const router = Router();
@@ -38,6 +39,7 @@ function routeAnthology(
   router.post(
     "/anthology",
     ...(otherHandlers ?? []),
+    assertIsSteward,
     express.json(),
     (req, res) => {
       if (!req.user) {
@@ -102,6 +104,7 @@ function routeAnthology(
   router.patch(
     "/anthology/:anthologyId",
     ...(otherHandlers ?? []),
+    assertIsSteward,
     express.json(),
     (req, res) => {
       if (!req.user) {
@@ -136,6 +139,7 @@ function routeAnthology(
   router.delete(
     "/anthology/:anthologyId",
     ...(otherHandlers ?? []),
+    assertIsSteward,
     (req, res) => {
       if (!req.user) {
         res.status(401).json(errorCodedContext(ErrorCodes.Unauthorized));
@@ -164,6 +168,7 @@ function routeAnthology(
   router.post(
     "/anthology/:anthologyId/stories",
     ...(otherHandlers ?? []),
+    assertIsSteward,
     express.json(),
     (req, res) => {
       if (!req.user) {
@@ -194,6 +199,7 @@ function routeAnthology(
   router.delete(
     "/anthology/:anthologyId/stories/:storyId",
     ...(otherHandlers ?? []),
+    assertIsSteward,
     (req, res) => {
       if (!req.user) {
         res.status(401).json(errorCodedContext(ErrorCodes.Unauthorized));
@@ -223,6 +229,7 @@ function routeAnthology(
   router.post(
     "/anthology/:anthologyId/notes",
     ...(otherHandlers ?? []),
+    assertIsSteward,
     express.json(),
     (req, res) => {
       if (!req.user) {

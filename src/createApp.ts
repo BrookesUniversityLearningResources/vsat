@@ -2,6 +2,7 @@ import { Magic } from "@magic-sdk/admin";
 import { type RequestHandler, Router } from "express";
 import type { Logger } from "pino";
 
+import assertIsStewardHandler from "./authentication/assertIsStewardHandler.js";
 import authenticationRequired from "./authentication/authenticationRequired.js";
 import devAuthBypass from "./authentication/devAuthBypass.js";
 import passportWithMagicLogin from "./authentication/passport/passportWithMagicLogin.js";
@@ -137,6 +138,8 @@ export async function createAppParts(): Promise<{
     isAuthorOfTheStory(db),
   );
 
+  const assertIsSteward = assertIsStewardHandler(log);
+
   const apiRoutes = [
     routeCreateStory(log, repositoryStory.createStory),
     routeCreateScene(
@@ -207,6 +210,7 @@ export async function createAppParts(): Promise<{
       repositoryAnthology.createInterpretiveNote,
       repositoryAnthology.getInterpretiveNotes,
       repositoryStoryLink.getStoryLinksForStory,
+      assertIsSteward,
     ),
     routeDeleteScene(repositoryScene.deleteScene, assertIsAuthorOfTheStory),
     routeDeleteStory(
