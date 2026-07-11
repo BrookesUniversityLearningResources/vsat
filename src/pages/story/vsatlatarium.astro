@@ -726,6 +726,7 @@ const clientData = {
       <div class="vsatlatarium__canvas">
         <div class="vsatlatarium__toolbar">
           <button type="button" id="vsat-reset-cam" class="vsatlatarium__btn">Reset view</button>
+          <button type="button" id="vsat-qr" class="vsatlatarium__btn" title="Open this view on a phone (Cardboard-ready)">Phone</button>
           <button type="button" id="vsat-toggle-wireframes" class="vsatlatarium__btn">Wireframes</button>
           <a
             class={`vsatlatarium__btn ${isPlanetarium ? "" : "vsatlatarium__btn--active"}`}
@@ -1197,6 +1198,35 @@ const clientData = {
     }, { passive: false });
 
     // Reset button
+    // Phone handoff: QR of the CURRENT view (anthology + view params) — scan,
+    // open on the phone, then tap A-Frame's goggles button for Cardboard.
+    document.getElementById("vsat-qr")?.addEventListener("click", async () => {
+      const existing = document.querySelector(".vsat-qr-overlay");
+      if (existing) { existing.remove(); return; }
+      const overlay = document.createElement("div");
+      overlay.className = "vsat-qr-overlay";
+      overlay.style.cssText = "position:fixed;inset:0;z-index:10005;display:grid;place-items:center;background:rgba(5,7,12,0.85);cursor:pointer";
+      const panel = document.createElement("div");
+      panel.style.cssText = "display:grid;gap:0.7rem;justify-items:center;padding:1.2rem 1.4rem;border-radius:1rem;background:#12151b;border:1px solid rgba(150,170,190,0.35);color:#ecf0f1;font-family:'Source Sans Pro',system-ui,sans-serif";
+      const qrCanvas = document.createElement("canvas");
+      const caption = document.createElement("p");
+      caption.style.cssText = "margin:0;max-width:20rem;text-align:center;font-size:0.85rem;color:#9fb3c8";
+      caption.textContent = "Scan to open this view on a phone — then tap the goggles button (bottom right) and slot it into the Cardboard wrapper.";
+      panel.append(qrCanvas, caption);
+      overlay.appendChild(panel);
+      overlay.addEventListener("click", () => overlay.remove());
+      document.body.appendChild(overlay);
+      try {
+        await window.__vsatQR.toCanvas(qrCanvas, window.location.href, {
+          width: 280,
+          margin: 2,
+          color: { dark: "#0e1014", light: "#ecf0f1" },
+        });
+      } catch (err) {
+        caption.textContent = "Couldn't render the QR: " + ((err && err.message) || err);
+      }
+    });
+
     document.getElementById("vsat-reset-cam")?.addEventListener("click", () => {
       turntableQuat.identity();
       camZ = camZDefault;
@@ -2978,11 +3008,14 @@ const clientData = {
 <script>
   // Bridge the shared authoring write-path into the inline planetarium
   // script (which is is:inline and cannot import modules itself).
+  import QRCode from "qrcode";
+
   import {
     mutateDraftContent,
     replaceSectionText,
   } from "@components/story/published/placeHotspot";
   (window as any).__vsatEdit = { mutateDraftContent, replaceSectionText };
+  (window as any).__vsatQR = QRCode;
 </script>
 
 </Layout>
