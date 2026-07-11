@@ -142,3 +142,15 @@ remote hold its own credential from day one?
 - **Q5:** Does anything in the auto-arm behavior (a session registered
   on *every* story view) change the risk picture once mutations are
   possible?
+
+**Status addendum (2026-07-11, evening):** re-open condition met in
+principle — Joe designated this mission as the implementation strategy
+for M-authoring-3d's input (voice-authored commands etc.). The IDENTIFY
+exit question is ANSWERED: **host-applies** is the v1 trust model (in
+VR authoring the headset browser holds the author's own session; the
+remote is an unprivileged intent source), plus a host-side **arming
+toggle** so a steer-only room code never silently gains write effects.
+Scope accordingly collapses to: `intent`/`dictation` message kinds, the
+arming toggle, a fixed-grammar command parser on the host, and
+host-applies execution — build as increment B of M-authoring-3d rather
+than as a standalone mission.

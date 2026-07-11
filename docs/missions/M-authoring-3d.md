@@ -159,3 +159,58 @@ match what Eric wants to be able to show.
   message under M-relay-authoring's model?
 - **Q7:** COEP interactions: any additional headers/asset constraints
   for WebXR sessions beyond what text3d already solved?
+
+## MAP addendum — reassessment after M-authoring-2d + M-gaze-mirror (2026-07-11)
+
+Both sibling missions shipped today and materially changed this
+mission's ready-vs-missing table:
+
+**Newly ready:**
+- **The coordinate bridge.** M-gaze-mirror empirically calibrated the
+  direction↔equirect mapping (`u = (0.8125 − yaw/360) mod 1`,
+  `v = 0.5 − pitch/180`). Run toward the image it converts "operator
+  is looking here" into M-authoring-2d's `[label](target @ x,y)`
+  percent coordinates; run toward the sphere it places a hotspot
+  marker at the right spot in the photosphere. In-scene 3D authoring
+  is therefore the 2D WYSIWYG editor with gaze as the mouse — same
+  markup, same draft-insert → save → republish loop, same validation.
+- **The write path.** Increment 2 of M-authoring-2d built the whole
+  place → persist → republish flow, author-gated upstream.
+- **The audience view.** The gaze mirror doubles as the feedback loop
+  for voice authoring: a watcher sees the operator's card redrawn
+  row-by-row, so a newly placed hotspot/row is visible to the coach
+  the moment it lands.
+- **A proven lightweight relay channel** (gaze packets) to model
+  intent messages on.
+
+**Strategy decision (Joe, 2026-07-11): M-relay-authoring is the input
+strategy for this mission** — e.g. voice-authored commands. The
+decisive observation: in VR authoring the authenticated author IS the
+person in the headset, and the headset browser holds their session.
+So the remote is a dumb input peripheral relaying *intents*
+(commands or dictation); the host applies them under its own session,
+exactly as it applies `navigate` today. This resolves the deferred
+mission's ambition-level question in favour of **host-applies**, with
+one addition: an explicit **arming toggle** on the host ("accept
+authoring intents from this room"), because a room code that could
+only steer must not silently start to write.
+
+**Revised increments (each independently demoable):**
+1. **A — hotspots in 3D** (no relay, no headset): render
+   `blockHotspot` in the 360° viewer (inverse mapping → sphere
+   marker, `data-raycastable`), plus place-at-gaze from the viewer
+   itself (keypress while looking). Desktop-testable via Playwright;
+   proves 2D- and 3D-authored hotspots are one data model.
+2. **B — voice / paired-input authoring** (re-opens M-relay-authoring,
+   scoped down to: `intent` + `dictation` message kinds, arming
+   toggle, host-side fixed-grammar command parser, host-applies
+   execution). Phone mic does speech capture —
+   the in-headset Quest SpeechRecognition spike is demoted from
+   dependency to curiosity.
+3. **C — constellation authoring** (flagship; needs headset spikes):
+   planetarium joins the relay as a host, node selection by
+   gaze/controller, draw-an-arc → link proposal via the existing
+   interpretive API, rationale dictated over the relay.
+
+Open MAP questions Q1/Q2/Q5/Q7 (WebXR entry, controller input, 3D
+picking, COEP-in-XR) remain and gate increment C only.
