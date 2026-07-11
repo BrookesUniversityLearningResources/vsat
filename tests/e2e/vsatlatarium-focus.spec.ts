@@ -129,6 +129,28 @@ test.skip("right-click in GeomView spawns floating 3D scene cards", async ({
   expect(spawned).toBe(true);
   expect(await page.locator(".focus3d-card").count()).toBeGreaterThan(0);
 
+  // the cards carry the text now — no graph label may render behind them.
+  // The dolly-in used to trip updateGeomViewLabelMode into re-revealing the
+  // focused cluster's scene labels; resolve effective visibility up the
+  // object3D parent chain (other clusters keep visible="true" under a hidden
+  // parent, so the attribute alone lies).
+  await page.waitForTimeout(1500);
+  const rendered = await page.evaluate(() => {
+    const effVisible = (el: any) => {
+      let o = el.object3D;
+      while (o) {
+        if (!o.visible) return false;
+        o = o.parent;
+      }
+      return true;
+    };
+    const eff = (sel: string) =>
+      [...document.querySelectorAll(sel)].filter(effVisible).length;
+    return { sceneLabels: eff(".scene-label"), storyLabels: eff(".story-label") };
+  });
+  expect(rendered.sceneLabels).toBe(0);
+  expect(rendered.storyLabels).toBe(0);
+
   await page.keyboard.press("Escape");
   expect(await page.locator(".focus3d-card").count()).toBe(0);
 });

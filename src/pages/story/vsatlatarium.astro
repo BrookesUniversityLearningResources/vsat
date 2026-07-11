@@ -1050,8 +1050,19 @@ const clientData = {
     };
 
     let geomViewSceneLabelsVisible = true;
+    // While a story is focused into cards (enterFocus3D), the dolly-in
+    // brings the camera close enough that the distance heuristic below
+    // would re-reveal this cluster's scene labels — and they'd peek
+    // through behind the cards. Pin them hidden until focus exits.
+    let sceneLabelsPinnedHidden = false;
     const updateGeomViewLabelMode = () => {
       if (!camRig?.object3D) return;
+      if (sceneLabelsPinnedHidden) {
+        document.querySelectorAll(".scene-label").forEach((label) => {
+          label.setAttribute("visible", "false");
+        });
+        return;
+      }
 
       let revealBelow;
       let hideAbove;
@@ -2587,6 +2598,7 @@ const clientData = {
 
       const exitFocus3D = () => {
         if (!focus3D.storyId) return;
+        sceneLabelsPinnedHidden = false;
         cancelAnimationFrame(focus3D.raf);
         if (focus3D.holdPivot) {
           window.removeEventListener("mousemove", focus3D.holdPivot);
@@ -2646,6 +2658,9 @@ const clientData = {
             focus3D.hidden.push(el);
           });
         }
+        // keep scene labels down through the dolly-in (see the flag decl):
+        // the upcoming applyTransform would otherwise re-reveal them.
+        sceneLabelsPinnedHidden = true;
 
         for (const btn of document.querySelectorAll(".vsatlatarium__story")) {
           if (btn.getAttribute("data-story-id") === String(cluster.storyId)) {
