@@ -263,3 +263,51 @@ suspected) — passed clean on rerun; harden if it recurs.
 **Next:** increment B (voice/paired intents over the relay — the
 folded-in M-relay-authoring) then C (planetarium/WebXR, needs
 headset).
+
+## HEAD/DERIVE addendum — the spatial model (2026-07-11, operator framing)
+
+Joe: the 2D and photosphere work are "warm-ups for the full-on
+'editing in 3D' which, if we are thinking about something like Miro in
+3D, needs a spatial model more like what's in the planetarium, rather
+than the 2D surface of the photosphere (where the placement of
+hotspots is about all we can do)."
+
+Sharpened: a photosphere is a **2-DOF surface** — every authorable
+thing on it reduces to a direction (u,v), so hotspots + panel
+placement roughly exhaust it. It supports *annotation*, not
+*arrangement*. The planetarium is the true canvas because it already
+has Miro's ontology, derived rather than authored:
+
+| Miro | VSATLATARIUM |
+|---|---|
+| sticky note | scene/story node (spring-layout position in R³) |
+| connector | typed arc (with rationale — richer than Miro) |
+| board / frame | anthology (already filters the planetarium) |
+| boards-within-boards | meta-planetarium (future direction) |
+
+**The missing primitive — the thing that makes Miro Miro: a dragged
+sticky STAYS.** Planetarium positions are computed (server-side,
+deterministic, seeded); nobody owns one. Miro-in-3D therefore needs
+**pinned positions**: drag a node → its coordinates persist; the
+spring layout demotes to "auto-arrange," acting only on unpinned
+nodes.
+
+DERIVE question this raises (for increment C): where do pinned
+positions live? Leading shape: **per-anthology** (anthology_id,
+story_id [, scene_id] → x,y,z) — the same stories arrangeable
+differently in different curatorial contexts, exactly like one sticky
+on two boards. Falls back to spring layout when unpinned; "unpin" =
+delete the row. Alternative (global per-story position) rejected
+provisionally BECAUSE anthologies are the planetarium's existing
+"board" concept and arrangements are interpretive acts, which are
+anthology-scoped throughout VSATLAS.
+
+What the warm-ups contribute, restated: the gestures (point-place-
+label, drag-and-it-stays, edit-in-place, voice intents), the write
+paths, the arming/trust model, and the audience view (gaze mirror) —
+all substrate-independent. Increment C swaps the substrate from (u,v)
+to R³ and adds the pinning persistence.
+
+Increment C scope accordingly grows one item: **node drag-to-pin**
+alongside arc-drawing and dictated rationale — arrange, connect,
+annotate: the full Miro verb set.
