@@ -122,3 +122,37 @@ GET routes (list, get, notes, report) stay ungated.
 editing) and 3 ([[M-edit-changelog]]); the `deleteStory` widening
 sub-decision. Composing `assertIsAuthorOrStewardOfTheStory` from this
 same middleware is the next step when piece 2 begins.
+
+## INSTANTIATE — piece 2 checkpoint (2026-07-11): story editing widened
+
+**Sub-decision resolved (Joe):** `deleteStory` widens to **author +
+steward** (a steward may delete any story), not author-only.
+
+**Built:** `assertIsAuthorOrStewardOfTheStoryHandler` — the story-scoped
+gate composed from the piece-1 primitive: steward shortcut first (no DB
+round-trip), else the existing authorship lookup, else 403. Swapped in
+for `assertIsAuthorOfTheStory` across every story-scoped route in
+`createApp` (create/get/save scene, content, scene title, story title,
+story mode, image + audio upload/delete, delete scene, delete story,
+publish, unpublish). `routeSaveAuthorName` keeps its own-profile
+`assertIsAuthor` gate. The now-callerless author-only handler was
+deleted (recoverable from history).
+
+**Verified:**
+- Unit: `tests/unit/domain/story/support/assertIsAuthorOrStewardOfTheStoryHandler.test.ts`
+  — anon → 401 (no author lookup), steward → `next()` (no author
+  lookup), author → `next()`, neither → 403.
+- Live (throwaway API on the new code): author reads own draft (200);
+  steward reads any draft (200, the new capability); non-author
+  non-steward → 403 on read, delete, and publish (target story left
+  intact). 158 unit tests green; server typecheck clean.
+
+**⚠ Deploy ordering:** this widening must not reach production ahead of
+the edit changelog ([[M-edit-changelog]], piece 3) — the accountability
+record for a steward editing a story they do not own. Built on the
+branch; hold the deploy until piece 3 lands.
+
+**Concurrency note (2026-07-11):** a parallel session was editing
+`vsatlatarium.astro` (stabilcam card depth-ordering) during this work;
+those changes are unrelated to auth and were left untouched — the piece
+2 commit is auth files only.

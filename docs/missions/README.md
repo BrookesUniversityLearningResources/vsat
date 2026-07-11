@@ -20,7 +20,7 @@ the mission doc itself plus Playwright screenshots under `tests/e2e/`.
 | [M-gaze-mirror](M-gaze-mirror.md) | Live gaze mirroring: remote shows where the 360° operator is looking (Eric's ask) | IDENTIFY drafted; verify with Eric | 3–5 |
 | [M-relay-authoring](M-relay-authoring.md) | Authoring intents over the relay (host-applies + arming) | Folded into M-authoring-3d increment B | ~2–3 |
 | [M-authoring-3d](M-authoring-3d.md) | VR-native authoring ("Miro in 3D") in the planetarium + photosphere | Slices 1–2 built on `authoring-3d`; slice 3 spec'd | 12–16 |
-| [M-anthology-auth](M-anthology-auth.md) | Steward-gate anthology curation + the shared steward/author permission model (settled with GeomView authoring) | Piece 1 DONE; pieces 2–3 open | ~1 (piece 1 done) |
+| [M-anthology-auth](M-anthology-auth.md) | Steward-gate anthology curation + the shared steward/author permission model (settled with GeomView authoring) | Pieces 1–2 DONE; piece 3 (changelog) gates deploy | done bar changelog |
 | [M-edit-changelog](M-edit-changelog.md) | Audit trail for story edits — counterweight to author+steward editing | IDENTIFY drafted | 2–3 |
 
 ## Dependency shape
