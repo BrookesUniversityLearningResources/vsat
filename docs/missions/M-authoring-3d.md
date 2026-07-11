@@ -492,3 +492,42 @@ machine, the entry gesture, facing.
 - Prerequisite: tag internal arcs with their story id at draw time so
   focus can dim everything else in-scene (no scrim) while keeping the
   focus story's wires.
+
+### Slice 2 checkpoint (2026-07-11): floating cards in GeomView
+
+Joe: "not a gallery... cards floating like the standard ones in the
+standard VSAT experience but using a 3D space so that they can move
+around and do card sorting adjustments in a spatial way... the closest
+existing thing is the GeomView viewer. Could we put cards into the
+geomview and see what it looks like?"
+
+**Built and seen.** Right-click a story in GeomView: everything else
+hides in-scene (clusters + arcs — internal arcs now tagged
+data-story-id at draw time, the slice-2 prerequisite), the turntable
+faces the cluster (now matched by data-story-id, not title text), the
+camera dollies to reading distance, and the story's scenes spawn as
+**floating 3D cards** — a-plane backdrop + frame, troika title/
+heading/excerpt, billboarded via stabilcam — at their spring-layout
+positions with the orange narrative arcs sweeping between them.
+Clicking a card opens a centred DOM popover running the same
+draft-fetch → edit → save path; saves sync back onto the 3D card's
+troika text. Esc / right-click space restores the constellation.
+
+Screenshot evidence: Sinking City as 13 readable floating cards
+("EARTHQUAKE IN MACEIÓ", "THE HOLE", "THREE MARACANÃS"...) wired in
+depth. This IS the spatial substrate Joe described — entities, not
+DOM, so it carries into WebXR.
+
+Gotcha logged: `position` is not a troika-text property — set it as
+the entity position attribute or all text stacks at centre.
+
+**Next (slice 3 — the point of it all): move the cards.** Drag a card
+in 3D (screen-ray onto a camera-parallel plane), wires re-drawing
+live, and PERSIST the arrangement — per-story scene positions (the
+pinning table decision now has its first concrete customer: scoped
+story+scene+context). Then the same drag gesture generalises to
+planetarium node pinning (C2).
+
+Testing note: the GeomView spawn e2e is skipped headless (works headed
+via CDP; screen-space pick doesn't land under headless GeomView) —
+fold into the planetarium spec-suite rewrite.

@@ -1422,11 +1422,11 @@ const clientData = {
     const arcDefs = [];
     let currentBlend = 0;
 
-    const drawArc = (from, to, controlPoint, color, opacity, thickness, arcType, arcId) => {
+    const drawArc = (from, to, controlPoint, color, opacity, thickness, arcType, arcId, storyId) => {
       const radius = thickness || 0.04;
       // Store definition for later redraw on zoom
       if (domeRadius) {
-        arcDefs.push({ from, to, controlPoint, color, opacity, radius, arcType, arcId });
+        arcDefs.push({ from, to, controlPoint, color, opacity, radius, arcType, arcId, storyId });
       }
       for (let i = 0; i < segments; i++) {
         const t0 = i / segments;
@@ -1461,6 +1461,9 @@ const clientData = {
         if (arcId !== undefined && arcId !== null) {
           el.setAttribute("data-arc-id", String(arcId));
         }
+        if (storyId !== undefined && storyId !== null) {
+          el.setAttribute("data-story-id", String(storyId));
+        }
         turntable.appendChild(el);
       }
     };
@@ -1480,7 +1483,7 @@ const clientData = {
           if (!from || !to) continue;
           const internalBow = isPlanetarium ? 0.15 : 1.2;
           const cp = localArcControlPoint(from, to, cluster.center, internalBow);
-          drawArc(from, to, cp, "#fb923c", 0.8, 0.06, "internal");
+          drawArc(from, to, cp, "#fb923c", 0.8, 0.06, "internal", undefined, cluster.storyId);
         }
       }
 
@@ -2423,6 +2426,10 @@ const clientData = {
 
       const enterFocus = (storyId) => {
         exitFocus();
+        if (!isPlanetarium) {
+          enterFocus3D(storyId);
+          return;
+        }
         const cluster = clientData.clusters.find((c) => String(c.storyId) === String(storyId));
         if (!cluster) return;
         focusState.storyId = storyId;
@@ -2483,7 +2490,7 @@ const clientData = {
         // rotate the turntable to face this cluster (reuse the story-list
         // facing behaviour) so the board opens roughly centred
         for (const btn of document.querySelectorAll(".vsatlatarium__story")) {
-          if ((btn.textContent || "").trim() === cluster.title.trim()) {
+          if (btn.getAttribute("data-story-id") === String(cluster.storyId)) {
             btn.click();
             break;
           }
@@ -2541,6 +2548,167 @@ const clientData = {
         project();
       };
 
+      // --- Focus, GeomView flavour (slice 2 direction): the cards live IN
+      // the 3D space — billboarded card entities at the scene positions,
+      // everything else hidden in-scene. Click a card to edit via a
+      // centred popover; saves sync back onto the 3D card. This is the
+      // VR-capable path (no DOM board).
+      const focus3D = { storyId: null, entities: [], hidden: [], cards: new Map() };
+
+      const exitFocus3D = () => {
+        if (!focus3D.storyId) return;
+        for (const el of focus3D.entities) el.remove();
+        for (const el of focus3D.hidden) el.setAttribute("visible", "true");
+        focus3D.entities = [];
+        focus3D.hidden = [];
+        focus3D.cards.clear();
+        focus3D.storyId = null;
+        if (focus3D.prevCamZ !== undefined) {
+          camZ = focus3D.prevCamZ;
+          focus3D.prevCamZ = undefined;
+          applyTransform();
+        }
+      };
+
+      const cardTroikaValue = (value, fontSize, color) =>
+        "value: " + String(value || "").replace(/;/g, ",") + "; fontSize: " + fontSize +
+        "; color: " + color + "; anchor: left; baseline: top; maxWidth: 2.5";
+      const cardText = (value, fontSize, color, y) => {
+        const el = document.createElement("a-troika-text");
+        el.setAttribute("troika-text", cardTroikaValue(value, fontSize, color));
+        el.setAttribute("position", "-1.28 " + y + " 0.012");
+        return el;
+      };
+
+      const enterFocus3D = (storyId) => {
+        exitFocus3D();
+        const cluster = clientData.clusters.find((c) => String(c.storyId) === String(storyId));
+        if (!cluster) return;
+        focus3D.storyId = String(storyId);
+
+        // hide the rest of the constellation in-scene: other clusters and
+        // every arc segment that isn't this story's (inter-story arcs carry
+        // no data-story-id, so they hide too)
+        document.querySelectorAll(".story-cluster").forEach((el) => {
+          if (el.getAttribute("data-story-id") !== String(storyId)) {
+            el.setAttribute("visible", "false");
+            focus3D.hidden.push(el);
+          }
+        });
+        turntable.querySelectorAll(".arc-segment").forEach((el) => {
+          if (el.getAttribute("data-story-id") !== String(storyId)) {
+            el.setAttribute("visible", "false");
+            focus3D.hidden.push(el);
+          }
+        });
+        // the cards carry the text now — rest the cluster's floating labels
+        const clusterEl = document.querySelector('.story-cluster[data-story-id="' + storyId + '"]');
+        if (clusterEl) {
+          clusterEl.querySelectorAll("[troika-text]").forEach((el) => {
+            el.setAttribute("visible", "false");
+            focus3D.hidden.push(el);
+          });
+        }
+
+        for (const btn of document.querySelectorAll(".vsatlatarium__story")) {
+          if (btn.getAttribute("data-story-id") === String(cluster.storyId)) {
+            btn.click();
+            break;
+          }
+        }
+
+        // dolly in: the cluster sits ~|center| out along the faced axis;
+        // bring the camera to comfortable card-reading distance
+        const centerLen = Math.hypot(cluster.center.x, cluster.center.y, cluster.center.z);
+        focus3D.prevCamZ = camZ;
+        camZ = clamp(centerLen + cluster.localRadius * 2.6, camZMin, camZMax);
+        applyTransform();
+
+        for (const sn of cluster.scenes) {
+          const card = document.createElement("a-entity");
+          card.setAttribute("position", sn.position.x + " " + sn.position.y + " " + sn.position.z);
+          card.setAttribute("stabilcam", "baseScale: 1; refDist: 24; maxScale: 1.5");
+          card.classList.add("focus3d-card");
+          card.setAttribute("data-card-scene", String(sn.sceneId));
+
+          const backdrop = document.createElement("a-plane");
+          backdrop.setAttribute("width", "2.8");
+          backdrop.setAttribute("height", "1.7");
+          backdrop.setAttribute("material", "color: #12151b; opacity: 0.94; transparent: true; shader: flat");
+          const frame = document.createElement("a-plane");
+          frame.setAttribute("width", "2.88");
+          frame.setAttribute("height", "1.78");
+          frame.setAttribute("position", "0 0 -0.01");
+          frame.setAttribute("material", "color: #3c5976; opacity: 0.9; shader: flat");
+
+          const title = cardText(sn.title.toUpperCase() + (sn.isOpening ? "  ·  START" : ""), 0.12, "#9fb3c8", 0.72);
+          const heading = cardText(sn.heading, 0.19, "#ecf0f1", 0.52);
+          const excerpt = cardText((sn.excerpt || "").slice(0, 160), 0.125, "#c9d4de", 0.2);
+
+          card.append(frame, backdrop, title, heading, excerpt);
+          clusterEl?.appendChild(card) ?? turntable.appendChild(card);
+          focus3D.entities.push(card);
+          focus3D.cards.set(sn.sceneId, { card, sn, heading, excerpt, title });
+        }
+      };
+
+      // click a floating card (screen-space pick, same idiom as node hover)
+      canvas.addEventListener("click", (e) => {
+        if (!focus3D.storyId) return;
+        const rect = canvas.getBoundingClientRect();
+        const cam = sceneEl.camera;
+        let best = null;
+        let bestDist = 120;
+        for (const [sceneId, entry] of focus3D.cards) {
+          entry.card.object3D.getWorldPosition(_worldPos);
+          _projected.copy(_worldPos).project(cam);
+          if (_projected.z > 1) continue;
+          const sx = rect.left + ((_projected.x + 1) / 2) * rect.width;
+          const sy = rect.top + ((1 - _projected.y) / 2) * rect.height;
+          const d = Math.hypot(e.clientX - sx, e.clientY - sy);
+          if (d < bestDist) { bestDist = d; best = entry; }
+        }
+        if (best) {
+          // capture phase: keep the pick from falling through to the
+          // navigate-into-story click handler underneath
+          e.stopPropagation();
+          openFloatingEditor(best);
+        }
+      }, true);
+
+      const openFloatingEditor = (entry) => {
+        if (document.querySelector(".vsat-focus__card--float")) return;
+        const sn = entry.sn;
+        const panel = document.createElement("div");
+        panel.className = "vsat-focus__card vsat-focus__card--float";
+        panel.style.cssText = "position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:10004;width:340px";
+        const t = document.createElement("div");
+        t.className = "vsat-focus__card-title";
+        t.textContent = sn.title;
+        const h = document.createElement("div");
+        h.className = "vsat-focus__card-heading";
+        h.setAttribute("data-h", "");
+        h.textContent = sn.heading || "";
+        const b = document.createElement("div");
+        b.className = "vsat-focus__card-body";
+        b.setAttribute("data-b", "");
+        b.textContent = sn.excerpt || "";
+        panel.append(t, h, b);
+        document.body.appendChild(panel);
+        openCardEditor(sn, panel);
+        // when the editor chrome goes away (save or cancel), sync the 3D
+        // card's text and remove the popover
+        const watch = new MutationObserver(() => {
+          if (!panel.classList.contains("vsat-focus__card--editing")) {
+            watch.disconnect();
+            entry.heading.setAttribute("troika-text", cardTroikaValue(sn.heading, 0.19, "#ecf0f1"));
+            entry.excerpt.setAttribute("troika-text", cardTroikaValue((sn.excerpt || "").slice(0, 160), 0.125, "#c9d4de"));
+            panel.remove();
+          }
+        });
+        watch.observe(panel, { attributes: true, attributeFilter: ["class"] });
+      };
+
       // right-click enters focus on the story under the cursor; right-click
       // on empty space (or Esc) leaves it
       canvas.addEventListener("contextmenu", (e) => {
@@ -2548,12 +2716,16 @@ const clientData = {
         if (hit) {
           const storyId = hit.getAttribute("data-story-id");
           if (storyId) enterFocus(storyId);
-        } else if (focusState.els) {
+        } else if (focusState.els || focus3D.storyId) {
           exitFocus();
+          exitFocus3D();
         }
       });
       window.addEventListener("keydown", (e) => {
-        if (e.key === "Escape") exitFocus();
+        if (e.key === "Escape") {
+          exitFocus();
+          exitFocus3D();
+        }
       });
     };
 
