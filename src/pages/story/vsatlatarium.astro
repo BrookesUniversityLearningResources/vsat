@@ -2731,9 +2731,31 @@ const clientData = {
       // on empty space (or Esc) leaves it
       canvas.addEventListener("contextmenu", (e) => {
         const hit = findNearest(e.clientX, e.clientY);
-        if (hit) {
-          const storyId = hit.getAttribute("data-story-id");
-          if (storyId) enterFocus(storyId);
+        let storyId = hit ? hit.getAttribute("data-story-id") : null;
+        if (!storyId) {
+          // generous fallback: the nearest story hub within 350px — the
+          // precise 100px node radius is too small a target for a human
+          // right-click
+          const rect = canvas.getBoundingClientRect();
+          const cam = sceneEl.camera;
+          let bestDist = 350;
+          for (const el of document.querySelectorAll(".scene-node")) {
+            const id = el.getAttribute("data-scene-id") || "";
+            if (!id.endsWith("-hub") || !el.object3D || !cam) continue;
+            el.object3D.getWorldPosition(_worldPos);
+            _projected.copy(_worldPos).project(cam);
+            if (_projected.z > 1) continue;
+            const sx = rect.left + ((_projected.x + 1) / 2) * rect.width;
+            const sy = rect.top + ((1 - _projected.y) / 2) * rect.height;
+            const d = Math.hypot(e.clientX - sx, e.clientY - sy);
+            if (d < bestDist) {
+              bestDist = d;
+              storyId = el.getAttribute("data-story-id");
+            }
+          }
+        }
+        if (storyId) {
+          enterFocus(storyId);
         } else if (focusState.els || focus3D.storyId) {
           exitFocus();
           exitFocus3D();
