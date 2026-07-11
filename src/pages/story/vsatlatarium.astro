@@ -3598,6 +3598,15 @@ const clientData = {
     opacity: 0.5;
   }
 
+  /* Browser-VR fallback (fullscreen): themed cursors (grab/grabbing) can
+     render invisible in fullscreen on Chrome/Linux — force plain ones so
+     the pointer never vanishes while rotating. */
+  :global(html.a-fullscreen .a-canvas),
+  :global(html.a-fullscreen .a-canvas.a-grab-cursor),
+  :global(html.a-fullscreen .a-canvas.a-grab-cursor:active) {
+    cursor: default !important;
+  }
+
   @media screen and (max-width: 980px) {
     .vsatlatarium__content {
       grid-template-columns: 1fr;
