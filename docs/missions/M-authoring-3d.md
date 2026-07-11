@@ -465,3 +465,30 @@ the card); dev fixture makes dev@localhost co-author of 398 + 1137.
 
 **Deferred to slice 2:** drawing NEW narrative arcs card-to-card (the
 C1 connect verb); arc removal; multi-page cards (edits page 1 of N).
+
+### Slice 1 assessment (2026-07-11, operator): 2.5D scaffold, not yet 3D
+
+Joe: "that's like 'stacked cards with a lightweight 3D-in-2D effect' —
+not what we'd want for 'editing in 3D'. But it does pull out the cards
+and give us something to look at so it's a start."
+
+Agreed, and the boundary is precise: DOM overlays cannot exist in
+WebXR immersive mode, so the focus board as built can never enter VR.
+It is a desktop scaffold. What carries over unchanged: SceneNode
+content enrichment, the draft-fetch + save bridge, the focus state
+machine, the entry gesture, facing.
+
+**Slice 2 — true 3D cards:**
+- Cards as scene entities: a-plane + troika text (all ingredients
+  proven: poster, fiction panel, planetarium labels, text3d);
+  raycaster-pickable; exist in WebXR.
+- Arrangement: focus mode flies the cards onto a **curved gallery
+  wall** (cylindrical section at comfortable reading distance) with
+  3D wires between them — stand inside your story's board. The dome
+  cluster remains as the minimap it flew from.
+- Input adapts, display doesn't: desktop text entry = DOM popover
+  over the picked card; headset text entry = increment B relay
+  intents (dictation / paired keyboard). Same card object in both.
+- Prerequisite: tag internal arcs with their story id at draw time so
+  focus can dim everything else in-scene (no scrim) while keeping the
+  focus story's wires.
