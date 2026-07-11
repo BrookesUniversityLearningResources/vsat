@@ -28,3 +28,71 @@ session.
 - **Related:** interpretive-link routes worth auditing in the same
   pass (voting = any user is intended; retirement should be
   steward-only — confirm it is).
+
+## MAP / DERIVE — the permission model, settled with GeomView authoring (2026-07-11)
+
+Prompted by Joe: "the auth for editing stories in GeomView — maybe we
+could think about that along with M-anthology-auth to get two related
+topics dealt with in one go." Surveyed the whole mutation surface; the
+two topics share exactly one missing primitive.
+
+**Three tiers exist in the tree today:** authenticated (`req.user`),
+author-of-the-story (`assertIsAuthorOfTheStory`), steward
+(`isStewardUser` — `STEWARD_EMAILS`, `*` wildcard on dev,
+`DEV_STEWARD_TOGGLE` cookie override).
+
+**Audit of the current gates:**
+
+| Act | Route | Gate today | Verdict |
+|---|---|---|---|
+| Edit / add / remove scene, narrative arcs | `saveSceneContent`, `createScene`, `deleteScene`, `saveSceneTitle` | author-of-story | correct, but see widening below |
+| Propose inter-story link | `POST /story/:id/links` | authenticated (open) | correct by design |
+| Retire link | `POST /links/:id/retire` | **steward** | already correct — the "confirm it is" worry above is resolved |
+| Vote link | `POST /links/:id/vote` | business rule + steward flag | correct |
+| Create/rename/delete anthology, add/remove story, notes | `routeAnthology` (6 routes) | **authenticated only** | **the gap this mission fixes** |
+| Drag-to-pin arrangement | *no route yet* (M-authoring-3d slice 3) | — | decided below, built there |
+
+**Key realisation:** "editing stories in GeomView" is *already*
+author-gated at the backend — the focus board's edit/create/remove
+verbs hit the same author routes as the classic editor, and the 403
+surfaces in the card. There is no backend hole there. The genuinely
+shared question is that **anthology curation and spatial arrangement
+are the same kind of act** (curating an anthology's shelf), and both
+want a reusable steward gate that does not yet exist (steward is only
+ever checked inline).
+
+**Decisions (Joe, 2026-07-11):**
+
+1. **Story-scoped acts → author OR steward.** Widen the story-content
+   gate so a steward driving a workshop can restructure any story, not
+   only their own; the owner always can. New middleware
+   `assertIsAuthorOrStewardOfTheStory`, swapped in on the content
+   routes. Drag-to-pin arrangement of a story's own scene cards sits on
+   this same story side (it is the story's structure), NOT the
+   anthology side — this is the "author arranges" half of the split.
+2. **Anthology-scoped acts → steward only.** Gate the six
+   `routeAnthology` mutation routes with a new reusable
+   `assertIsSteward` middleware. This is the "steward curates" half.
+3. **An edit changelog is the counterweight to widening the edit
+   gate.** The moment a steward can edit a story they do not own,
+   "who changed my scene?" is a real question. Split out as its own
+   mission ([[M-edit-changelog]]); it must land before or with the
+   widening (decision 1), never after.
+
+**One reusable primitive underpins 1 and 2:** an `assertIsSteward`
+Express middleware (parallel to `assertIsAuthorOfTheStory`), from which
+`assertIsAuthorOrStewardOfTheStory` composes. Building it once and
+mounting it on the anthology routes now + the slice-3 pin route later
+is the "two topics in one go."
+
+**Open sub-decision (gates decision 1 only, deferred):** does
+`deleteStory` widen to stewards too, or stay author-only because it is
+destructive? Not needed for this mission's scope (piece 1 below).
+
+**Build order (independent, ship in this order):**
+1. **`assertIsSteward` + gate the 6 anthology routes** — this mission,
+   ~1h, fully decided, self-contained. **Building now.**
+2. **Widen content routes to author-OR-steward** (decision 1) — small,
+   but a real behaviour change; must not precede the changelog.
+3. **Edit changelog + history page** ([[M-edit-changelog]]) — new
+   schema + write-through + page.

@@ -560,6 +560,22 @@ fold into the planetarium spec-suite rewrite.
 Together these complete the board's verb set: read, edit, connect,
 create, remove — plus slice 3's original move-and-persist.
 
+**Auth for the slice-3 verbs (settled 2026-07-11, see
+[[M-anthology-auth]]):** the board's story-scoped verbs — edit,
+connect (narrative), create, remove, AND arrange (drag-to-pin scene
+cards) — gate as **author OR steward** via a new
+`assertIsAuthorOrStewardOfTheStory` middleware; a steward may
+restructure any story in a workshop, the owner always can. Arrangement
+sits on this story side, NOT the anthology side ("author arranges,
+steward curates"). Anthology-scoped acts (membership, metadata) gate
+steward-only. The shared `assertIsSteward` primitive is built first in
+M-anthology-auth piece 1. Widening the content routes must not ship
+before the edit changelog ([[M-edit-changelog]]) that attributes who
+changed what — the accountability counterweight to a steward editing
+stories they do not own. Open sub-decision: whether C2's per-anthology
+*inter-story node* pinning (as opposed to intra-story scene-card
+arrangement) is steward-only curation — revisit when C2 lands.
+
 ### The verb set is the voice grammar (2026-07-11, operator insight)
 
 Joe: "the verbs we are collecting could be used for the edit-by-voice
