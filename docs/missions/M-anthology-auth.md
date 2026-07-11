@@ -91,8 +91,34 @@ destructive? Not needed for this mission's scope (piece 1 below).
 
 **Build order (independent, ship in this order):**
 1. **`assertIsSteward` + gate the 6 anthology routes** — this mission,
-   ~1h, fully decided, self-contained. **Building now.**
+   ~1h, fully decided, self-contained. **DONE (2026-07-11)** — see
+   checkpoint.
 2. **Widen content routes to author-OR-steward** (decision 1) — small,
    but a real behaviour change; must not precede the changelog.
 3. **Edit changelog + history page** ([[M-edit-changelog]]) — new
    schema + write-through + page.
+
+## INSTANTIATE — piece 1 checkpoint (2026-07-11): steward gate shipped
+
+**Built:** `src/authentication/assertIsStewardHandler.ts` — a reusable
+Express middleware (401 if anonymous, 403 if not a steward, else
+`next()`), reusing `isStewardUser` so `STEWARD_EMAILS` / the `*` dev
+wildcard / the `DEV_STEWARD_TOGGLE` cookie all behave identically to
+the rest of the app. Wired through `createApp` into `routeAnthology`,
+which now applies it to all six mutating routes (create / patch /
+delete anthology, add / remove story, create note); the four public
+GET routes (list, get, notes, report) stay ungated.
+
+**Verified:**
+- Unit: `tests/unit/authentication/assertIsStewardHandler.test.ts` —
+  anonymous → 401, non-steward → 403, steward → `next()`, `*` wildcard
+  → any authenticated user passes.
+- Live (throwaway API instance on the new code): all six mutating
+  routes return 403 with `vsat_steward=0`; a steward passes the gate
+  (PATCH with a bad body → 400, not 403); all four GET routes → 200.
+- Full unit suite green (154 tests); server typecheck clean.
+
+**Not in this piece (still open):** pieces 2 (author-OR-steward content
+editing) and 3 ([[M-edit-changelog]]); the `deleteStory` widening
+sub-decision. Composing `assertIsAuthorOrStewardOfTheStory` from this
+same middleware is the next step when piece 2 begins.
