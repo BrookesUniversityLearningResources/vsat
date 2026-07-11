@@ -78,9 +78,15 @@ story editor header, read live at render time (no republish needed).
   flat ↔ 3D from anywhere (Ctrl+digit is browser-reserved).
 - **Hotspots**: `[text](target @ x,y)` — a positioned link at x%,y% of the
   photo (`blockHotspot`, parsed before `parseLink`). Rendered as pulsing
-  markers on the flat photo. The ✎ pill (`?edit=hotspots`) is a WYSIWYG
-  editor: click the photo → name it → the markup line is inserted into the
-  draft, saved, and republished. Mutations are author-gated.
+  markers on the flat photo AND inside the photosphere (`scene-hotspot`).
+- **Panel placement**: `@panel x,y` — per-page directive (percent of
+  viewport) anchoring the fiction/nav panel's centre (`blockPanel`).
+- **The ✎ pill (`?edit=hotspots`) is the WYSIWYG editor**: click the photo
+  → drop a hotspot; drag the panel → its position persists as `@panel`;
+  click the heading/body → edit in place (heading anchor preserved);
+  "+ link" → append a nav row. In the 360° viewer, press `h` while looking
+  at a spot to place a hotspot at gaze. All writes go through the shared
+  draft-insert → save → republish path (`placeHotspot.ts`); author-gated.
 - Mission record: `docs/missions/M-authoring-2d.md`.
 
 ## Future directions

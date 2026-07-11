@@ -78,7 +78,22 @@ export type HotspotBlock = {
   y: number;
 };
 
-export type Block = HeadingBlock | PlaintextBlock | LinkBlock | HotspotBlock;
+/**
+ * Per-page placement of the fiction/nav panel (`@panel x,y`): x,y are
+ * percent-of-viewport coordinates of the panel's centre.
+ */
+export type PanelBlock = {
+  kind: "blockPanel";
+  x: number;
+  y: number;
+};
+
+export type Block =
+  | HeadingBlock
+  | PlaintextBlock
+  | LinkBlock
+  | HotspotBlock
+  | PanelBlock;
 
 export type Page = Readonly<{
   /**

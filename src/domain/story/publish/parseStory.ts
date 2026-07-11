@@ -170,6 +170,28 @@ export function parseScene(scene: PersistentScene): ParseSceneResult {
         break;
       }
 
+      case "panel": {
+        if (!page) {
+          parseErrors.push({
+            errorCode: ErrorCodes.MustAddHeadingBeforeAddingALink,
+            reason: `Error parsing scene "${scene.title}" at line #${lineNumber}: you must create a heading before placing the panel`,
+
+            line: {
+              number: lineNumber,
+              text: line,
+            },
+          });
+        } else {
+          page.content.push({
+            kind: "blockPanel",
+            x: result.x,
+            y: result.y,
+          });
+        }
+
+        break;
+      }
+
       case "hotspot": {
         if (!page) {
           parseErrors.push({

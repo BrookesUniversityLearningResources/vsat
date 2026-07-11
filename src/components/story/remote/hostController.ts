@@ -92,7 +92,16 @@ export function startHostController(): void {
     render.call(storyEl.components?.story, current, { isSceneChange: true });
   };
 
-  const host = startRemoteHost({ getState, navigate, restart });
+  const host = startRemoteHost({
+    getState,
+    navigate,
+    restart,
+    // a newcomer gets the next gaze tick immediately instead of waiting
+    // out the keepalive
+    onRemoteJoined: () => {
+      lastYaw = Number.NaN;
+    },
+  });
 
   // The story view dispatches this on every (re)render — re-broadcast then.
   window.addEventListener("vsat:story-context", host.notifyChange);

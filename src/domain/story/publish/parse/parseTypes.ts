@@ -41,6 +41,16 @@ export type Hotspot = Readonly<{
 }>;
 
 /**
+ * A per-page panel placement directive: `@panel x,y` with x,y as
+ * percent-of-viewport coordinates of the fiction/nav panel's centre.
+ */
+export type Panel = Readonly<{
+  kind: "panel";
+  x: number;
+  y: number;
+}>;
+
+/**
  * For when nothing matches; we'll just ignore that sort of stuff
  */
 export type Nothing = Readonly<{
@@ -65,6 +75,7 @@ export type ParseBlock =
   | HeaderNamed
   | Link
   | Hotspot
+  | Panel
   | ParseError;
 
 export type Parse = (text: string, lineNumber: number) => ParseBlock;

@@ -378,3 +378,57 @@ Migrate-on-boot applied `story.mode`. Verified live:
 (200; the mode join works in prod). Story modes on vsat-dev are all
 `'360'` — flip a story to 2D via the new editor toggle
 ("Mode: 360°/2D" in the story header).
+
+## RE-OPENED — increment 4 (2026-07-11, operator gap report)
+
+Joe: "I think we're missing the point-and-click placement / editing /
+extension of the text box." The HEAD promised view + edit-in-place;
+increment 2 delivered it only for hotspots. Scope:
+
+1. **Placement** — dragging the panel in edit mode persists: a new
+   per-page markup directive `@panel x,y` (percent of viewport,
+   panel centre) through the parse → publish pipeline; the flat
+   viewer honours it on render. IF panel position could live in a DB
+   column, HOWEVER content-as-single-source-of-truth is the settled
+   pattern (hotspots), THEN it is a markup line, BECAUSE it
+   round-trips the wikitext editor for free and can later position
+   the fiction panel in 3D too.
+2. **Editing** — in edit mode the heading and body are editable in
+   place (contenteditable, saved on blur); the heading's anchor
+   (`| name`) is preserved so links never break.
+3. **Extension** — a "+ link" affordance appends an ordinary
+   `[label](target)` row to the page.
+Position/text saves do NOT reload (the view already shows the
+result); only hotspot placement still reloads (needs a marker
+render).
+
+### Increment 4 checkpoint (2026-07-11) — built + verified
+
+**Built:** the full edit-in-place promise for the text box.
+- `@panel x,y` per-page directive (`parsePanel` before `parsePlaintext`;
+  `blockPanel` through publish; verbatim Slate round-trip). The flat
+  viewer anchors the panel at the directive's viewport-percents;
+  dragging the panel in edit mode persists the drop position as the
+  directive (no reload — the view already shows it).
+- In-place text editing: heading + body are `contenteditable`
+  (plaintext-only) in edit mode; blur rewrites the page's draft
+  section via `replaceSectionText` — heading anchor (`| name`), links,
+  hotspots, and the panel directive all preserved. No reload.
+- "+ link" row: appends an ordinary `[label](target)` line through the
+  same form as hotspots (which now distinguishes plain-link vs
+  positioned placements).
+- Shared write path extended: `mutateDraftContent`, `upsertPanelLine`,
+  `replaceSectionText` in `placeHotspot.ts`; `placeHotspot` refactored
+  onto `mutateDraftContent`.
+- Protocol robustness found by the regression suite: gaze packets are
+  now re-sent when a remote says hello (`onRemoteJoined` hook) instead
+  of the newcomer waiting out a keepalive.
+
+**Verified:** 10 new unit tests (parsePanel, upsertPanelLine,
+replaceSectionText — 150 total passing); live CDP loop (edit body →
+draft updated with anchor/links/hotspots preserved; drag → `@panel
+72.8,27.7` persisted and honoured after reload; "+ link" → row
+appears); 2 new e2e tests (editable text + add-link affordance;
+persisted directive placement) — 15 feature e2e green; gaze spec 2×
+green. The dev-API-restart gotcha bit again (stale parser published
+`@panel` as plaintext) — same remedy, restart after domain changes.

@@ -63,34 +63,103 @@ export function insertHotspotLine(
   return lines.join("\n");
 }
 
-export type PlaceHotspotRequest = {
-  storyId: number;
-  sceneId: number;
-  pageNumber: number;
-  label: string;
-  target: string;
-  /** percent-of-image coordinates */
-  x: number;
-  y: number;
-};
+/**
+ * Find the [start, end) line bounds of a page's section of the draft
+ * content; pages are delimited by `#` heading lines.
+ */
+function sectionBounds(
+  lines: string[],
+  pageNumber: number,
+): { start: number; end: number } | null {
+  const headings: number[] = [];
+  lines.forEach((text, index) => {
+    if (/^\s*#/.test(text)) headings.push(index);
+  });
+  const start = headings[pageNumber];
+  if (start === undefined) {
+    return null;
+  }
+  return { start, end: headings[pageNumber + 1] ?? lines.length };
+}
 
-export async function placeHotspot({
-  storyId,
-  sceneId,
-  pageNumber,
-  label,
-  target,
-  x,
-  y,
-}: PlaceHotspotRequest): Promise<void> {
-  const line = `[${label}](${target} @ ${x},${y})`;
+/**
+ * Set (or move) the page's `@panel x,y` placement directive — removes any
+ * existing panel line in the section, then inserts the new one at its end.
+ */
+export function upsertPanelLine(
+  content: string,
+  pageNumber: number,
+  x: number,
+  y: number,
+): string {
+  const lines = content.split("\n");
+  const bounds = sectionBounds(lines, pageNumber);
+  const directive = `@panel ${x},${y}`;
+  if (!bounds) {
+    return `${content.replace(/\s+$/, "")}\n${directive}\n`;
+  }
+  const kept = lines.filter(
+    (line, index) =>
+      index < bounds.start || index >= bounds.end || !/^\s*@panel\b/i.test(line),
+  );
+  return insertHotspotLine(kept.join("\n"), pageNumber, directive);
+}
 
+/**
+ * Replace the page's heading text and fiction body, preserving everything
+ * else: the heading's `| anchor` (so links never break), links, hotspots,
+ * and the panel directive. The section is reassembled as
+ * heading / body paragraphs / other lines.
+ */
+export function replaceSectionText(
+  content: string,
+  pageNumber: number,
+  heading: string,
+  body: string,
+): string {
+  const lines = content.split("\n");
+  const bounds = sectionBounds(lines, pageNumber);
+  if (!bounds) {
+    return content;
+  }
+  const section = lines.slice(bounds.start, bounds.end);
+  const headingLine = section[0] ?? "#";
+  const anchor = /\|(.*)$/.exec(headingLine)?.[1]?.trim();
+  const newHeading = anchor ? `# ${heading} | ${anchor}` : `# ${heading}`;
+  const keptLines = section
+    .slice(1)
+    .filter((line) => /^\s*(\[|@panel\b)/i.test(line));
+  const bodyLines = body
+    .split("\n")
+    .map((line) => line.replace(/\s+$/, ""))
+    .filter((line, index, all) => line || all[index - 1]);
+  const rebuilt = [
+    newHeading,
+    "",
+    ...bodyLines,
+    ...(keptLines.length ? ["", ...keptLines] : []),
+    "",
+  ];
+  return [...lines.slice(0, bounds.start), ...rebuilt, ...lines.slice(bounds.end)]
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n");
+}
+
+/**
+ * GET the draft scene, apply a content transformation, PUT it back, and
+ * republish the story. The shared write path for all in-place editing.
+ */
+export async function mutateDraftContent(
+  storyId: number,
+  sceneId: number,
+  mutate: (content: string) => string,
+): Promise<void> {
   const sceneRes = await fetch(`/api/story/${storyId}/scene/${sceneId}`);
   if (!sceneRes.ok) {
     throw new Error(`couldn't load the draft scene (${sceneRes.status})`);
   }
   const draft = await sceneRes.json();
-  const content = insertHotspotLine(draft.content ?? "", pageNumber, line);
+  const content = mutate(draft.content ?? "");
 
   const saveRes = await fetch(
     `/api/story/${storyId}/scene/${sceneId}/content`,
@@ -114,6 +183,32 @@ export async function placeHotspot({
   if (!publishRes.ok) {
     throw new Error(`saved, but couldn't republish (${publishRes.status})`);
   }
+}
+
+export type PlaceHotspotRequest = {
+  storyId: number;
+  sceneId: number;
+  pageNumber: number;
+  label: string;
+  target: string;
+  /** percent-of-image coordinates */
+  x: number;
+  y: number;
+};
+
+export async function placeHotspot({
+  storyId,
+  sceneId,
+  pageNumber,
+  label,
+  target,
+  x,
+  y,
+}: PlaceHotspotRequest): Promise<void> {
+  const line = `[${label}](${target} @ ${x},${y})`;
+  await mutateDraftContent(storyId, sceneId, (content) =>
+    insertHotspotLine(content, pageNumber, line),
+  );
 }
 
 /** Every known link target in a published story, for target pickers. */

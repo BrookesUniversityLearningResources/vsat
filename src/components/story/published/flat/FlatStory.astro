@@ -131,11 +131,15 @@ const serializedStory = DOMPurify.sanitize(
     isHeadingBlock,
     isHotspotBlock,
     isLinkBlock,
+    isPanelBlock,
     isPlaintextBlock,
   } from "@domain/story/publish/support/isBlock";
   import {
     allTargetsIn,
-    placeHotspot,
+    insertHotspotLine,
+    mutateDraftContent,
+    replaceSectionText,
+    upsertPanelLine,
   } from "@components/story/published/placeHotspot";
   import { startRemoteHost } from "@components/story/remote/remoteHost";
 
@@ -148,6 +152,11 @@ const serializedStory = DOMPurify.sanitize(
 
   const main = document.querySelector("main.flat") as HTMLElement;
   const view = main?.dataset.view === "poster" ? "poster" : "flat";
+  // session drag offset for the panel (persisted placement is separate)
+  const drag = { dx: 0, dy: 0 };
+
+  // assigned by the edit-mode setup; refreshEditable uses it for "+ link"
+  let openPlacementForm = (_pending, _x, _y) => {};
 
   const el = {
     title: document.querySelector("[data-story-title]"),
@@ -385,6 +394,27 @@ const serializedStory = DOMPurify.sanitize(
   window.addEventListener("resize", positionHotspots);
   el.img?.addEventListener("load", positionHotspots);
 
+  // A persisted `@panel x,y` directive anchors the panel's centre at
+  // viewport percents (overlay layout only); without one, the panel keeps
+  // its default flex-centred home. Applying a placement clears any session
+  // drag offset.
+  function positionPanel(block) {
+    if (!el.panel || !main?.classList.contains("flat--overlay")) return;
+    drag.dx = 0;
+    drag.dy = 0;
+    if (block) {
+      el.panel.style.position = "absolute";
+      el.panel.style.left = `${block.x}%`;
+      el.panel.style.top = `${block.y}%`;
+      el.panel.style.transform = "translate(-50%, -50%)";
+    } else {
+      el.panel.style.position = "";
+      el.panel.style.left = "";
+      el.panel.style.top = "";
+      el.panel.style.transform = "";
+    }
+  }
+
   function render() {
     showImage(scene.image && scene.image.url);
 
@@ -408,7 +438,70 @@ const serializedStory = DOMPurify.sanitize(
     const hotspotBlocks = page.content.filter(isHotspotBlock);
     el.end.hidden = linkBlocks.length + hotspotBlocks.length > 0;
     renderHotspots();
+    positionPanel(page.content.find(isPanelBlock));
+    refreshEditable();
   }
+
+  // ---- in-place text editing + row extension (edit mode) ----
+  //
+  // The heading and body are editable where they stand; a blur with changes
+  // rewrites this page's section of the draft (preserving the heading's
+  // anchor, links, hotspots, and panel directive) and republishes — no
+  // reload, the view already shows the result.
+  const rendered = { heading: "", body: "" };
+  function refreshEditable() {
+    rendered.heading = el.heading.textContent ?? "";
+    rendered.body = el.body.textContent ?? "";
+    const hasHeading = page.content.some(isHeadingBlock);
+    const setEditable = (elm, on) => {
+      try {
+        elm.contentEditable = on ? "plaintext-only" : "false";
+      } catch {
+        elm.contentEditable = on ? "true" : "false";
+      }
+    };
+    setEditable(el.heading, editing && hasHeading);
+    setEditable(el.body, editing);
+    const isEditing = editing;
+    if (isEditing) {
+      const addLink = document.createElement("button");
+      addLink.type = "button";
+      addLink.className = "flat-link flat-link--add";
+      addLink.textContent = "+ link";
+      addLink.title = "Add a navigation row to this page";
+      addLink.addEventListener("click", (e) => {
+        openPlacementForm(
+          { kind: "link" },
+          e.clientX || window.innerWidth / 2,
+          e.clientY || window.innerHeight / 2,
+        );
+      });
+      el.links.appendChild(addLink);
+    }
+  }
+
+  async function saveTextIfChanged() {
+    const heading = (el.heading.textContent ?? "").trim();
+    const body = (el.body as HTMLElement).innerText ?? "";
+    if (heading === rendered.heading.trim() && body === rendered.body) return;
+    if (!heading) {
+      el.heading.textContent = rendered.heading;
+      return;
+    }
+    try {
+      await mutateDraftContent(story.id, scene.id, (content) =>
+        replaceSectionText(content, page.number, heading, body),
+      );
+      rendered.heading = heading;
+      rendered.body = body;
+    } catch (err) {
+      alert(String(err?.message ?? err));
+      el.heading.textContent = rendered.heading;
+      el.body.textContent = rendered.body;
+    }
+  }
+  el.heading.addEventListener("blur", saveTextIfChanged);
+  el.body.addEventListener("blur", saveTextIfChanged);
 
   window.addEventListener("popstate", () => {
     if (!applyFromUrl()) {
@@ -425,26 +518,31 @@ const serializedStory = DOMPurify.sanitize(
   const isOverlay = main?.classList.contains("flat--overlay");
   if (isOverlay && el.panel) {
     const handle = el.panel.querySelector(".flat-panel-head") as HTMLElement;
-    let dx = 0, dy = 0, sx = 0, sy = 0, bx = 0, by = 0, dragging = false;
+    let sx = 0, sy = 0, bx = 0, by = 0, dragging = false, moved = false;
     handle.style.cursor = "grab";
     handle.style.touchAction = "none";
     handle.title = "Drag to move";
     const apply = () => {
-      el.panel.style.transform = `translate(${dx}px, ${dy}px)`;
+      // compose with the centring transform when the panel is placed
+      el.panel.style.transform = el.panel.style.position === "absolute"
+        ? `translate(calc(-50% + ${drag.dx}px), calc(-50% + ${drag.dy}px))`
+        : `translate(${drag.dx}px, ${drag.dy}px)`;
     };
     handle.addEventListener("pointerdown", (e) => {
       if ((e.target as HTMLElement).closest("button")) return;
       dragging = true;
+      moved = false;
       handle.setPointerCapture(e.pointerId);
-      sx = e.clientX; sy = e.clientY; bx = dx; by = dy;
+      sx = e.clientX; sy = e.clientY; bx = drag.dx; by = drag.dy;
       handle.style.cursor = "grabbing";
     });
     handle.addEventListener("pointermove", (e) => {
       if (!dragging) return;
       const mx = window.innerWidth / 2;
       const my = window.innerHeight / 2;
-      dx = Math.max(-mx, Math.min(mx, bx + (e.clientX - sx)));
-      dy = Math.max(-my, Math.min(my, by + (e.clientY - sy)));
+      drag.dx = Math.max(-mx, Math.min(mx, bx + (e.clientX - sx)));
+      drag.dy = Math.max(-my, Math.min(my, by + (e.clientY - sy)));
+      if (Math.abs(drag.dx - bx) + Math.abs(drag.dy - by) > 3) moved = true;
       apply();
     });
     const end = (e) => {
@@ -452,6 +550,20 @@ const serializedStory = DOMPurify.sanitize(
       dragging = false;
       handle.style.cursor = "grab";
       try { handle.releasePointerCapture(e.pointerId); } catch (_) {}
+      // in edit mode a real drag persists the panel's new home
+      if (editing && moved) {
+        const rect = el.panel.getBoundingClientRect();
+        const x =
+          Math.round(((rect.left + rect.width / 2) / window.innerWidth) * 1000) /
+          10;
+        const y =
+          Math.round(((rect.top + rect.height / 2) / window.innerHeight) * 1000) /
+          10;
+        positionPanel({ x, y });
+        mutateDraftContent(story.id, scene.id, (content) =>
+          upsertPanelLine(content, page.number, x, y),
+        ).catch((err) => alert(String(err?.message ?? err)));
+      }
     };
     handle.addEventListener("pointerup", end);
     handle.addEventListener("pointercancel", end);
@@ -500,6 +612,18 @@ const serializedStory = DOMPurify.sanitize(
     ) as HTMLButtonElement;
     let pending = null;
 
+    openPlacementForm = (newPending, clientX, clientY) => {
+      pending = newPending;
+      el.form.hidden = false;
+      formError.hidden = true;
+      // the form floats above everything in viewport space
+      el.form.style.left = `${Math.max(8, Math.min(clientX, window.innerWidth - 280))}px`;
+      el.form.style.top = `${Math.max(8, Math.min(clientY + 14, window.innerHeight - 220))}px`;
+      labelInput.value = "";
+      targetInput.value = "";
+      labelInput.focus();
+    };
+
     el.hero.addEventListener("click", (e) => {
       const target = e.target as HTMLElement;
       if (el.form.contains(target) || target.closest(".flat-hotspot")) return;
@@ -511,15 +635,15 @@ const serializedStory = DOMPurify.sanitize(
       const x = ((hx - geom.ox) / geom.dw) * 100;
       const y = ((hy - geom.oy) / geom.dh) * 100;
       if (x < 0 || x > 100 || y < 0 || y > 100) return;
-      pending = { x: Math.round(x * 10) / 10, y: Math.round(y * 10) / 10 };
-      el.form.hidden = false;
-      formError.hidden = true;
-      // the form floats above everything in viewport space
-      el.form.style.left = `${Math.max(8, Math.min(e.clientX, window.innerWidth - 280))}px`;
-      el.form.style.top = `${Math.max(8, Math.min(e.clientY + 14, window.innerHeight - 220))}px`;
-      labelInput.value = "";
-      targetInput.value = "";
-      labelInput.focus();
+      openPlacementForm(
+        {
+          kind: "hotspot",
+          x: Math.round(x * 10) / 10,
+          y: Math.round(y * 10) / 10,
+        },
+        e.clientX,
+        e.clientY,
+      );
     });
 
     el.form
@@ -537,16 +661,14 @@ const serializedStory = DOMPurify.sanitize(
       if (!label || !target) return;
       submitButton.disabled = true;
       formError.hidden = true;
+      const line =
+        pending.kind === "link"
+          ? `[${label}](${target})`
+          : `[${label}](${target} @ ${pending.x},${pending.y})`;
       try {
-        await placeHotspot({
-          storyId: story.id,
-          sceneId: scene.id,
-          pageNumber: page.number,
-          label,
-          target,
-          x: pending.x,
-          y: pending.y,
-        });
+        await mutateDraftContent(story.id, scene.id, (content) =>
+          insertHotspotLine(content, page.number, line),
+        );
         location.reload();
       } catch (err) {
         formError.textContent = String(err?.message ?? err);
@@ -757,6 +879,21 @@ const serializedStory = DOMPurify.sanitize(
 
   /* hotspot editing */
   .flat--editing .flat-hero { cursor: crosshair; }
+  .flat--editing [contenteditable]:not([contenteditable="false"]) {
+    cursor: text;
+    border-radius: 0.3rem;
+  }
+  .flat--editing [contenteditable]:not([contenteditable="false"]):hover,
+  .flat--editing [contenteditable]:not([contenteditable="false"]):focus {
+    outline: 1px dashed rgba(150, 170, 190, 0.55);
+    outline-offset: 3px;
+  }
+  .flat-link--add {
+    border-style: dashed;
+    opacity: 0.75;
+    text-align: center;
+  }
+  .flat-link--add:hover { opacity: 1; }
   .flat--editing .flat-hotspot { cursor: default; }
   .flat-badge--active { background: #3c5976; color: #ecf0f1; }
   .flat-hotspot-form {

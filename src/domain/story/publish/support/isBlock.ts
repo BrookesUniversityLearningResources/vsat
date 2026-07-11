@@ -3,6 +3,7 @@ import type {
   HeadingBlock,
   HotspotBlock,
   LinkBlock,
+  PanelBlock,
   PlaintextBlock,
 } from "../types.ts";
 
@@ -16,6 +17,10 @@ export function isLinkBlock(block: Block): block is LinkBlock {
 
 export function isHotspotBlock(block: Block): block is HotspotBlock {
   return block.kind === "blockHotspot";
+}
+
+export function isPanelBlock(block: Block): block is PanelBlock {
+  return block.kind === "blockPanel";
 }
 
 export function isPlaintextBlock(block: Block): block is PlaintextBlock {

@@ -32,6 +32,12 @@ export type RemoteHostHooks = {
   navigate: (link: string) => void;
   /** Reset the experience to the story's start. */
   restart: () => void;
+  /**
+   * A remote said hello (joined the room). State is re-broadcast
+   * automatically; use this to re-send any ephemeral signals (e.g. gaze)
+   * the newcomer would otherwise wait a keepalive for.
+   */
+  onRemoteJoined?: () => void;
 };
 
 export type RemoteHost = {
@@ -119,6 +125,7 @@ export function startRemoteHost(hooks: RemoteHostHooks): RemoteHost {
 
     if (message.type === "hello") {
       sendState();
+      hooks.onRemoteJoined?.();
       return;
     }
     if (message.type === "navigate" && typeof message.link === "string") {

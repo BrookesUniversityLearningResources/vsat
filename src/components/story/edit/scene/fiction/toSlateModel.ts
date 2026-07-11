@@ -37,6 +37,10 @@ export default function toSlateModel(scene: PersistentScene): Descendant[] {
                 model.push(hotspotBlock(block.text, block.link, block.x, block.y));
                 break;
               }
+              case "blockPanel": {
+                model.push(plaintextBlock(`@panel ${block.x},${block.y}`));
+                break;
+              }
               default: {
                 ((_: never) => _)(block);
               }
@@ -99,6 +103,12 @@ export default function toSlateModel(scene: PersistentScene): Descendant[] {
                 lineResult.x,
                 lineResult.y,
               ),
+            );
+            break;
+          }
+          case "panel": {
+            model.push(
+              plaintextBlock(`@panel ${lineResult.x},${lineResult.y}`),
             );
             break;
           }

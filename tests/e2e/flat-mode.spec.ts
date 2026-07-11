@@ -121,6 +121,31 @@ test("editor mode toggle flips story.mode and back", async ({ page }) => {
   await expect(toggle).toHaveText(/2D/);
 });
 
+test("edit mode makes the panel text editable and offers + link", async ({
+  page,
+}) => {
+  await page.goto(`/story/${FLAT_STORY}?view=flat&edit=hotspots`);
+  await expect(page.locator("main.flat")).toHaveClass(/flat--editing/);
+  const bodyEditable = await page.evaluate(
+    () =>
+      (document.querySelector("[data-body]") as HTMLElement).contentEditable,
+  );
+  expect(bodyEditable).not.toBe("false");
+  await expect(page.locator(".flat-link--add")).toBeVisible();
+});
+
+test("a persisted @panel directive places the panel", async ({ page }) => {
+  // fixture: story 1137's opening page carries `@panel 72.8,27.7`
+  await page.goto(`/story/${FLAT_STORY}?view=flat`);
+  await expect(page.locator(".flat-panel")).toBeVisible();
+  const style = await page.evaluate(() => {
+    const panel = document.querySelector("[data-panel]") as HTMLElement;
+    return { position: panel.style.position, left: panel.style.left };
+  });
+  expect(style.position).toBe("absolute");
+  expect(style.left).toBe("72.8%");
+});
+
 test("legacy /story2d/ URLs redirect with params preserved", async ({
   page,
 }) => {
