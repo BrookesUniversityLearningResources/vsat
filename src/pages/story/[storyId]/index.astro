@@ -1,5 +1,6 @@
 ---
 import ImportAFrameScripts from "@components/story/published/aframe/ImportAFrameScripts.astro";
+import FlatStory from "@components/story/published/flat/FlatStory.astro";
 import PublishedStory from "@components/story/published/PublishedStory.astro";
 import { ErrorCodes } from "@domain/error/errorCode";
 import toStoryId from "@domain/story/toStoryId";
@@ -19,6 +20,21 @@ const story = await repositoryStory.getPublishedStory(storyId);
 if (!story) {
   return Astro.redirect(`/author/story?err=${ErrorCodes.StoryNotFound}`);
 }
+
+// How to present the scenes: ?view= overrides, otherwise the story's
+// persisted mode picks the default. "flat" and "poster" render without the
+// photosphere; "poster" hangs the flat photo in A-Frame space.
+const requestedView = Astro.url.searchParams.get("view");
+const view =
+  requestedView === "flat" || requestedView === "poster"
+    ? requestedView
+    : requestedView === "360"
+      ? "360"
+      : story.mode === "2d"
+        ? "flat"
+        : "360";
+const layout =
+  Astro.url.searchParams.get("layout") === "doc" ? "doc" : "overlay";
 
 const links = await repositoryStoryLink.getStoryLinksForStory(storyId);
 const acceptedLinks = links.filter((link) => link.status === "accepted");
@@ -52,11 +68,17 @@ const linkedStoryCards = Array.from(linkedStories.values()).slice(0, 5);
         author: story.author.name,
       })}
     />
-    <ImportAFrameScripts />
+    {view !== "flat" && <ImportAFrameScripts />}
   </head>
 </html>
 <body>
-  <PublishedStory story={story} />
+  {
+    view === "360" ? (
+      <PublishedStory story={story} />
+    ) : (
+      <FlatStory story={story} view={view} layout={layout} />
+    )
+  }
   <button class="interpretive-toggle" type="button" aria-expanded="false">
     Interpretive
   </button>
@@ -183,7 +205,35 @@ const linkedStoryCards = Array.from(linkedStories.values()).slice(0, 5);
 
 <script>
   import { startHostController } from "@components/story/remote/hostController";
-  startHostController();
+  // the flat/poster views self-host via remoteHost.ts inside FlatStory;
+  // starting the A-Frame host controller too would register a second session
+  if (!document.querySelector("main.flat")) {
+    startHostController();
+
+    // Sneaky hop out of the photosphere: press 2 for the flat view, keeping
+    // the current scene/page (and any ?room=). Bare digit because the browser
+    // reserves Ctrl+digit for tab switching, but Ctrl is tolerated for
+    // single-tab (kiosk/VR) contexts where it does get through.
+    window.addEventListener("keydown", (e) => {
+      if (e.key !== "2" || e.metaKey || e.altKey) return;
+      const target = e.target as HTMLElement;
+      if (
+        target?.tagName === "INPUT" ||
+        target?.tagName === "TEXTAREA" ||
+        target?.isContentEditable
+      ) {
+        return;
+      }
+      e.preventDefault();
+      const params = new URLSearchParams(location.search);
+      params.set("view", "flat");
+      const current = (window as any).current;
+      if (current?.scene?.id) params.set("scene", String(current.scene.id));
+      if (current?.page?.number != null)
+        params.set("page", String(current.page.number));
+      location.href = `${location.pathname}?${params.toString()}`;
+    });
+  }
 </script>
 
 <script is:inline>

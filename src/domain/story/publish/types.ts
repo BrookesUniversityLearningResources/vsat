@@ -8,12 +8,25 @@ import type {
   PersistentStory,
 } from "../../index.js";
 
+/**
+ * How a story's scene images are presented.
+ *
+ * * `"360"` — equirectangular photospheres on an `<a-sky>` (the classic VSAT)
+ * * `"2d"` — flat photos rendered without WebGL
+ *
+ * The mode lives on the `story` row and is read live at render time (not
+ * snapshotted into `story_published`), so toggling it affects the published
+ * view immediately.
+ */
+export type StoryMode = "360" | "2d";
+
 export type PublishedStory = Readonly<
   Prettify<
     Omit<PersistentStory, "scenes" | "publishedOn"> & {
       createdAt: Date;
       scenes: NonEmptyArray<PublishedScene>;
       imageUrl: string | null;
+      mode: StoryMode;
     }
   >
 >;
@@ -52,7 +65,20 @@ export type LinkBlock = {
   link: LinkTarget;
 };
 
-export type Block = HeadingBlock | PlaintextBlock | LinkBlock;
+/**
+ * A positioned link (`[text](target @ x,y)`): rendered as a clickable
+ * hotspot on the scene photo at x% across / y% down, rather than as a
+ * button in the fiction block.
+ */
+export type HotspotBlock = {
+  kind: "blockHotspot";
+  text: string;
+  link: LinkTarget;
+  x: number;
+  y: number;
+};
+
+export type Block = HeadingBlock | PlaintextBlock | LinkBlock | HotspotBlock;
 
 export type Page = Readonly<{
   /**

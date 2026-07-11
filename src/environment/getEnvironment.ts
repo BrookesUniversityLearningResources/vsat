@@ -66,6 +66,7 @@ import unpublishStoryInDatabase from "../domain/story/publish/unpublishStoryInDa
 import saveSceneContentInDatabase from "../domain/story/saveSceneContentInDatabase.js";
 import saveSceneTitleInDatabase from "../domain/story/saveSceneTitleInDatabase.js";
 import saveStoryInDatabase from "../domain/story/saveStoryInDatabase.js";
+import saveStoryModeInDatabase from "../domain/story/saveStoryModeInDatabase.js";
 import saveStoryTitleInDatabase from "../domain/story/saveStoryTitleInDatabase.js";
 import createI18NContext from "../i18n/createI18NContext.js";
 import loadConfig from "./config.js";
@@ -191,6 +192,7 @@ const getEnvironment: App.GetEnvironment = (() => {
       getPublishedStorySummariesInDatabase(log, getDB),
     ),
     saveStoryTitle: tx(saveStoryTitleInDatabase(logDb, getDB, getStory)),
+    saveStoryMode: tx(saveStoryModeInDatabase(logDb, getDB, getStory)),
   };
 
   const repositoryStoryLink: RepositoryStoryLink = {

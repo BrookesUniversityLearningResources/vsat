@@ -6,13 +6,14 @@ import type {
   SaveAuthorNameInDatabase,
   SaveSceneContentInDatabase,
   SaveSceneTitleInDatabase,
+  SaveStoryModeInDatabase,
   SaveStoryTitleInDatabase,
   StoryDto,
 } from "../database/schema.js";
 import type { AudioName } from "./audio/types.js";
 import type { ErrorCode } from "./error/errorCode.js";
 import type { ImageName } from "./image/types.js";
-import type { PublishedStory } from "./story/publish/types.js";
+import type { PublishedStory, StoryMode } from "./story/publish/types.js";
 
 type WithId = { id?: number };
 
@@ -68,6 +69,9 @@ export type PersistentScene = Persistent<Scene>;
 export type PersistentStory = Omit<Persistent<Story>, "scenes"> & {
   scenes: PersistentScene[];
   publishedOn: Date | null;
+  // optional so summary/save paths that don't carry presentation state
+  // aren't forced to fetch it; getStory always provides it
+  mode?: StoryMode;
 };
 
 type CreateStoryRequest = {
@@ -322,6 +326,7 @@ export type RepositoryStory = Readonly<{
   getPublishedStory: GetPublishedStory;
   getPublishedStorySummaries: GetPublishedStorySummaries;
   saveStoryTitle: SaveStoryTitleInDatabase;
+  saveStoryMode: SaveStoryModeInDatabase;
 }>;
 
 export type RepositoryStoryLink = Readonly<{

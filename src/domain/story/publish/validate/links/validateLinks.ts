@@ -33,7 +33,7 @@ function validateLinks(
   for (const scene of scenes) {
     for (const page of Object.values(scene.pages)) {
       for (const content of page.content) {
-        if (content.kind === "blockLink") {
+        if (content.kind === "blockLink" || content.kind === "blockHotspot") {
           // does this actually link to a known target?
           if (!allTargets.has(content.link)) {
             // nope; add it to the bad links

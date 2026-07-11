@@ -1,5 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
-import { useCallback, type FC, type PropsWithChildren } from "react";
+import { useCallback, useState, type FC, type PropsWithChildren } from "react";
 import { useTranslation } from "react-i18next";
 
 import styles from "./StoryHeader.module.css";
@@ -12,6 +12,7 @@ import type {
   PersistentScene,
   PersistentStory,
 } from "../../../../domain/index.js";
+import type { StoryMode } from "../../../../domain/story/publish/types.js";
 import unsupported from "../../../../domain/story/client/unsupportedResult.js";
 import { isNonEmptyArray } from "../../../../util/nonEmptyArray.js";
 import {
@@ -20,6 +21,7 @@ import {
   type WithFeedback,
   type WithPreviewStory,
   type WithPublishStory,
+  type WithSaveStoryMode,
   type WithUnpublishStory,
   useEnvironment,
 } from "../context/ClientContext.js";
@@ -46,6 +48,7 @@ const StoryHeader: FC<StoryHeaderProps> = ({
     unpublishStory,
     deleteStory,
     previewStory,
+    saveStoryMode,
     feedback,
   } = useEnvironment<
     WithCreateScene &
@@ -53,8 +56,34 @@ const StoryHeader: FC<StoryHeaderProps> = ({
       WithUnpublishStory &
       WithDeleteStory &
       WithPreviewStory &
+      WithSaveStoryMode &
       WithFeedback
   >();
+
+  // how the published story presents its scenes: 360° photospheres or flat 2D
+  const [mode, setMode] = useState<StoryMode>(story.mode ?? "360");
+
+  const saveTheMode = useMutation<PersistentStory, Error, StoryMode>({
+    mutationFn: (next) =>
+      saveStoryMode(story.id, next).then((result) => {
+        switch (result.kind) {
+          case "storyModeSaved":
+            return result.story;
+          case "error":
+            return Promise.reject(result.error);
+          default:
+            return unsupported(result);
+        }
+      }),
+    onError: feedback.notify.error,
+    onSuccess: (saved) => {
+      setMode(saved.mode ?? "360");
+    },
+  });
+
+  const onToggleMode = () => {
+    saveTheMode.mutate(mode === "2d" ? "360" : "2d");
+  };
 
   const onSceneTitleChanged: OnChanged = ({ value }) => {
     onStoryChanged({
@@ -251,6 +280,14 @@ const StoryHeader: FC<StoryHeaderProps> = ({
           <div className={styles.actions}>
             <a href="/author/story/">{t("action.back-to-my-stories.label")}</a>
             <a href={`/author/story/${story.id}/links`}>Interpretive links</a>
+            <button
+              type="button"
+              onClick={onToggleMode}
+              disabled={saveTheMode.isPending}
+              title="How readers see this story's photos: 360° photospheres or flat 2D"
+            >
+              Mode: {mode === "2d" ? "2D" : "360°"}
+            </button>
             <div className={styles.toolbar}>
               <button
                 type="button"

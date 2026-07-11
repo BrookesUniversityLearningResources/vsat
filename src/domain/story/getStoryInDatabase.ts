@@ -21,6 +21,7 @@ function getStoryInDatabase(
         // story
         "story.id as storyId",
         "story.title as storyTitle",
+        "story.mode as storyMode",
         // author
         "author.id as authorId",
         "author.name as authorName",

@@ -22,6 +22,7 @@ import routePublishStory from "./domain/story/route/routePublishStory.js";
 import routeSaveAuthorName from "./domain/story/route/routeSaveAuthorName.js";
 import routeSaveSceneContent from "./domain/story/route/routeSaveSceneContent.js";
 import routeSaveSceneTitle from "./domain/story/route/routeSaveSceneTitle.js";
+import routeSaveStoryMode from "./domain/story/route/routeSaveStoryMode.js";
 import routeSaveStoryTitle from "./domain/story/route/routeSaveStoryTitle.js";
 import routeStoryLinks from "./domain/story/route/routeStoryLinks.js";
 import routeUnpublishStory from "./domain/story/route/routeUnpublishStory.js";
@@ -175,6 +176,11 @@ export async function createAppParts(): Promise<{
     routeSaveStoryTitle(
       log,
       repositoryStory.saveStoryTitle,
+      assertIsAuthorOfTheStory,
+    ),
+    routeSaveStoryMode(
+      log,
+      repositoryStory.saveStoryMode,
       assertIsAuthorOfTheStory,
     ),
     routeSaveSceneTitle(

@@ -33,6 +33,10 @@ export default function toSlateModel(scene: PersistentScene): Descendant[] {
                 model.push(linkBlock(block.text, block.link));
                 break;
               }
+              case "blockHotspot": {
+                model.push(hotspotBlock(block.text, block.link, block.x, block.y));
+                break;
+              }
               default: {
                 ((_: never) => _)(block);
               }
@@ -85,6 +89,17 @@ export default function toSlateModel(scene: PersistentScene): Descendant[] {
           }
           case "link": {
             model.push(linkBlock(lineResult.text, lineResult.link));
+            break;
+          }
+          case "hotspot": {
+            model.push(
+              hotspotBlock(
+                lineResult.text,
+                lineResult.link,
+                lineResult.x,
+                lineResult.y,
+              ),
+            );
             break;
           }
           case "headerNamed": {
@@ -154,6 +169,23 @@ export function linkBlock(text: string, link: string): Element {
   return {
     type: "blockLink",
     children: [{ text: `[${text}](${link})` }],
+  };
+}
+
+/**
+ * Hotspots reuse the link block's editor treatment; the full positioned
+ * markup is kept in the text so it round-trips verbatim through
+ * `getContent` (which serializes by `Node.string`).
+ */
+export function hotspotBlock(
+  text: string,
+  link: string,
+  x: number,
+  y: number,
+): Element {
+  return {
+    type: "blockLink",
+    children: [{ text: `[${text}](${link} @ ${x},${y})` }],
   };
 }
 

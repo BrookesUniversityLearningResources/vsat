@@ -4,7 +4,11 @@ import type { GetDatabase } from "../../database/schema.js";
 import type { Json } from "../../util/json/types.js";
 import type { NonEmptyArray } from "../../util/nonEmptyArray.js";
 import type { GetPublishedStory } from "../index.js";
-import type { PublishedScene, PublishedStory } from "./publish/types.js";
+import type {
+  PublishedScene,
+  PublishedStory,
+  StoryMode,
+} from "./publish/types.js";
 
 function getPublishedStoryInDatabase(
   log: Logger,
@@ -17,6 +21,9 @@ function getPublishedStoryInDatabase(
       .selectFrom("storyPublished")
       .innerJoin("authorToStory", "authorToStory.storyId", "storyPublished.id")
       .innerJoin("author", "authorToStory.authorId", "author.id")
+      // mode is presentation, not content: read it live from the story row
+      // so toggling it applies to the published view without a republish
+      .innerJoin("story", "story.id", "storyPublished.id")
       .select([
         "storyPublished.id as storyId",
         "storyPublished.title as storyTitle",
@@ -24,6 +31,7 @@ function getPublishedStoryInDatabase(
         "storyPublished.imageUrl as storyImageUrl",
         "storyPublished.createdAt",
         "storyPublished.createdAt",
+        "story.mode as storyMode",
         "author.id as authorId",
         "author.name as authorName",
       ])
@@ -46,6 +54,7 @@ type PublishedStoryAndAuthorRow = {
   storyContent: Json;
   storyImageUrl: string | null;
   createdAt: Date;
+  storyMode: StoryMode;
   authorId: number;
   authorName: string;
 };
@@ -61,5 +70,6 @@ function mapPublishedStory(row: PublishedStoryAndAuthorRow): PublishedStory {
     createdAt: row.createdAt,
     scenes: row.storyContent as NonEmptyArray<PublishedScene>,
     imageUrl: row.storyImageUrl,
+    mode: row.storyMode,
   };
 }

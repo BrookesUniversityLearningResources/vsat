@@ -25,7 +25,8 @@ export type ParseSceneFailed = ErrorCoded & {
   reason: string;
 };
 
-export type ParsedStory = Omit<PublishedStory, "createdAt" | "imageUrl">;
+// mode is presentation, not content — parsing never produces it
+export type ParsedStory = Omit<PublishedStory, "createdAt" | "imageUrl" | "mode">;
 
 export type ParseStorySuccess = {
   kind: "storyParsed";
@@ -163,6 +164,30 @@ export function parseScene(scene: PersistentScene): ParseSceneResult {
             kind: "blockLink",
             text: result.text,
             link: result.link,
+          });
+        }
+
+        break;
+      }
+
+      case "hotspot": {
+        if (!page) {
+          parseErrors.push({
+            errorCode: ErrorCodes.MustAddHeadingBeforeAddingALink,
+            reason: `Error parsing scene "${scene.title}" at line #${lineNumber}: you must create a heading before adding a link`,
+
+            line: {
+              number: lineNumber,
+              text: line,
+            },
+          });
+        } else {
+          page.content.push({
+            kind: "blockHotspot",
+            text: result.text,
+            link: result.link,
+            x: result.x,
+            y: result.y,
           });
         }
 

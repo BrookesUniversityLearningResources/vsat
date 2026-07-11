@@ -11,6 +11,7 @@ import type { PersistentScene, PersistentStory } from "../domain/index.js";
 import type {
   PublishedScene,
   PublishedStory,
+  StoryMode,
 } from "../domain/story/publish/types.js";
 
 // https://kysely.dev/docs/getting-started#types
@@ -85,6 +86,7 @@ export type DeleteAudioInDatabase = (id: AudioDto["id"]) => Promise<unknown>;
 export interface TableStory {
   id: Generated<number>;
   title: string;
+  mode: Generated<StoryMode>;
 }
 
 export type StoryDto = Selectable<TableStory>;
@@ -104,6 +106,15 @@ type SaveStoryTitleInDatabaseRequest = {
 
 export type SaveStoryTitleInDatabase = (
   request: SaveStoryTitleInDatabaseRequest,
+) => Promise<PersistentStory>;
+
+type SaveStoryModeInDatabaseRequest = {
+  storyId: StoryDto["id"];
+  mode: StoryMode;
+};
+
+export type SaveStoryModeInDatabase = (
+  request: SaveStoryModeInDatabaseRequest,
 ) => Promise<PersistentStory>;
 
 type SaveSceneTitleInDatabaseRequest = {
@@ -135,7 +146,9 @@ export type FeatureStoryInDatabase = (
 ) => Promise<unknown>;
 
 type PublishStoryInDatabaseRequest = {
-  story: PublishedStory;
+  // mode is excluded: it lives on the story row (live-read at render), so
+  // publishing doesn't snapshot it
+  story: Omit<PublishedStory, "mode">;
 };
 
 export type PublishStoryInDatabase = (

@@ -1,0 +1,839 @@
+---
+// The flat (2D-mode) renderer for a published story — a worse-is-better VSAT
+// that needs no 360° camera and no WebGL. It reuses the real published-story
+// data and the existing `changePage` navigation logic; only the rendering is
+// flat HTML. Folded in from the retired /story2d/ demo route.
+//
+// Two layouts (same DOM, different CSS):
+//   overlay (default) — photo full-screen as "the world", fiction/nav block
+//                       floating over it, echoing the legacy 360° viewer.
+//   ?layout=doc       — stacked photo-then-text, a lighter reading mode.
+//
+// Two views:
+//   flat   — the photo as a plain <img>, no WebGL at all.
+//   poster — the same flat photo hung on a 2D-in-3D poster in A-Frame space
+//            (the bridge artifact toward authoring-in-3D). The "2D"/"3D"
+//            badge on the panel toggles between them, preserving scene/page
+//            (and any remote ?room=) across the swap.
+import DOMPurify from "isomorphic-dompurify";
+
+import type { PublishedStory } from "@domain/story/publish/types.js";
+
+type Props = {
+  story: PublishedStory;
+  view: "flat" | "poster";
+  layout: "overlay" | "doc";
+};
+
+const { story, view } = Astro.props;
+
+// the poster hangs in space; the floating-panel layout is the only one that
+// makes sense over it
+const layout = view === "poster" ? "overlay" : Astro.props.layout;
+
+const serializedStory = DOMPurify.sanitize(
+  JSON.stringify({ story })
+    .replace(/</g, "\\u003C")
+    .replace(/>/g, "\\u003E")
+    .replace(/&/g, "\\u0026")
+);
+---
+
+<main
+  class={`flat flat--${layout} ${view === "poster" ? "flat--poster" : ""}`}
+  data-view={view}
+>
+  <div class="flat-hero">
+    {
+      view === "poster" ? (
+        <a-scene embedded background="color: #0e1014">
+          <a-entity position="0 1.6 -2.6">
+            <a-plane
+              data-poster-frame
+              color="#1b2129"
+              width="4.16"
+              height="2.56"
+              position="0 0 -0.01"
+            />
+            <a-image data-poster width="4" height="2.4" visible="false" />
+          </a-entity>
+          <a-camera position="0 1.6 0" />
+        </a-scene>
+      ) : (
+        <img class="flat-img" data-img alt="" crossorigin="anonymous" />
+      )
+    }
+    <p class="flat-noimg" data-noimg hidden>no photo for this scene</p>
+    {view === "flat" && <div class="flat-hotspots" data-hotspots />}
+  </div>
+
+  {
+    view === "flat" && (
+      <form class="flat-hotspot-form" data-hotspot-form hidden>
+        <label>
+          label
+          <input name="label" required autocomplete="off" />
+        </label>
+        <label>
+          goes to
+          <input
+            name="target"
+            list="flat-hotspot-targets"
+            required
+            autocomplete="off"
+          />
+        </label>
+        <datalist id="flat-hotspot-targets" />
+        <p class="flat-hotspot-form-error" data-form-error hidden />
+        <div class="flat-hotspot-form-actions">
+          <button type="submit">Place</button>
+          <button type="button" data-form-cancel>
+            Cancel
+          </button>
+        </div>
+      </form>
+    )
+  }
+
+  <div class="flat-panel" data-panel>
+    <div class="flat-panel-head">
+      <span class="flat-title" data-story-title></span>
+      <span class="flat-panel-buttons">
+        {
+          view === "flat" && (
+            <button
+              class="flat-badge"
+              data-edit-toggle
+              type="button"
+              title="Place link hotspots by clicking the photo"
+            >
+              ✎
+            </button>
+          )
+        }
+        <button class="flat-badge" data-badge type="button"></button>
+      </span>
+    </div>
+    <h1 class="flat-heading" data-heading></h1>
+    <p class="flat-body" data-body></p>
+    <section class="flat-links" data-links></section>
+    <p class="flat-end" data-end hidden>— the end —</p>
+  </div>
+</main>
+
+<script set:html={`window.current = ${serializedStory}`} />
+
+<script>
+  import changePage from "@components/story/published/aframe/changePage";
+  import openingPageFor from "@domain/story/publish/support/openingPage";
+  import openingSceneFor from "@domain/story/publish/support/openingScene";
+  import {
+    isHeadingBlock,
+    isHotspotBlock,
+    isLinkBlock,
+    isPlaintextBlock,
+  } from "@domain/story/publish/support/isBlock";
+  import { startRemoteHost } from "@components/story/remote/remoteHost";
+
+  const story = (window as any).current.story;
+  let host = null;
+  const navigate = changePage(story);
+
+  let scene = openingSceneFor(story);
+  let page = openingPageFor(scene);
+
+  const main = document.querySelector("main.flat") as HTMLElement;
+  const view = main?.dataset.view === "poster" ? "poster" : "flat";
+
+  const el = {
+    title: document.querySelector("[data-story-title]"),
+    img: document.querySelector("[data-img]") as HTMLImageElement | null,
+    noimg: document.querySelector("[data-noimg]") as HTMLElement,
+    heading: document.querySelector("[data-heading]"),
+    body: document.querySelector("[data-body]"),
+    links: document.querySelector("[data-links]"),
+    end: document.querySelector("[data-end]") as HTMLElement,
+    panel: document.querySelector("[data-panel]") as HTMLElement,
+    badge: document.querySelector("[data-badge]") as HTMLButtonElement,
+    poster: document.querySelector("[data-poster]"),
+    posterFrame: document.querySelector("[data-poster-frame]"),
+    hero: document.querySelector(".flat-hero") as HTMLElement,
+    hotspots: document.querySelector("[data-hotspots]") as HTMLElement | null,
+    editToggle: document.querySelector(
+      "[data-edit-toggle]",
+    ) as HTMLButtonElement | null,
+    form: document.querySelector(
+      "[data-hotspot-form]",
+    ) as HTMLFormElement | null,
+  };
+
+  el.title.textContent = story.title || "";
+
+  // The badge is the view toggle out of flat. Where "3D" goes depends on what
+  // the photos actually are: a photosphere story (mode 360) pops back into the
+  // standard viewer; only a genuinely-flat story (mode 2d) hangs its photo on
+  // the 2D-in-3D poster. Scene and page are written into the URL before the
+  // swap, and any ?room= is already there, so both reading position and
+  // remote session survive the reload.
+  const to3dView = story.mode === "2d" ? "poster" : "360";
+  function swapView(toView) {
+    const params = new URLSearchParams(location.search);
+    params.set("view", toView);
+    params.set("scene", String(scene.id));
+    params.set("page", String(page.number));
+    location.href = `${location.pathname}?${params.toString()}`;
+  }
+  el.badge.textContent = view === "poster" ? "3D" : "2D";
+  el.badge.title =
+    view === "poster"
+      ? "Back to the flat photo"
+      : to3dView === "poster"
+        ? "Hang the photo in 3D space"
+        : "Pop into the photosphere";
+  el.badge.addEventListener("click", () => {
+    swapView(view === "poster" ? "flat" : to3dView);
+  });
+
+  // Sneaky keys, mirroring the photosphere's "2": press 2 for flat, 3 for
+  // the story's 3D form (poster or photosphere). Bare digits because the
+  // browser reserves Ctrl+digit for tab switching; Ctrl is tolerated for
+  // single-tab (kiosk/VR) contexts where it does get through.
+  window.addEventListener("keydown", (e) => {
+    if (e.metaKey || e.altKey) return;
+    const target = e.target as HTMLElement;
+    if (
+      target?.tagName === "INPUT" ||
+      target?.tagName === "TEXTAREA" ||
+      target?.isContentEditable
+    ) {
+      return;
+    }
+    if (e.key === "2" && view !== "flat") {
+      e.preventDefault();
+      swapView("flat");
+    } else if (e.key === "3" && view === "flat") {
+      e.preventDefault();
+      swapView(to3dView);
+    }
+  });
+
+  // Deep linking: honour ?scene=&page= on load (the 360° viewer reads
+  // ?scene= on load too) and keep it in sync on navigation so links are
+  // shareable and the browser Back button walks the history.
+  function pageByNumber(s, n) {
+    for (const p of Object.values(s.pages)) if ((p as any).number === n) return p;
+    return openingPageFor(s);
+  }
+  function applyFromUrl() {
+    const params = new URLSearchParams(location.search);
+    const sid = Number(params.get("scene"));
+    if (!Number.isFinite(sid) || sid <= 0) return false;
+    const s = story.scenes.find((x) => x.id === sid);
+    if (!s) return false;
+    scene = s;
+    const pnum = Number(params.get("page"));
+    page = Number.isFinite(pnum) ? pageByNumber(s, pnum) : openingPageFor(s);
+    return true;
+  }
+  function syncUrl(push) {
+    const params = new URLSearchParams(location.search);
+    params.set("scene", String(scene.id));
+    params.set("page", String(page.number));
+    const url = `${location.pathname}?${params.toString()}`;
+    const state = { scene: scene.id, page: page.number };
+    if (push) history.pushState(state, "", url);
+    else history.replaceState(state, "", url);
+  }
+
+  function scrollTop() {
+    el.panel?.scrollTo?.({ top: 0, behavior: "smooth" });
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function go(link) {
+    const change = navigate(link, scene);
+    if (!change) return;
+    page = change.toPage;
+    if (change.toScene) scene = change.toScene;
+    render();
+    syncUrl(true);
+    scrollTop();
+    host?.notifyChange();
+  }
+
+  // Size the poster to the photo's aspect ratio before showing it. A-Frame's
+  // texture loader is CORS-anonymous by default, so the material load itself
+  // is COEP-safe; the probe Image is only for naturalWidth/Height.
+  function showPoster(url) {
+    const probe = new Image();
+    probe.crossOrigin = "anonymous";
+    probe.onload = () => {
+      const w = 4;
+      const h = Math.max(
+        1,
+        Math.min(4.5, (w * probe.naturalHeight) / probe.naturalWidth),
+      );
+      el.poster.setAttribute("width", String(w));
+      el.poster.setAttribute("height", String(h));
+      el.posterFrame.setAttribute("width", String(w + 0.16));
+      el.posterFrame.setAttribute("height", String(h + 0.16));
+      el.poster.setAttribute("src", url);
+      el.poster.setAttribute("visible", "true");
+    };
+    probe.src = url;
+  }
+
+  function showImage(url) {
+    if (view === "poster") {
+      if (url) {
+        showPoster(url);
+        el.noimg.hidden = true;
+      } else {
+        el.poster.setAttribute("visible", "false");
+        el.noimg.hidden = false;
+      }
+      return;
+    }
+    if (url) {
+      el.img.src = url;
+      el.img.hidden = false;
+      el.noimg.hidden = true;
+    } else {
+      el.img.removeAttribute("src");
+      el.img.hidden = true;
+      el.noimg.hidden = false;
+    }
+  }
+
+  // ---- hotspots: positioned links rendered on the photo itself ----
+  //
+  // Hotspot coordinates are percent-of-image; the photo is displayed with
+  // object-fit: cover, so map image-space → screen-space through the cover
+  // crop (and hide markers that fall in the cropped-away region).
+  function coverGeometry() {
+    if (!el.img?.naturalWidth || !el.img?.naturalHeight) return null;
+    const heroRect = el.hero.getBoundingClientRect();
+    const imgRect = el.img.getBoundingClientRect();
+    const scale = Math.max(
+      imgRect.width / el.img.naturalWidth,
+      imgRect.height / el.img.naturalHeight,
+    );
+    const dw = el.img.naturalWidth * scale;
+    const dh = el.img.naturalHeight * scale;
+    return {
+      // top-left of the (possibly overflowing) image, in hero coordinates
+      ox: imgRect.left - heroRect.left + (imgRect.width - dw) / 2,
+      oy: imgRect.top - heroRect.top + (imgRect.height - dh) / 2,
+      dw,
+      dh,
+      // the visible window, in hero coordinates
+      vx: imgRect.left - heroRect.left,
+      vy: imgRect.top - heroRect.top,
+      vw: imgRect.width,
+      vh: imgRect.height,
+    };
+  }
+
+  function positionHotspots() {
+    if (!el.hotspots) return;
+    const geom = coverGeometry();
+    if (!geom) return;
+    for (const marker of el.hotspots.children) {
+      const m = marker as HTMLElement;
+      const x = geom.ox + (geom.dw * Number(m.dataset.x)) / 100;
+      const y = geom.oy + (geom.dh * Number(m.dataset.y)) / 100;
+      const visible =
+        x >= geom.vx &&
+        x <= geom.vx + geom.vw &&
+        y >= geom.vy &&
+        y <= geom.vy + geom.vh;
+      m.style.left = `${x}px`;
+      m.style.top = `${y}px`;
+      m.hidden = !visible;
+    }
+  }
+
+  function renderHotspots() {
+    if (!el.hotspots) return;
+    el.hotspots.replaceChildren();
+    for (const block of page.content.filter(isHotspotBlock)) {
+      const marker = document.createElement("button");
+      marker.type = "button";
+      marker.className = "flat-hotspot";
+      marker.dataset.x = String(block.x);
+      marker.dataset.y = String(block.y);
+      marker.title = block.text;
+      const ring = document.createElement("span");
+      ring.className = "flat-hotspot-ring";
+      const label = document.createElement("span");
+      label.className = "flat-hotspot-label";
+      label.textContent = block.text || block.link;
+      marker.append(ring, label);
+      marker.addEventListener("click", (e) => {
+        e.stopPropagation();
+        if (!editing) go(block.link);
+      });
+      el.hotspots.appendChild(marker);
+    }
+    positionHotspots();
+  }
+
+  window.addEventListener("resize", positionHotspots);
+  el.img?.addEventListener("load", positionHotspots);
+
+  function render() {
+    showImage(scene.image && scene.image.url);
+
+    el.heading.textContent =
+      page.content.find(isHeadingBlock)?.text || scene.title || "";
+    el.body.textContent = page.content
+      .filter(isPlaintextBlock)
+      .map((b) => b.text)
+      .join("\n\n");
+
+    el.links.replaceChildren();
+    const linkBlocks = page.content.filter(isLinkBlock);
+    for (const block of linkBlocks) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "flat-link";
+      button.textContent = block.text || block.link;
+      button.addEventListener("click", () => go(block.link));
+      el.links.appendChild(button);
+    }
+    const hotspotBlocks = page.content.filter(isHotspotBlock);
+    el.end.hidden = linkBlocks.length + hotspotBlocks.length > 0;
+    renderHotspots();
+  }
+
+  window.addEventListener("popstate", () => {
+    if (!applyFromUrl()) {
+      scene = openingSceneFor(story);
+      page = openingPageFor(scene);
+    }
+    render();
+    host?.notifyChange();
+  });
+
+  // Movable nav block (overlay layout): drag by its header. The offset lives
+  // on the panel's transform, which render() never resets, so it persists
+  // across scene jumps — reposition the "sticky" once and it stays put.
+  const isOverlay = main?.classList.contains("flat--overlay");
+  if (isOverlay && el.panel) {
+    const handle = el.panel.querySelector(".flat-panel-head") as HTMLElement;
+    let dx = 0, dy = 0, sx = 0, sy = 0, bx = 0, by = 0, dragging = false;
+    handle.style.cursor = "grab";
+    handle.style.touchAction = "none";
+    handle.title = "Drag to move";
+    const apply = () => {
+      el.panel.style.transform = `translate(${dx}px, ${dy}px)`;
+    };
+    handle.addEventListener("pointerdown", (e) => {
+      if ((e.target as HTMLElement).closest("button")) return;
+      dragging = true;
+      handle.setPointerCapture(e.pointerId);
+      sx = e.clientX; sy = e.clientY; bx = dx; by = dy;
+      handle.style.cursor = "grabbing";
+    });
+    handle.addEventListener("pointermove", (e) => {
+      if (!dragging) return;
+      const mx = window.innerWidth / 2;
+      const my = window.innerHeight / 2;
+      dx = Math.max(-mx, Math.min(mx, bx + (e.clientX - sx)));
+      dy = Math.max(-my, Math.min(my, by + (e.clientY - sy)));
+      apply();
+    });
+    const end = (e) => {
+      if (!dragging) return;
+      dragging = false;
+      handle.style.cursor = "grab";
+      try { handle.releasePointerCapture(e.pointerId); } catch (_) {}
+    };
+    handle.addEventListener("pointerup", end);
+    handle.addEventListener("pointercancel", end);
+  }
+
+  // ---- hotspot editing: WYSIWYG "make-your-own-Myst" ----
+  //
+  // ?edit=hotspots on the flat view: click the photo → name the hotspot and
+  // its target → the markup line `[label](target @ x,y)` is inserted into
+  // this page's section of the DRAFT scene content through the ordinary
+  // save endpoint, then the story is republished and the view reloads.
+  // Requires being signed in as an author; anyone else gets a 401 message.
+  const editing =
+    view === "flat" &&
+    new URLSearchParams(location.search).get("edit") === "hotspots";
+
+  if (el.editToggle) {
+    el.editToggle.classList.toggle("flat-badge--active", editing);
+    el.editToggle.addEventListener("click", () => {
+      const params = new URLSearchParams(location.search);
+      if (editing) params.delete("edit");
+      else params.set("edit", "hotspots");
+      params.set("scene", String(scene.id));
+      params.set("page", String(page.number));
+      location.href = `${location.pathname}?${params.toString()}`;
+    });
+  }
+
+  if (editing && el.form && el.hotspots) {
+    main.classList.add("flat--editing");
+
+    const datalist = document.getElementById("flat-hotspot-targets");
+    const targets = new Set<string>();
+    for (const s of story.scenes)
+      for (const key of Object.keys(s.pages)) targets.add(key);
+    for (const t of [...targets].sort()) {
+      const option = document.createElement("option");
+      option.value = t;
+      datalist.appendChild(option);
+    }
+
+    const formError = el.form.querySelector("[data-form-error]") as HTMLElement;
+    const labelInput = el.form.elements.namedItem("label") as HTMLInputElement;
+    const targetInput = el.form.elements.namedItem(
+      "target",
+    ) as HTMLInputElement;
+    const submitButton = el.form.querySelector(
+      "button[type=submit]",
+    ) as HTMLButtonElement;
+    let pending = null;
+
+    el.hero.addEventListener("click", (e) => {
+      const target = e.target as HTMLElement;
+      if (el.form.contains(target) || target.closest(".flat-hotspot")) return;
+      const geom = coverGeometry();
+      if (!geom) return;
+      const heroRect = el.hero.getBoundingClientRect();
+      const hx = e.clientX - heroRect.left;
+      const hy = e.clientY - heroRect.top;
+      const x = ((hx - geom.ox) / geom.dw) * 100;
+      const y = ((hy - geom.oy) / geom.dh) * 100;
+      if (x < 0 || x > 100 || y < 0 || y > 100) return;
+      pending = { x: Math.round(x * 10) / 10, y: Math.round(y * 10) / 10 };
+      el.form.hidden = false;
+      formError.hidden = true;
+      // the form floats above everything in viewport space
+      el.form.style.left = `${Math.max(8, Math.min(e.clientX, window.innerWidth - 280))}px`;
+      el.form.style.top = `${Math.max(8, Math.min(e.clientY + 14, window.innerHeight - 220))}px`;
+      labelInput.value = "";
+      targetInput.value = "";
+      labelInput.focus();
+    });
+
+    el.form
+      .querySelector("[data-form-cancel]")
+      .addEventListener("click", () => {
+        el.form.hidden = true;
+        pending = null;
+      });
+
+    // Insert the markup line at the end of this page's section of the draft
+    // content; pages are delimited by `#` heading lines. If the draft has
+    // drifted so far that the page no longer exists, append at the end.
+    function insertLine(content, pageNumber, line) {
+      const lines = content.split("\n");
+      const headings = [];
+      lines.forEach((l, i) => {
+        if (/^\s*#/.test(l)) headings.push(i);
+      });
+      if (!headings.length || pageNumber >= headings.length) {
+        return `${content.replace(/\s+$/, "")}\n${line}\n`;
+      }
+      let at =
+        pageNumber + 1 < headings.length
+          ? headings[pageNumber + 1]
+          : lines.length;
+      while (at > headings[pageNumber] + 1 && !lines[at - 1].trim()) at--;
+      lines.splice(at, 0, line);
+      return lines.join("\n");
+    }
+
+    el.form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      if (!pending) return;
+      const label = labelInput.value.trim();
+      const target = targetInput.value.trim();
+      if (!label || !target) return;
+      const line = `[${label}](${target} @ ${pending.x},${pending.y})`;
+      submitButton.disabled = true;
+      formError.hidden = true;
+      try {
+        const sceneRes = await fetch(
+          `/api/story/${story.id}/scene/${scene.id}`,
+        );
+        if (!sceneRes.ok)
+          throw new Error(`couldn't load the draft scene (${sceneRes.status})`);
+        const draft = await sceneRes.json();
+        const content = insertLine(draft.content ?? "", page.number, line);
+        const saveRes = await fetch(
+          `/api/story/${story.id}/scene/${scene.id}/content`,
+          {
+            method: "PUT",
+            headers: { "content-type": "text/plain" },
+            body: content,
+          },
+        );
+        if (!saveRes.ok)
+          throw new Error(
+            saveRes.status === 401
+              ? "you need to be signed in as this story's author"
+              : `couldn't save (${saveRes.status})`,
+          );
+        const publishRes = await fetch(`/api/story/${story.id}/publish`, {
+          method: "POST",
+        });
+        if (!publishRes.ok)
+          throw new Error(
+            `saved, but couldn't republish (${publishRes.status})`,
+          );
+        location.reload();
+      } catch (err) {
+        formError.textContent = String(err?.message ?? err);
+        formError.hidden = false;
+        submitButton.disabled = false;
+      }
+    });
+  }
+
+  function getState() {
+    return {
+      type: "state",
+      storyTitle: story.title || "",
+      sceneId: scene.id,
+      sceneTitle: scene.title || "",
+      heading: page.content.find(isHeadingBlock)?.text || scene.title || "",
+      body: page.content
+        .filter(isPlaintextBlock)
+        .map((b) => b.text)
+        .join("\n\n"),
+      image: (scene.image && scene.image.url) || null,
+      pageNumber: page.number,
+      links: page.content
+        .filter((b) => isLinkBlock(b) || isHotspotBlock(b))
+        .map((b) => ({ text: b.text, link: b.link })),
+    };
+  }
+
+  applyFromUrl();
+  render();
+  syncUrl(false);
+
+  // Join the remote-control lobby (auto-arm) — drivable like the 360° viewer.
+  host = startRemoteHost({
+    getState,
+    navigate: (link) => go(link),
+    restart: () => {
+      scene = openingSceneFor(story);
+      page = openingPageFor(scene);
+      render();
+      syncUrl(true);
+      scrollTop();
+      host?.notifyChange();
+    },
+  });
+</script>
+
+<style is:global>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Source Sans Pro", system-ui, sans-serif;
+    background: #0e1014;
+    color: #ecf0f1;
+  }
+
+  /* shared panel content */
+  .flat-panel-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-bottom: 0.6rem;
+  }
+  .flat-title { font-weight: 600; font-size: 0.9rem; opacity: 0.8; }
+  .flat-panel-buttons { display: flex; gap: 0.35rem; align-items: center; flex: none; }
+  .flat-badge {
+    flex: none;
+    font-size: 0.68rem;
+    letter-spacing: 0.1em;
+    padding: 0.12rem 0.5rem;
+    border-radius: 999px;
+    border: 1px solid transparent;
+    background: #2c3e50;
+    color: #9fb3c8;
+    font-family: inherit;
+    cursor: pointer;
+  }
+  .flat-badge:hover { background: #34495e; border-color: #3c5976; color: #d4dbe2; }
+  .flat-heading { margin: 0 0 0.55rem; font-size: 1.5rem; line-height: 1.2; }
+  .flat-body {
+    margin: 0;
+    font-size: 1.02rem;
+    line-height: 1.5;
+    color: #d4dbe2;
+    white-space: pre-wrap;
+  }
+  .flat-links {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+    margin-top: 1rem;
+  }
+  .flat-link {
+    width: 100%;
+    text-align: left;
+    padding: 0.9rem 1.05rem;
+    border-radius: 0.75rem;
+    border: 1px solid #3c5976;
+    background: #2c3e50;
+    color: #ecf0f1;
+    font-family: inherit;
+    font-size: 1.08rem;
+    cursor: pointer;
+    transition: background 0.12s ease;
+  }
+  .flat-link:hover { background: #34495e; }
+  .flat-link:active { background: #3c5976; }
+  .flat-end { text-align: center; opacity: 0.5; font-style: italic; margin: 0.75rem 0 0; }
+
+  /* overlay layout — photo as the world, panel floating over it */
+  .flat--overlay {
+    min-height: 100vh;
+    min-height: 100dvh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+  }
+  .flat--overlay .flat-hero { position: fixed; inset: 0; z-index: 0; background: #0e1014; }
+  .flat--overlay .flat-img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .flat--overlay .flat-noimg {
+    position: fixed; inset: 0; margin: 0; z-index: 0;
+    display: grid; place-items: center; color: #5b6472; font-style: italic;
+  }
+  .flat--overlay .flat-panel {
+    position: relative;
+    z-index: 1;
+    width: min(33rem, 100%);
+    max-height: 84vh;
+    max-height: 84dvh;
+    overflow-y: auto;
+    background: rgba(18, 21, 27, 0.82);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(150, 170, 190, 0.18);
+    border-radius: 1rem;
+    padding: 1.15rem 1.25rem 1.35rem;
+    box-shadow: 0 14px 50px rgba(0, 0, 0, 0.5);
+  }
+
+  /* poster view — the photo hangs in 3D space; the panel floats over the
+     canvas but starts at the right edge so the poster stays visible
+     (drag it wherever you like) */
+  .flat--poster .flat-hero a-scene,
+  .flat--poster .flat-hero canvas {
+    width: 100%;
+    height: 100%;
+  }
+  .flat--poster { justify-content: flex-end; }
+  .flat--poster .flat-panel { width: min(24rem, 100%); }
+
+  /* doc layout — stacked photo then text (lighter reading mode) */
+  .flat--doc { max-width: 40rem; margin: 0 auto; min-height: 100vh; }
+  .flat--doc .flat-hero { position: relative; background: #0e1014; }
+  .flat--doc .flat-img { width: 100%; height: 46vh; max-height: 420px; object-fit: cover; display: block; }
+  .flat--doc .flat-noimg {
+    height: 30vh; margin: 0;
+    display: grid; place-items: center; color: #5b6472; font-style: italic;
+  }
+  .flat--doc .flat-panel { padding: 1.2rem 1.1rem 1.6rem; }
+
+  /* hotspots — positioned links living on the photo itself */
+  .flat-hotspots { position: absolute; inset: 0; pointer-events: none; }
+  .flat--doc .flat-hotspots { position: absolute; }
+  .flat-hotspot {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    display: grid;
+    justify-items: center;
+    gap: 0.3rem;
+    padding: 0;
+    border: none;
+    background: none;
+    color: #ecf0f1;
+    font-family: inherit;
+    cursor: pointer;
+    pointer-events: auto;
+    z-index: 1;
+  }
+  .flat-hotspot-ring {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: 2px solid rgba(236, 240, 241, 0.9);
+    background: rgba(236, 240, 241, 0.12);
+    box-shadow: 0 0 0 4px rgba(236, 240, 241, 0.12), 0 2px 10px rgba(0, 0, 0, 0.45);
+    animation: flat-hotspot-pulse 2.4s ease-in-out infinite;
+  }
+  .flat-hotspot-label {
+    font-size: 0.78rem;
+    line-height: 1.2;
+    padding: 0.14rem 0.5rem;
+    border-radius: 999px;
+    background: rgba(18, 21, 27, 0.82);
+    border: 1px solid rgba(150, 170, 190, 0.25);
+    opacity: 0;
+    transition: opacity 0.15s ease;
+    white-space: nowrap;
+  }
+  .flat-hotspot:hover .flat-hotspot-label,
+  .flat-hotspot:focus-visible .flat-hotspot-label { opacity: 1; }
+  @keyframes flat-hotspot-pulse {
+    0%, 100% { box-shadow: 0 0 0 4px rgba(236, 240, 241, 0.12), 0 2px 10px rgba(0, 0, 0, 0.45); }
+    50% { box-shadow: 0 0 0 9px rgba(236, 240, 241, 0.05), 0 2px 10px rgba(0, 0, 0, 0.45); }
+  }
+
+  /* hotspot editing */
+  .flat--editing .flat-hero { cursor: crosshair; }
+  .flat--editing .flat-hotspot { cursor: default; }
+  .flat-badge--active { background: #3c5976; color: #ecf0f1; }
+  .flat-hotspot-form {
+    position: fixed;
+    z-index: 3;
+    width: 260px;
+    display: grid;
+    gap: 0.5rem;
+    padding: 0.8rem 0.9rem;
+    border-radius: 0.75rem;
+    background: rgba(18, 21, 27, 0.94);
+    border: 1px solid rgba(150, 170, 190, 0.3);
+    box-shadow: 0 14px 50px rgba(0, 0, 0, 0.5);
+    font-size: 0.88rem;
+  }
+  .flat-hotspot-form label { display: grid; gap: 0.2rem; color: #9fb3c8; }
+  .flat-hotspot-form input {
+    font: inherit;
+    color: #ecf0f1;
+    background: #1b2129;
+    border: 1px solid #3c5976;
+    border-radius: 0.4rem;
+    padding: 0.35rem 0.5rem;
+  }
+  .flat-hotspot-form-error { margin: 0; color: #e74c3c; font-size: 0.8rem; }
+  .flat-hotspot-form-actions { display: flex; gap: 0.5rem; justify-content: flex-end; }
+  .flat-hotspot-form-actions button {
+    font: inherit;
+    padding: 0.3rem 0.8rem;
+    border-radius: 0.5rem;
+    border: 1px solid #3c5976;
+    background: #2c3e50;
+    color: #ecf0f1;
+    cursor: pointer;
+  }
+  .flat-hotspot-form-actions button[type="submit"] { background: #3c5976; }
+
+  /* keep the `hidden` attribute winning over the layout display rules */
+  .flat [hidden] { display: none !important; }
+</style>

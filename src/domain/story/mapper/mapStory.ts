@@ -1,8 +1,11 @@
 import type { PersistentScene, PersistentStory } from "../../index.js";
 
+import type { StoryMode } from "../publish/types.js";
+
 type StoryAndAuthorRow = {
   storyId: number;
   storyTitle: string;
+  storyMode: StoryMode;
   authorId: number;
   authorName: string;
   publishedOn: Date | null;
@@ -18,6 +21,7 @@ export function mapStory(
     author: mapAuthor(row),
     scenes,
     publishedOn: row.publishedOn,
+    mode: row.storyMode,
   };
 }
 

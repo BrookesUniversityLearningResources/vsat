@@ -28,6 +28,19 @@ export type Link = Readonly<{
 }>;
 
 /**
+ * A positioned link: `[text](target @ x,y)` where x,y are
+ * percent-of-image coordinates. Rendered as a clickable hotspot on the
+ * scene photo rather than a button in the fiction block.
+ */
+export type Hotspot = Readonly<{
+  kind: "hotspot";
+  text: string;
+  link: LinkTarget;
+  x: number;
+  y: number;
+}>;
+
+/**
  * For when nothing matches; we'll just ignore that sort of stuff
  */
 export type Nothing = Readonly<{
@@ -51,6 +64,7 @@ export type ParseBlock =
   | HeaderAnonymous
   | HeaderNamed
   | Link
+  | Hotspot
   | ParseError;
 
 export type Parse = (text: string, lineNumber: number) => ParseBlock;

@@ -41,6 +41,9 @@ import saveSceneContent, {
 import saveSceneTitle, {
   type SaveSceneTitle,
 } from "@domain/story/client/saveSceneTitle";
+import saveStoryMode, {
+  type SaveStoryMode,
+} from "@domain/story/client/saveStoryMode";
 import saveStoryTitle, {
   type SaveStoryTitle,
 } from "@domain/story/client/saveStoryTitle";
@@ -104,6 +107,10 @@ export type WithSaveStoryTitle = {
   saveStoryTitle: SaveStoryTitle;
 };
 
+export type WithSaveStoryMode = {
+  saveStoryMode: SaveStoryMode;
+};
+
 export type WithSaveSceneTitle = {
   saveSceneTitle: SaveSceneTitle;
 };
@@ -151,6 +158,7 @@ export type ClientEnvironment = WithDeleteSceneImage &
   WithUnpublishStory &
   WithSaveAuthorName &
   WithSaveStoryTitle &
+  WithSaveStoryMode &
   WithSaveSceneTitle &
   WithPreviewStory &
   WithFeedback;
@@ -177,6 +185,7 @@ export const createClientEnvironment = (
     saveSceneContent,
     saveAuthorName,
     saveSceneTitle,
+    saveStoryMode,
     saveStoryTitle,
     unpublishStory,
     uploadSceneImage,

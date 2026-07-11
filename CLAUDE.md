@@ -64,6 +64,25 @@ To add new content to the planetarium:
 
 Scenes with `[text](scene-link-target)` in their content create internal narrative arcs. Scene link targets are derived from scene titles via `parseLinkTarget`: trim, replace whitespace with `-`, lowercase.
 
+## 2D mode (flat stories + hotspots)
+
+Stories have a persisted `story.mode` (`'360'` default | `'2d'`), toggled in the
+story editor header, read live at render time (no republish needed).
+
+- `/story/[id]` picks the presentation from `mode`; `?view=flat|poster|360`
+  overrides it. `/story2d/` is a legacy redirect.
+- **flat** = photo as plain HTML, no WebGL (`FlatStory.astro`); **poster** =
+  the flat photo hung on a 2D-in-3D plane in A-Frame space (the 3D form of a
+  2D story; 360° stories pop into the photosphere instead).
+- The panel's 2D/3D badge toggles views; bare digit keys `2`/`3` hop
+  flat ↔ 3D from anywhere (Ctrl+digit is browser-reserved).
+- **Hotspots**: `[text](target @ x,y)` — a positioned link at x%,y% of the
+  photo (`blockHotspot`, parsed before `parseLink`). Rendered as pulsing
+  markers on the flat photo. The ✎ pill (`?edit=hotspots`) is a WYSIWYG
+  editor: click the photo → name it → the markup line is inserted into the
+  draft, saved, and republished. Mutations are author-gated.
+- Mission record: `docs/missions/M-authoring-2d.md`.
+
 ## Future directions
 
 - Import flexiarg pattern library as cosmos (pilot-filtered)
