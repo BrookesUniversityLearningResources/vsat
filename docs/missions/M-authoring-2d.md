@@ -432,3 +432,15 @@ appears); 2 new e2e tests (editable text + add-link affordance;
 persisted directive placement) — 15 feature e2e green; gaze spec 2×
 green. The dev-API-restart gotcha bit again (stale parser published
 `@panel` as plaintext) — same remedy, restart after domain changes.
+
+**Round-trip verification with the traditional editor (2026-07-11):**
+Joe asked whether the "one markup file underneath" is still editable in
+the classic Slate scene editor. Verified live: the editor displays
+hotspot lines (`[text](target @ x,y)`) as link chips and `@panel x,y`
+as a plaintext chip; a save round-trips them verbatim (`Node.string`
+serialization). Both markup forms are therefore hand-editable there —
+and hand-breakable, like any wikitext: a stray edit inside a hotspot
+chip malforms the line and surfaces as the editor's usual parse error
+on publish. Two pre-existing editor normalizations observed (heading
+anchors expand to normalized form; blank lines drop) — unrelated to
+the new block kinds.
