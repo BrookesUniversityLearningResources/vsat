@@ -394,3 +394,33 @@ verified rendering scene-node → scene-node. New read-only e2e spec
 `vsatlatarium-links.spec.ts` — the first spec against the CURRENT
 planetarium UI — guards it. Scene-to-scene arcs are exactly the finer
 Miro connectors increment C wants.
+
+## Increment C sequencing (2026-07-11, operator idea)
+
+Joe: "I wonder about editing the story structure of one story (like
+Sinking City)... not sure if that's the best demo to start with, but
+it's an idea."
+
+Sharpened and adopted as **C1 — narrative-arc drawing**: a story's
+structure IS content (`[text](target)` lines derive the orange arcs),
+so intra-story structural editing in the planetarium is the third
+reuse of the shared write path. Reuse the propose-flow grammar; when
+source and target are scenes of the SAME story, the verb becomes "add
+narrative passage": append `[label](scene-target)` to the source
+scene's draft via mutateDraftContent (author-gated), republish; the
+arc re-derives and the spring layout visibly reshapes the cluster.
+Demo beat: the drawn arc is a PLAYABLE exit — draw it in the sky,
+then walk through it in the story viewer. Governance legibility:
+within your cluster you AUTHOR (immediate, orange); between clusters
+you PROPOSE (voted, typed) — both layers of VSATLAS visible as two
+kinds of drawing.
+
+Deferred within C1: arc REMOVAL (deleting content lines wants a
+careful verb); adding new scene nodes in 3D (createScene exists but
+an imageless scene is a hollow node); page-precise insertion (line
+lands at the source scene's section end, like hotspots).
+
+Order of play: **C1 narrative-arc drawing → C2 drag-to-pin
+(per-anthology pinned positions) → WebXR immersive pass over both**
+(headset). B (relay intents / voice) slots in whenever paired input
+is wanted.
