@@ -342,3 +342,39 @@ card hanging in front of the waterfall. e2e: m-key test asserts the
 entity lands within 0.05/0.3 of the computed position; flat placement
 test updated for image-percent semantics; 17 feature tests green
 combined (one transient pass-on-rerun noted), 150 unit tests.
+
+## MAP — increment C ground truth (2026-07-11, hands-on survey)
+
+Brought the planetarium up on real content (anthology "Cities & Public
+Space": 5 published Brookes stories, 4 accepted typed links; "Lived
+Experience" alongside with 7 more). Findings:
+
+1. **The "connect" verb already EXISTS on desktop.** The info panel
+   has a full link-proposal flow: hover a node → panel with a
+   "propose" button → crosshair pick-target mode → typed form
+   (adjacency/thematic/causal/contrast + required rationale) → POST →
+   the new arc renders live, and the legend already encodes
+   governance visually (bright = accepted, dim = proposed, faint =
+   retired). Exercised end-to-end against real content: proposed
+   `Sinking City → Street Art and Epistemic Injustice` (contrast)
+   from inside the planetarium; row landed in story_link as
+   `proposed`; arc appeared without reload. Increment C's constellation
+   authoring is therefore: make this flow work in immersive mode +
+   add the missing verb (arrange), NOT build linking from scratch.
+2. **Interaction grammar** (matters for drag-to-pin): hover = select/
+   inspect (screen-space proximity, 100px); click = ENTER the story;
+   click during pickTarget = capture target; drag = turntable. Node
+   dragging therefore needs an explicit edit affordance (the ✎
+   pattern from the flat viewer) or a modifier, so arrange doesn't
+   fight navigate/turntable.
+3. **The old vsatlatarium e2e specs target a DEAD UI** (a
+   `.vsatlatarium__story` list + `#vsat-from/#vsat-to` panel that no
+   longer exists) — the standing "pre-existing failures" are stale
+   tests at least as much as the anthology redirect. Repairing them =
+   rewriting against the current hover/panel UI; the driver developed
+   today (project node world positions → hover → panel) is the
+   working recipe.
+4. **Remaining for C:** (a) drag-to-pin + per-anthology pinned
+   positions (the data-model decision recorded above); (b) planetarium
+   as relay host (camera + selection state → audience view; the
+   gaze-mirror pattern); (c) the WebXR immersive pass (headset).
