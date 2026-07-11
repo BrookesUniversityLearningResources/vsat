@@ -208,6 +208,10 @@ export type LinkVoteValue = (typeof LinkVoteValues)[number];
 export type StoryLinkSummary = {
   id: number;
   fromStory: Pick<StoryDto, "id" | "title">;
+  fromScene?: {
+    id: number;
+    title: string | null;
+  } | null;
   toStory: Pick<StoryDto, "id" | "title">;
   toScene?: {
     id: number;
@@ -225,6 +229,7 @@ export type StoryLinkSummary = {
 
 export type CreateStoryLinkRequest = {
   fromStoryId: StoryDto["id"];
+  fromSceneId?: number | null;
   toStoryId: StoryDto["id"];
   toSceneId?: number | null;
   toPageNumber?: number | null;

@@ -171,6 +171,7 @@ export interface TableAuthorToStory {
 export interface TableStoryLink {
   id: Generated<number>;
   fromStoryId: number;
+  fromSceneId: number | null;
   toStoryId: number;
   toSceneId: number | null;
   toPageNumber: number | null;

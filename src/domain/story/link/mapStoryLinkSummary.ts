@@ -10,6 +10,8 @@ type StoryLinkRow = {
   rejectedAt: Date | null;
   fromStoryId: number;
   fromStoryTitle: string;
+  fromSceneId: number | null;
+  fromSceneTitle: string | null;
   toStoryId: number;
   toStoryTitle: string;
   toSceneId: number | null;
@@ -32,6 +34,12 @@ export function mapStoryLinkSummary(row: StoryLinkRow): StoryLinkSummary {
       id: row.fromStoryId,
       title: row.fromStoryTitle,
     },
+    fromScene: row.fromSceneId
+      ? {
+          id: row.fromSceneId,
+          title: row.fromSceneTitle,
+        }
+      : null,
     toStory: {
       id: row.toStoryId,
       title: row.toStoryTitle,

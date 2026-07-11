@@ -480,8 +480,14 @@ const { clusters, interArcs } = cached<{
     const toCluster = clusterByStoryId.get(link.toStory.id);
     if (!fromCluster || !toCluster) continue;
 
-    // Source: story hub node of the originating story
-    const fromPos = fromCluster.storyNodePos;
+    // Source: specific scene node if the link names one, else the story hub
+    let fromPos = fromCluster.storyNodePos;
+    if (link.fromScene) {
+      const sourceNode = sceneNodeMap.get(
+        `story-${link.fromStory.id}-scene-${link.fromScene.id}`,
+      );
+      if (sourceNode) fromPos = sourceNode.position;
+    }
 
     // Target: specific scene node if available, otherwise story hub node
     let toPos = toCluster.storyNodePos;
@@ -1940,7 +1946,11 @@ const clientData = {
       );
       if (!fromCluster || !toCluster) return;
 
-      const fromPos = fromCluster.storyNodePos;
+      let fromPos = fromCluster.storyNodePos;
+      if (link.fromScene) {
+        const sourceScene = fromCluster.scenes.find((s) => s.sceneId === link.fromScene.id);
+        if (sourceScene) fromPos = sourceScene.position;
+      }
       let toPos = toCluster.storyNodePos;
       if (link.toScene) {
         const targetScene = toCluster.scenes.find((s) => s.sceneId === link.toScene.id);
@@ -2000,6 +2010,9 @@ const clientData = {
       };
       if (linkingState.to.dbSceneId) {
         body.toSceneId = Number(linkingState.to.dbSceneId);
+      }
+      if (!linkingState.from.isHub && linkingState.from.dbSceneId) {
+        body.fromSceneId = Number(linkingState.from.dbSceneId);
       }
 
       try {

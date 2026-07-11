@@ -378,3 +378,19 @@ Experience" alongside with 7 more). Findings:
    positions (the data-model decision recorded above); (b) planetarium
    as relay host (camera + selection state → audience view; the
    gaze-mirror pattern); (c) the WebXR immersive pass (headset).
+
+### Bug fix from operator field report (2026-07-11): from-scene was dropped
+
+Joe: "I tried creating a link from Border Control to homage and it
+never appeared." Diagnosis: his proposal SAVED (link 17) but the data
+model had `to_scene_id` and **no `from_scene_id`** — proposing from a
+scene node silently promoted the from-side to its story hub, so the
+arc rendered from a node he never selected and "never appeared" where
+he was looking. Fix: `from_scene_id` end-to-end (migration; schema;
+create/getAll/getForStory/vote/retire queries + summary mapper; route
+zod; planetarium submit body + BOTH arc builders — server layout and
+addArcLive). His link repaired in place (from_scene=homage) and
+verified rendering scene-node → scene-node. New read-only e2e spec
+`vsatlatarium-links.spec.ts` — the first spec against the CURRENT
+planetarium UI — guards it. Scene-to-scene arcs are exactly the finer
+Miro connectors increment C wants.

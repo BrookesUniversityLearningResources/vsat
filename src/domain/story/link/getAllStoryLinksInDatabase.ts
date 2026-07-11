@@ -15,6 +15,7 @@ export default function getAllStoryLinksInDatabase(
       .selectFrom("storyLink")
       .innerJoin("story as fromStory", "fromStory.id", "storyLink.fromStoryId")
       .innerJoin("story as toStory", "toStory.id", "storyLink.toStoryId")
+      .leftJoin("scene as fromScene", "fromScene.id", "storyLink.fromSceneId")
       .leftJoin("scene as toScene", "toScene.id", "storyLink.toSceneId")
       .innerJoin("author as creator", "creator.id", "storyLink.createdBy")
       .select((eb) => [
@@ -25,6 +26,8 @@ export default function getAllStoryLinksInDatabase(
         "storyLink.createdAt as createdAt",
         "fromStory.id as fromStoryId",
         "fromStory.title as fromStoryTitle",
+        "storyLink.fromSceneId as fromSceneId",
+        "fromScene.title as fromSceneTitle",
         "toStory.id as toStoryId",
         "toStory.title as toStoryTitle",
         "storyLink.toSceneId as toSceneId",

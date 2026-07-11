@@ -56,6 +56,7 @@ function routeStoryLinks(
       const parseResult = CreateStoryLinkRequestModel.safeParse({
         storyId: req.params.storyId,
         toStoryId: req.body?.toStoryId,
+        fromSceneId: req.body?.fromSceneId,
         toSceneId: req.body?.toSceneId,
         toPageNumber: req.body?.toPageNumber,
         linkType: req.body?.linkType,
@@ -75,6 +76,7 @@ function routeStoryLinks(
       createStoryLink({
         fromStoryId: parseResult.data.storyId,
         toStoryId: parseResult.data.toStoryId,
+        fromSceneId: parseResult.data.fromSceneId ?? null,
         toSceneId: parseResult.data.toSceneId ?? null,
         toPageNumber: parseResult.data.toPageNumber ?? null,
         linkType: parseResult.data.linkType,
@@ -181,6 +183,7 @@ export const StoryLinksForStoryRequestModel = z.object({
 export const CreateStoryLinkRequestModel = z.object({
   storyId: z.coerce.number().min(0),
   toStoryId: z.coerce.number().min(0),
+  fromSceneId: z.coerce.number().min(0).optional().nullable(),
   toSceneId: z.coerce.number().min(0).optional().nullable(),
   toPageNumber: z.coerce.number().min(1).optional().nullable(),
   linkType: z.enum(StoryLinkTypes),
