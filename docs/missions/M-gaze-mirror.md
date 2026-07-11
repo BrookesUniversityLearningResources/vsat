@@ -186,3 +186,8 @@ regression still 10/10.
 **Remaining:** completion criterion 2 — legibility judged on a real
 phone (Joe; ideally Eric) — parked on ~/docs/INTERACTIVE-QA.md.
 Deploy verification appended after push.
+
+**Deploy verification (2026-07-11):** Heroku vsat-dev (commit
+`ea8b0d5`); `/remote` serves the gaze-indicator markup. Live demo:
+open a 360° story with `?room=CODE`, open `/remote?room=CODE`
+elsewhere, look around.
