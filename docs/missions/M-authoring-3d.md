@@ -531,3 +531,31 @@ planetarium node pinning (C2).
 Testing note: the GeomView spawn e2e is skipped headless (works headed
 via CDP; screen-space pick doesn't land under headless GeomView) —
 fold into the planetarium spec-suite rewrite.
+
+### Slice 3 spec (2026-07-11, operator requests after the GeomView demo)
+
+1. **Connect, scoped to the story.** Reuse the "propose a link from
+   this scene" UI element on the focus board's cards — but as the
+   *narrative* verb: pick source card → pick target card, target
+   picker scoped to the focused story's EXISTING scenes only. Writes
+   an ordinary `[label](target)` line into the source scene's draft
+   via the shared write path (author-gated, immediate) — NOT an
+   interpretive proposal. Same interaction grammar, different verb +
+   write path; the arc re-derives on republish.
+2. **Add new scenes.** A sibling UI element for scene creation ("+
+   scene" on the board): title prompt → existing `createScene` API
+   (author-gated) → new card appears on the board. Note: a new scene
+   has no image yet (hollow as a photosphere, fine as a card); images
+   come later in the classic editor.
+3. **Arc hover → current link in the side pane, deletable.** Hovering
+   a narrative arc marks that link as "current" in the side panel
+   ("label → target, from scene X") with a **Delete** affordance —
+   removes the content line (a removeLine transform through
+   mutateDraftContent) and republishes; the arc disappears. This is
+   the deferred "arc removal" verb, given a safe home: you see
+   exactly what you're deleting before you do. (Inter-story arcs
+   already hover-show rationale; their deletion remains RETIRE,
+   steward-gated, unchanged.)
+
+Together these complete the board's verb set: read, edit, connect,
+create, remove — plus slice 3's original move-and-persist.
