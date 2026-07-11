@@ -232,3 +232,19 @@ on viewport (±1px), fiction visible, expand grows ≥1.5×.
 box (title text + buttons), so it reads larger than the visible text
 plate — acceptable for coaching ("the box is down there"), refine to
 per-child boxes if Eric wants button-level precision.
+
+### Increment 3 checkpoint (2026-07-11, operator feedback)
+
+Joe: the redrawn card "doesn't have the next or clear indication of the
+rows on, so it would be hard for Eric to steer by saying 'point up'."
+Replaced the single group box with **per-row projection**: each child
+of `#fiction` (heading, text plate, one entity per link button, audio
+controls, title card) ships as a labeled angular box
+(`rows: [{kind, label, yaw, pitch, width, height}]`); the remote draws
+the card row by row — link rows solid + labeled with their actual
+text, heading/text dashed — font size scaled to row height. Also
+fixed: the big coaching view now letterboxes (`object-fit: contain`,
+geometry reads the computed fit) so content near the panorama's edges
+can never be cropped out of the coaching view — under cover-crop the
+card could vanish entirely at u≈0/1. e2e asserts labeled link rows
+render. "Point down to 03 Coma!" is now a checkable instruction.

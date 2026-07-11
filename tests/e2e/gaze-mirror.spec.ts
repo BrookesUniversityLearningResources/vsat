@@ -69,8 +69,8 @@ test("remote gaze indicator tracks the host camera orientation", async ({
     ).toBeLessThan(0.02);
   }
 
-  // the pointing cursor sits at the viewport's centre; the fiction panel
-  // ("the box") is projected and visible
+  // the pointing cursor sits at the viewport's centre; the fiction card is
+  // projected as labeled rows a watcher can steer by
   const overlays = await remote.evaluate(() => {
     const mid = (sel: string) => {
       const box = document.querySelector(sel) as HTMLElement;
@@ -80,17 +80,22 @@ test("remote gaze indicator tracks the host camera orientation", async ({
         y: parseFloat(box.style.top) + parseFloat(box.style.height) / 2,
       };
     };
+    const linkRows = [
+      ...document.querySelectorAll(".headset-row--link"),
+    ].filter((row) => !(row as HTMLElement).hidden);
     return {
       gaze: mid("[data-headset-gaze]"),
       cursor: mid("[data-headset-cursor]"),
-      fiction: mid("[data-headset-fiction]"),
+      linkRowLabels: linkRows.map((row) => row.textContent ?? ""),
     };
   });
   expect(overlays.gaze).not.toBeNull();
   expect(overlays.cursor).not.toBeNull();
-  expect(overlays.fiction).not.toBeNull();
   expect(Math.abs(overlays.cursor!.x - overlays.gaze!.x)).toBeLessThan(1);
   expect(Math.abs(overlays.cursor!.y - overlays.gaze!.y)).toBeLessThan(1);
+  // every labeled link row of the card is drawn (main + ghost per link)
+  expect(overlays.linkRowLabels.length).toBeGreaterThan(0);
+  expect(overlays.linkRowLabels.every((label) => label.length > 0)).toBe(true);
 
   // tap-to-enlarge: the coaching view grows the panorama
   const smallHeight = await remote.evaluate(

@@ -54,8 +54,7 @@
         <figure class="headset" data-headset hidden>
           <div class="headset-pano" data-headset-pano title="Tap to enlarge">
             <img class="headset-img" data-headset-img alt="" crossorigin="anonymous" />
-            <div class="headset-fiction-box" data-headset-fiction hidden></div>
-            <div class="headset-fiction-box" data-headset-fiction-ghost hidden></div>
+            <div class="headset-rows" data-headset-rows></div>
             <div class="headset-gaze" data-headset-gaze hidden></div>
             <div class="headset-gaze" data-headset-gaze-ghost hidden></div>
             <div class="headset-cursor" data-headset-cursor hidden></div>
@@ -109,8 +108,7 @@
         headsetImg: document.querySelector("[data-headset-img]"),
         headsetGaze: document.querySelector("[data-headset-gaze]"),
         headsetGazeGhost: document.querySelector("[data-headset-gaze-ghost]"),
-        headsetFiction: document.querySelector("[data-headset-fiction]"),
-        headsetFictionGhost: document.querySelector("[data-headset-fiction-ghost]"),
+        headsetRows: document.querySelector("[data-headset-rows]"),
         headsetCursor: document.querySelector("[data-headset-cursor]"),
         headsetCursorGhost: document.querySelector("[data-headset-cursor-ghost]"),
         headsetNoimg: document.querySelector("[data-headset-noimg]"),
@@ -309,7 +307,11 @@
         const pano = img.parentElement;
         const panoRect = pano.getBoundingClientRect();
         const imgRect = img.getBoundingClientRect();
-        const scale = Math.max(
+        // small view crops (cover); the big coaching view letterboxes
+        // (contain) so nothing near the panorama's edges is ever hidden
+        const pick =
+          getComputedStyle(img).objectFit === "contain" ? Math.min : Math.max;
+        const scale = pick(
           imgRect.width / img.naturalWidth,
           imgRect.height / img.naturalHeight,
         );
@@ -360,20 +362,33 @@
         // the pointing cursor is camera-locked at view centre
         place(el.headsetCursor, el.headsetCursorGhost, cx, cy, 10, 10);
 
-        // the fiction panel, world-anchored, projected by the host
-        if (gaze.fiction && typeof gaze.fiction.yaw === "number") {
-          place(
-            el.headsetFiction,
-            el.headsetFictionGhost,
-            ox + toU(gaze.fiction.yaw) * dw,
-            oy + toV(gaze.fiction.pitch) * dh,
-            Math.max(8, (gaze.fiction.width / 360) * dw),
-            Math.max(8, (gaze.fiction.height / 180) * dh),
-          );
-        } else {
-          el.headsetFiction.hidden = true;
-          el.headsetFictionGhost.hidden = true;
+        // the fiction card, world-anchored, projected row by row so a
+        // watcher can steer by name ("point up to the next row")
+        const rows = Array.isArray(gaze.rows) ? gaze.rows : [];
+        while (el.headsetRows.children.length < rows.length * 2) {
+          el.headsetRows.appendChild(document.createElement("div"));
         }
+        while (el.headsetRows.children.length > rows.length * 2) {
+          el.headsetRows.lastChild.remove();
+        }
+        rows.forEach((row, i) => {
+          const main = el.headsetRows.children[i * 2];
+          const ghost = el.headsetRows.children[i * 2 + 1];
+          const h = Math.max(8, (row.height / 180) * dh);
+          for (const box of [main, ghost]) {
+            box.className = `headset-row headset-row--${row.kind}`;
+            box.textContent = row.label || "";
+            box.style.fontSize = `${Math.min(14, Math.max(7, h * 0.4))}px`;
+          }
+          place(
+            main,
+            ghost,
+            ox + toU(row.yaw) * dw,
+            oy + toV(row.pitch) * dh,
+            Math.max(8, (row.width / 360) * dw),
+            h,
+          );
+        });
       }
 
       // Coaching view: tap the panorama to toggle a big version, so someone
@@ -419,8 +434,7 @@
           el.headsetGazeGhost.hidden = true;
           el.headsetCursor.hidden = true;
           el.headsetCursorGhost.hidden = true;
-          el.headsetFiction.hidden = true;
-          el.headsetFictionGhost.hidden = true;
+          el.headsetRows.replaceChildren();
         }
         el.headsetHeading.textContent = heading;
         el.headsetBody.textContent = state.body || "";
@@ -622,25 +636,38 @@
           left 0.09s linear,
           top 0.09s linear;
       }
-      .headset-fiction-box {
+      .headset-rows {
         position: absolute;
-        border: 2px dashed rgba(120, 190, 255, 0.9);
-        border-radius: 6px;
-        background: rgba(70, 130, 190, 0.18);
+        inset: 0;
+        pointer-events: none;
+      }
+      .headset-row {
+        position: absolute;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        white-space: nowrap;
+        border: 1.5px dashed rgba(120, 190, 255, 0.75);
+        border-radius: 4px;
+        background: rgba(70, 130, 190, 0.16);
+        color: #dbeeff;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
         pointer-events: none;
         transition:
           left 0.09s linear,
           top 0.09s linear;
       }
-      .headset-fiction-box::after {
-        content: "panel";
-        position: absolute;
-        top: 2px;
-        left: 6px;
-        font-size: 0.62rem;
-        letter-spacing: 0.08em;
-        color: rgba(170, 215, 255, 0.95);
-        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
+      .headset-row--link,
+      .headset-row--start {
+        border-style: solid;
+        border-color: rgba(140, 205, 255, 0.95);
+        background: rgba(70, 130, 190, 0.3);
+        font-weight: 600;
+      }
+      .headset-row--text {
+        border-color: rgba(120, 190, 255, 0.4);
+        background: rgba(70, 130, 190, 0.08);
       }
       [data-headset-pano] {
         cursor: zoom-in;
@@ -653,6 +680,7 @@
       }
       .headset--big .headset-img {
         height: 100%;
+        object-fit: contain;
       }
       .headset-img {
         width: 100%;
