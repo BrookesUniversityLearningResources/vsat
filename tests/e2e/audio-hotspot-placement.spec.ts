@@ -68,6 +68,13 @@ test("the flat placement form writes and renders an audio hotspot", async ({
     await form.locator('input[name="label"]').fill(PROBE_LABEL);
     await form.locator('input[name="audio-url"]').fill(PROBE_URL);
     await form.locator('button[type="submit"]').click();
+    await expect(form.locator("[data-form-error]")).toContainText(
+      "Could not verify cross-origin audio",
+    );
+    await expect(form.locator('button[type="submit"]')).toHaveText(
+      "Save anyway",
+    );
+    await form.locator('button[type="submit"]').click();
     const expectedLine = `![${PROBE_LABEL}](${PROBE_URL} @ 20,80)`;
     await expect
       .poll(

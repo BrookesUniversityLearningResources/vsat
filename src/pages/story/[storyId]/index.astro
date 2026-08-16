@@ -231,7 +231,9 @@ const linkedStoryCards = Array.from(linkedStories.values()).slice(0, 5);
 
 <script>
   import {
+    AUDIO_CORS_WARNING,
     allTargetsIn,
+    canLoadExternalAudio,
     findAudioHotspotLine,
     gazeToImagePercent,
     imagePercentToGaze,
@@ -599,6 +601,19 @@ const linkedStoryCards = Array.from(linkedStories.values()).slice(0, 5);
           <button type="button" data-cancel style="${buttonStyle}">Cancel</button>
           <button type="submit" style="${buttonStyle};background:#3c5976">Place</button>
         </div>`;
+      let verifiedOrAcceptedAudioUrl: string | null = null;
+      const submitButton = form.querySelector(
+        "button[type=submit]",
+      ) as HTMLButtonElement;
+      const audioUrlInput = form.elements.namedItem(
+        "audio-url",
+      ) as HTMLInputElement | null;
+      audioUrlInput?.addEventListener("input", () => {
+        verifiedOrAcceptedAudioUrl = null;
+        submitButton.textContent = "Place";
+        const errorEl = form?.querySelector("[data-error]") as HTMLElement;
+        if (errorEl) errorEl.hidden = true;
+      });
       const datalist = form.querySelector("datalist");
       if (datalist) {
         for (const t of allTargetsIn(story)) {
@@ -622,9 +637,7 @@ const linkedStoryCards = Array.from(linkedStories.values()).slice(0, 5);
             form.elements.namedItem("target") as HTMLInputElement | null
           )?.value.trim() ?? "";
         const audioUrl =
-          (
-            form.elements.namedItem("audio-url") as HTMLInputElement | null
-          )?.value.trim() ?? "";
+          audioUrlInput?.value.trim() ?? "";
         if (!label || (kind === "link" && !linkTarget)) return;
         const errorEl = form.querySelector("[data-error]") as HTMLElement;
         if (kind === "audio" && !audioUrl && !scene.audio) {
@@ -633,9 +646,23 @@ const linkedStoryCards = Array.from(linkedStories.values()).slice(0, 5);
           errorEl.hidden = false;
           return;
         }
-        const submitButton = form.querySelector(
-          "button[type=submit]",
-        ) as HTMLButtonElement;
+        if (
+          kind === "audio" &&
+          audioUrl &&
+          verifiedOrAcceptedAudioUrl !== audioUrl
+        ) {
+          submitButton.disabled = true;
+          errorEl.hidden = true;
+          const verified = await canLoadExternalAudio(audioUrl);
+          submitButton.disabled = false;
+          if (!verified) {
+            verifiedOrAcceptedAudioUrl = audioUrl;
+            errorEl.textContent = AUDIO_CORS_WARNING;
+            errorEl.hidden = false;
+            submitButton.textContent = "Save anyway";
+            return;
+          }
+        }
         submitButton.disabled = true;
         errorEl.hidden = true;
         try {

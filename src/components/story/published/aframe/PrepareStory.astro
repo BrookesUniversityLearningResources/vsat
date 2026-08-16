@@ -568,14 +568,6 @@ const serializedStory = DOMPurify.sanitize(
       const pz = -Math.cos(yawRadians) * Math.cos(pitchRadians) * HOTSPOT_RADIUS;
       this.el.setAttribute("position", `${px} ${py} ${pz}`);
       this.el.setAttribute("rotation", `${pitch} ${yaw} 0`);
-      this.el.setAttribute("sound", {
-        src: this.data.src,
-        positional: true,
-        autoplay: true,
-        loop: true,
-        volume: 1,
-        refDistance: 3,
-      });
 
       const glyph = document.createElement("a-troika-text");
       glyph.setAttribute("value", "♪");
@@ -586,6 +578,50 @@ const serializedStory = DOMPurify.sanitize(
       glyph.setAttribute("outline-width", "0.015");
       glyph.setAttribute("outline-color", THEME.color.primary.background);
       this.el.appendChild(glyph);
+      this.glyph = glyph;
+
+      this.onSoundLoaded = () => {
+        clearTimeout(this.loadWatchdog);
+        this.setLoadFailed(false);
+      };
+      this.el.addEventListener("sound-loaded", this.onSoundLoaded);
+      this.loadWatchdog = setTimeout(() => {
+        if (!this.el.components?.sound?.loaded) this.setLoadFailed(true);
+      }, 8000);
+
+      this.el.setAttribute("sound", {
+        src: this.data.src,
+        positional: true,
+        autoplay: true,
+        loop: true,
+        volume: 1,
+        refDistance: 3,
+      });
+    },
+    setLoadFailed: function (failed) {
+      if (!this.glyph) return;
+      if (failed) {
+        const hint = "Audio could not be loaded";
+        this.el.setAttribute("data-audio-load-failed", "");
+        this.el.setAttribute("title", hint);
+        this.glyph.setAttribute("title", hint);
+        this.glyph.setAttribute("color", "#e74c3c");
+        this.glyph.setAttribute("fill-opacity", "0.18");
+        this.glyph.setAttribute("outline-color", "#e74c3c");
+        this.glyph.setAttribute("outline-width", "0.025");
+        return;
+      }
+      this.el.removeAttribute("data-audio-load-failed");
+      this.el.removeAttribute("title");
+      this.glyph.removeAttribute("title");
+      this.glyph.setAttribute("color", THEME.color.audio.background);
+      this.glyph.setAttribute("fill-opacity", "1");
+      this.glyph.setAttribute("outline-color", THEME.color.primary.background);
+      this.glyph.setAttribute("outline-width", "0.015");
+    },
+    remove: function () {
+      clearTimeout(this.loadWatchdog);
+      this.el.removeEventListener("sound-loaded", this.onSoundLoaded);
     },
   });
 

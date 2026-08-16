@@ -14,6 +14,29 @@
  */
 export const EQUIRECT_U0 = 0.8125;
 
+export const AUDIO_CORS_WARNING =
+  "Could not verify cross-origin audio (the host may be missing Access-Control-Allow-Origin) — if so, the hotspot will be silent until that's fixed.";
+
+/**
+ * Ask the browser whether an explicit audio URL is reachable under CORS.
+ * This is advisory only: callers offer a save-anyway path when it returns
+ * false because HEAD can also fail for transient/network/server reasons.
+ */
+export async function canLoadExternalAudio(url: string): Promise<boolean> {
+  if (!url.trim()) return true;
+  try {
+    const response = await fetch(url, {
+      method: "HEAD",
+      mode: "cors",
+      cache: "no-store",
+      signal: AbortSignal.timeout(5000),
+    });
+    return response.ok && response.type !== "opaque";
+  } catch {
+    return false;
+  }
+}
+
 /** Camera yaw/pitch (degrees) → percent-of-image hotspot coordinates. */
 export function gazeToImagePercent(
   yaw: number,

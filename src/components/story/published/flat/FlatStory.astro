@@ -144,7 +144,9 @@ const serializedStory = DOMPurify.sanitize(
     isPlaintextBlock,
   } from "@domain/story/publish/support/isBlock";
   import {
+    AUDIO_CORS_WARNING,
     allTargetsIn,
+    canLoadExternalAudio,
     insertHotspotLine,
     mutateDraftContent,
     placeAudioHotspot,
@@ -672,12 +674,20 @@ const serializedStory = DOMPurify.sanitize(
       "button[type=submit]",
     ) as HTMLButtonElement;
     let pending = null;
+    let verifiedOrAcceptedAudioUrl: string | null = null;
+
+    const resetAudioVerification = () => {
+      verifiedOrAcceptedAudioUrl = null;
+      submitButton.textContent = "Place";
+      formError.hidden = true;
+    };
 
     const syncPlacementKind = () => {
       const isAudio = pending?.kind === "hotspot" && audioRadio.checked;
       linkTarget.hidden = isAudio;
       audioSource.hidden = !isAudio;
       targetInput.required = !isAudio;
+      resetAudioVerification();
     };
     linkRadio.addEventListener("change", syncPlacementKind);
     audioRadio.addEventListener("change", syncPlacementKind);
@@ -692,11 +702,13 @@ const serializedStory = DOMPurify.sanitize(
       labelInput.value = "";
       targetInput.value = "";
       audioUrlInput.value = "";
+      resetAudioVerification();
       linkRadio.checked = true;
       kindFields.hidden = newPending.kind === "link";
       syncPlacementKind();
       labelInput.focus();
     };
+    audioUrlInput.addEventListener("input", resetAudioVerification);
 
     el.hero.addEventListener("click", (e) => {
       const target = e.target as HTMLElement;
@@ -740,6 +752,19 @@ const serializedStory = DOMPurify.sanitize(
           "This scene has no audio asset; add one or provide an audio URL.";
         formError.hidden = false;
         return;
+      }
+      if (isAudio && url && verifiedOrAcceptedAudioUrl !== url) {
+        submitButton.disabled = true;
+        formError.hidden = true;
+        const verified = await canLoadExternalAudio(url);
+        submitButton.disabled = false;
+        if (!verified) {
+          verifiedOrAcceptedAudioUrl = url;
+          formError.textContent = AUDIO_CORS_WARNING;
+          formError.hidden = false;
+          submitButton.textContent = "Save anyway";
+          return;
+        }
       }
       submitButton.disabled = true;
       formError.hidden = true;

@@ -128,6 +128,6 @@ distinct directions simultaneously.
 audio without CORS, SILENTLY — an emitter for a URL whose host omits
 `Access-Control-Allow-Origin` simply never sounds. Cloudinary assets are fine
 (CORS on by default); self-hosted files need the header added server-side
-(done for metameso.org in nginx, 2026-08-16). Polish candidates on file: red/
-hollow ♪ on sound-load error, CORS preflight warning in the placement form,
-friendlier not-published redirect (err=4).
+(done for metameso.org in nginx, 2026-08-16). Follow-on polish now marks a
+timed-out emitter with a hollow red ♪ and a load-failure hint; both placement
+forms warn after an unsuccessful CORS HEAD check and offer **Save anyway**.
