@@ -1,4 +1,5 @@
 import type {
+  AudioHotspotBlock,
   Block,
   HeadingBlock,
   HotspotBlock,
@@ -17,6 +18,10 @@ export function isLinkBlock(block: Block): block is LinkBlock {
 
 export function isHotspotBlock(block: Block): block is HotspotBlock {
   return block.kind === "blockHotspot";
+}
+
+export function isAudioHotspotBlock(block: Block): block is AudioHotspotBlock {
+  return block.kind === "blockAudioHotspot";
 }
 
 export function isPanelBlock(block: Block): block is PanelBlock {

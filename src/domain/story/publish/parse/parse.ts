@@ -1,3 +1,4 @@
+import parseAudioHotspot from "./parseAudioHotspot.js";
 import parseEmptyLine from "./parseEmptyLine.js";
 import parseHeaderAnonymous from "./parseHeaderAnonymous.js";
 import parseHeaderNamed from "./parseHeaderNamed.js";
@@ -11,8 +12,9 @@ const parse = parseUsing([
   parseEmptyLine(),
   parseHeaderNamed(),
   parseHeaderAnonymous(),
-  // hotspot before link: the `@ x,y` suffix would otherwise trip
-  // parseLink's malformed-link recovery
+  // Audio hotspot before hotspot, and hotspot before link: the `!` prefix and
+  // `@ x,y` suffix must be claimed before malformed-link/plaintext recovery.
+  parseAudioHotspot(),
   parseHotspot(),
   parseLink(),
   // panel before plaintext, which would swallow the directive as fiction

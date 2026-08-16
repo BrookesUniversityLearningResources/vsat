@@ -79,6 +79,18 @@ export type HotspotBlock = {
 };
 
 /**
+ * Positioned audio (`![text](audio-or-url @ x,y)`). A null source means the
+ * scene used the `audio` keyword but has no attached audio asset.
+ */
+export type AudioHotspotBlock = {
+  kind: "blockAudioHotspot";
+  text: string;
+  src: string | null;
+  x: number;
+  y: number;
+};
+
+/**
  * Per-page placement of the fiction/nav panel (`@panel x,y`): x,y are
  * percent-of-viewport coordinates of the panel's centre.
  */
@@ -93,6 +105,7 @@ export type Block =
   | PlaintextBlock
   | LinkBlock
   | HotspotBlock
+  | AudioHotspotBlock
   | PanelBlock;
 
 export type Page = Readonly<{

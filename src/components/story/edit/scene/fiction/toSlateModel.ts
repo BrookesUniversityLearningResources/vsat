@@ -1,12 +1,14 @@
-import type { Descendant, Element } from "slate";
-
 import { ErrorCodes } from "@domain/error/errorCode";
 import type { PersistentScene } from "@domain/index";
 import parse from "@domain/story/publish/parse/parse";
-import { parseScene, type ParseError } from "@domain/story/publish/parseStory";
+import { type ParseError, parseScene } from "@domain/story/publish/parseStory";
 import isLineOrientedError from "@domain/story/publish/support/isLineOrientedError";
+import type { Descendant, Element } from "slate";
 
 export default function toSlateModel(scene: PersistentScene): Descendant[] {
+  const audioHotspotLines = scene.content
+    .split("\n")
+    .filter((line, index) => parse(line, index).kind === "audioHotspot");
   const result = parseScene(scene);
 
   switch (result.kind) {
@@ -34,7 +36,19 @@ export default function toSlateModel(scene: PersistentScene): Descendant[] {
                 break;
               }
               case "blockHotspot": {
-                model.push(hotspotBlock(block.text, block.link, block.x, block.y));
+                model.push(
+                  hotspotBlock(block.text, block.link, block.x, block.y),
+                );
+                break;
+              }
+              case "blockAudioHotspot": {
+                // Keep the author's keyword/URL choice and formatting intact.
+                model.push(
+                  audioHotspotBlock(
+                    audioHotspotLines.shift() ??
+                      `![${block.text}](${block.src ?? "audio"} @ ${block.x},${block.y})`,
+                  ),
+                );
                 break;
               }
               case "blockPanel": {
@@ -104,6 +118,10 @@ export default function toSlateModel(scene: PersistentScene): Descendant[] {
                 lineResult.y,
               ),
             );
+            break;
+          }
+          case "audioHotspot": {
+            model.push(audioHotspotBlock(line));
             break;
           }
           case "panel": {
@@ -196,6 +214,13 @@ export function hotspotBlock(
   return {
     type: "blockLink",
     children: [{ text: `[${text}](${link} @ ${x},${y})` }],
+  };
+}
+
+export function audioHotspotBlock(line: string): Element {
+  return {
+    type: "blockLink",
+    children: [{ text: line }],
   };
 }
 

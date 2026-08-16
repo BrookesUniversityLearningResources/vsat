@@ -41,6 +41,18 @@ export type Hotspot = Readonly<{
 }>;
 
 /**
+ * Positioned audio. A null source represents the `audio` keyword and is
+ * resolved to the scene's attached audio during publishing.
+ */
+export type AudioHotspot = Readonly<{
+  kind: "audioHotspot";
+  text: string;
+  src: string | null;
+  x: number;
+  y: number;
+}>;
+
+/**
  * A per-page panel placement directive: `@panel x,y` with x,y as
  * percent-of-viewport coordinates of the fiction/nav panel's centre.
  */
@@ -75,6 +87,7 @@ export type ParseBlock =
   | HeaderNamed
   | Link
   | Hotspot
+  | AudioHotspot
   | Panel
   | ParseError;
 

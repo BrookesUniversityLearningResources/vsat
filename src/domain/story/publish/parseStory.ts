@@ -26,7 +26,10 @@ export type ParseSceneFailed = ErrorCoded & {
 };
 
 // mode is presentation, not content — parsing never produces it
-export type ParsedStory = Omit<PublishedStory, "createdAt" | "imageUrl" | "mode">;
+export type ParsedStory = Omit<
+  PublishedStory,
+  "createdAt" | "imageUrl" | "mode"
+>;
 
 export type ParseStorySuccess = {
   kind: "storyParsed";
@@ -208,6 +211,32 @@ export function parseScene(scene: PersistentScene): ParseSceneResult {
             kind: "blockHotspot",
             text: result.text,
             link: result.link,
+            x: result.x,
+            y: result.y,
+          });
+        }
+
+        break;
+      }
+
+      case "audioHotspot": {
+        if (!page) {
+          parseErrors.push({
+            errorCode: ErrorCodes.MustAddHeadingBeforeAddingALink,
+            reason: `Error parsing scene "${scene.title}" at line #${lineNumber}: you must create a heading before adding an audio hotspot`,
+
+            line: {
+              number: lineNumber,
+              text: line,
+            },
+          });
+        } else {
+          page.content.push({
+            kind: "blockAudioHotspot",
+            text: result.text,
+            src:
+              result.src ??
+              (isPersistentAudio(scene.audio) ? scene.audio.url : null),
             x: result.x,
             y: result.y,
           });
