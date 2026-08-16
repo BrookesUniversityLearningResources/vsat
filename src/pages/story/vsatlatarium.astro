@@ -106,6 +106,10 @@ const layoutFingerprint = [
   selectedAnthology ? `P${selectedAnthology.id}` : "none",
   viewMode,
   ...fullStories.map((s) => `${s.id}:${s.scenes.length}`),
+  ...fullStories.map(
+    (s) =>
+      `A${s.id}:${s.scenes.find((scene) => scene.audio)?.audio?.url ?? ""}`,
+  ),
   ...interStoryLinks.map((l) => `L${l.id}`),
 ].join("|");
 
@@ -195,6 +199,7 @@ type StoryCluster = {
   storyNodePos: Vec3;
   scenes: SceneNode[];
   internalArcs: InternalArc[];
+  audioUrl: string | null;
 };
 type InterStoryArc = {
   id: number;
@@ -483,6 +488,7 @@ const { clusters, interArcs } = cached<{
       storyNodePos,
       scenes: sceneNodes,
       internalArcs,
+      audioUrl: story.scenes.find((scene) => scene.audio)?.audio?.url ?? null,
       // the exact target→sceneId resolution the arcs were derived with,
       // so client-side verbs (arc REMOVE) can map an arc back to the
       // content lines that created it
@@ -789,6 +795,15 @@ const clientData = {
           <button type="button" id="vsat-qr" class="vsatlatarium__btn" title="Open this view on a phone (Cardboard-ready)">Phone</button>
           <button type="button" id="vsat-toggle-wireframes" class="vsatlatarium__btn">Wireframes</button>
           <button type="button" id="vsat-toggle-arcids" class="vsatlatarium__btn" title="Number and colour every arc so you can report a specific one">Arc IDs</button>
+          {isPlanetarium && (
+            <button
+              type="button"
+              id="vsat-toggle-surround"
+              class="vsatlatarium__btn"
+              aria-pressed="false"
+              title="Hear story audio from each cluster direction"
+            >🔊 Surround</button>
+          )}
           <a
             class={`vsatlatarium__btn ${isPlanetarium ? "" : "vsatlatarium__btn--active"}`}
             href={`/story/vsatlatarium?view=geomview${selectedAnthology ? "&anthology=" + selectedAnthology.id : ""}`}
@@ -812,6 +827,10 @@ const clientData = {
               <h3>Connecting stories (global)</h3>
               <ul>
                 <li><strong>Click a scene node</strong>, then <em>propose a link from this scene</em> in the side panel: pick a target node, choose the link type and give a rationale — an interpretive link between stories</li>
+              </ul>
+              <h3>Surround sound</h3>
+              <ul>
+                <li><strong>🔊 Surround</strong> — hear available story audio from its direction on the dome; off by default</li>
               </ul>
               <h3>Editing a story</h3>
               <ul>
@@ -1106,6 +1125,7 @@ const clientData = {
     const sceneEl = document.querySelector("a-scene");
     const turntable = document.getElementById("vsat-turntable");
     const { isPlanetarium } = clientData;
+    window.vsatlatariumClientData = clientData;
 
     // Trackball-style rotation: a quaternion accumulator on the
     // turntable lets the user rotate the world around any screen-space
@@ -1343,6 +1363,50 @@ const clientData = {
       turntableQuat.identity();
       camZ = camZDefault;
       applyTransform();
+    });
+
+    // --- Planetarium surround prototype: one quiet positional emitter per
+    // story with audio, placed at the story cluster's dome direction. State
+    // is deliberately session-only and defaults off.
+    let surroundEnabled = false;
+    const surroundBtn = document.getElementById("vsat-toggle-surround");
+    const removeSurroundEmitters = () => {
+      turntable?.querySelectorAll(".vsat-surround-emitter").forEach((emitter) => {
+        emitter.components?.sound?.stopSound?.();
+        emitter.remove();
+      });
+    };
+    const addSurroundEmitters = () => {
+      if (!isPlanetarium || !turntable) return;
+      for (const cluster of clientData.clusters) {
+        if (!cluster.audioUrl) continue;
+        const emitter = document.createElement("a-entity");
+        emitter.classList.add("vsat-surround-emitter");
+        emitter.dataset.storyId = String(cluster.storyId);
+        emitter.setAttribute(
+          "position",
+          `${cluster.center.x} ${cluster.center.y} ${cluster.center.z}`,
+        );
+        emitter.setAttribute(
+          "sound",
+          `src: ${cluster.audioUrl}; positional: true; autoplay: true; loop: true; volume: 0.4; refDistance: ${clientData.clusterRadius}; rolloffFactor: 0.15`,
+        );
+        turntable.appendChild(emitter);
+      }
+    };
+    surroundBtn?.addEventListener("click", () => {
+      const audioContext = AFRAME.THREE.AudioContext.getContext();
+      if (audioContext.state === "suspended") {
+        void audioContext.resume().catch(() => undefined);
+      }
+      surroundEnabled = !surroundEnabled;
+      removeSurroundEmitters();
+      if (surroundEnabled) addSurroundEmitters();
+      surroundBtn.classList.toggle(
+        "vsatlatarium__btn--active",
+        surroundEnabled,
+      );
+      surroundBtn.setAttribute("aria-pressed", String(surroundEnabled));
     });
 
     // --- Vapor slider — controls pink glow via Three.js material directly ---
