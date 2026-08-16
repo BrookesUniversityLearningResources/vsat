@@ -38,56 +38,18 @@ test("a published audio hotspot becomes a positioned sound emitter", async ({
       state: "attached",
       timeout: 20_000,
     });
-    await page.evaluate(
-      ({ probeLine, src }) => {
-        type ProbeBlock = {
-          kind: string;
-          text: string;
-          src?: string;
-          x?: number;
-          y?: number;
-        };
-        type ProbeCurrent = {
-          page: { content: ProbeBlock[] };
-        };
+    // strict end-to-end: the server must have published a real
+    // blockAudioHotspot (a client-side promotion fallback lived here
+    // briefly while the shared dev API predated the parser — removed so a
+    // parser regression can never be masked by the spec itself)
+    const published = await page.evaluate(() => {
+      const current = (window as any).current;
+      return current.page.content.some(
+        (block: any) => block.kind === "blockAudioHotspot",
+      );
+    });
+    expect(published, "server did not publish blockAudioHotspot").toBe(true);
 
-        const current = (window as unknown as { current: ProbeCurrent })
-          .current;
-        const hasAudioHotspot = current.page.content.some(
-          (block) => block.kind === "blockAudioHotspot",
-        );
-
-        // The shared live API can have packet 1's parser loaded from before
-        // this authoring session. In that case only, promote this exact probe
-        // line so the packet-2 browser renderer can still be exercised. A
-        // fresh process publishes blockAudioHotspot and skips this fallback.
-        if (!hasAudioHotspot) {
-          const staleBlock = current.page.content.find(
-            (block) =>
-              block.kind === "blockPlaintext" && block.text === probeLine,
-          );
-          if (!staleBlock) {
-            throw new Error("published probe audio hotspot is missing");
-          }
-          Object.assign(staleBlock, {
-            kind: "blockAudioHotspot",
-            src,
-            x: 25,
-            y: 75,
-          });
-
-          const story = document.querySelector("[story]") as Element & {
-            components: {
-              story: {
-                render(current: ProbeCurrent, options: unknown): void;
-              };
-            };
-          };
-          story.components.story.render(current, { isSceneChange: false });
-        }
-      },
-      { probeLine, src: PROBE_URL },
-    );
     await page.waitForFunction(
       () => {
         const emitter = document.querySelector(

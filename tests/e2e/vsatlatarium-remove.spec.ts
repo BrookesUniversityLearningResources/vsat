@@ -26,7 +26,9 @@ const PROBE_LABEL = "e2e-remove-probe-link";
 test("GeomView focus board: arc delete strips the link line; scene remove deletes the scene", async ({
   page,
 }) => {
-  test.setTimeout(120_000);
+  // generous: the arc hunt tries up to 3 points per arc across every arc
+  // of the discovered story, and cold dev-server caches stretch first paints
+  test.setTimeout(240_000);
 
   const storyId = await gotoEligibleStory(page);
 
@@ -77,8 +79,40 @@ test("GeomView focus board: arc delete strips the link line; scene remove delete
       ],
       storyId,
     );
+    // the probe's arc is attached to the probe card, so try arcs nearest
+    // the card first — the blind all-arcs hunt timed out on big stories
+    const probeAt = await projectSelector(page, probeCardSel);
+    const ranked = await page.evaluate(
+      ({ uids, probeAt }) => {
+        const scene = document.querySelector("a-scene") as any;
+        const THREE = (window as any).AFRAME.THREE;
+        const wp = new THREE.Vector3();
+        const r = document.querySelector(".a-canvas")!.getBoundingClientRect();
+        const dist = (uid: number) => {
+          let best = Infinity;
+          for (const seg of document.querySelectorAll(
+            `.arc-segment[data-arc-uid="${uid}"]`,
+          )) {
+            if (!(seg as any).object3D) continue;
+            (seg as any).object3D.getWorldPosition(wp);
+            const p = wp.clone().project(scene.camera);
+            if (p.z > 1) continue;
+            const sx = r.left + ((p.x + 1) / 2) * r.width;
+            const sy = r.top + ((1 - p.y) / 2) * r.height;
+            best = Math.min(best, Math.hypot(sx - probeAt.x, sy - probeAt.y));
+          }
+          return best;
+        };
+        return uids
+          .map((uid: number) => ({ uid, d: dist(uid) }))
+          .sort((a: any, b: any) => a.d - b.d)
+          .map((e: any) => e.uid);
+      },
+      { uids, probeAt: probeAt! },
+    );
+
     let named = false;
-    for (const uid of uids.reverse()) {
+    for (const uid of ranked) {
       // several candidate points per arc — a single sample can project
       // behind the camera or under an overlapping arc bundle
       const points = await page.evaluate((u) => {
@@ -111,7 +145,7 @@ test("GeomView focus board: arc delete strips the link line; scene remove delete
             clientY: pt.y,
           }));
         }, at);
-        await page.waitForTimeout(400);
+        await page.waitForTimeout(250);
         const chipText = await page
           .locator(".vsat-focus3d-linkchip span")
           .first()
