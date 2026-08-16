@@ -3734,23 +3734,35 @@ const clientData = {
           }
           case "cancel": {
             const cancelBtn = focus3D.removeForm?.querySelector("[data-cancel]");
+            const floatCancel = voice.dictating &&
+              document.querySelector(".vsat-focus__card--float [data-cancel]");
             if (cancelBtn) { cancelBtn.click(); setVoiceChip("cancelled", "ok"); }
-            else if (voice.dictating) { voice.dictating = null; setVoiceChip("dictation cancelled", "ok"); }
+            else if (floatCancel) {
+              voice.dictating = null;
+              floatCancel.click();
+              setVoiceChip("dictation discarded", "ok");
+            } else if (voice.dictating) { voice.dictating = null; setVoiceChip("dictation cancelled", "ok"); }
             else setVoiceChip("nothing to cancel", "err");
             return;
           }
           case "edit-card": {
             const entry = deixisEntry();
             if (!entry) { setVoiceChip("point at the card, then speak", "err"); return; }
+            // dictation is VISIBLE: open the card's floating editor and
+            // append into it; "done" presses its Save (operator QA — the
+            // invisible-draft version read as nothing happening)
+            openFloatingEditor(entry);
             voice.dictating = entry;
-            setVoiceChip('dictating into "' + entry.sn.title + '" — each utterance becomes a paragraph; say "done" to finish', "info");
+            setVoiceChip('editing "' + entry.sn.title + '" — hold V and speak paragraphs; "done" saves, "cancel" discards', "info");
             return;
           }
           case "done": {
             if (voice.dictating) {
               const t = voice.dictating.sn.title;
               voice.dictating = null;
-              setVoiceChip('finished dictating into "' + t + '"', "ok");
+              const save = document.querySelector(".vsat-focus__card--float [data-save]");
+              if (save) { save.click(); setVoiceChip('saved "' + t + '"', "ok"); }
+              else setVoiceChip('finished dictating into "' + t + '"', "ok");
             }
             return;
           }
@@ -3769,12 +3781,16 @@ const clientData = {
             return;
           }
           const target = voice.dictating;
-          const cluster = focusedCluster();
-          if (!cluster) { setVoiceChip("focus lost — dictation ended", "err"); voice.dictating = null; return; }
-          setVoiceChip("writing…", "busy");
-          await window.__vsatEdit.mutateDraftContent(cluster.storyId, target.sn.sceneId, (content) =>
-            content.replace(/\s*$/, "") + "\n\n" + text + "\n");
-          setVoiceChip('“' + text.slice(0, 60) + (text.length > 60 ? "…" : "") + '” → ' + target.sn.title + ' — say "done" to finish', "ok");
+          // dictate into the visible editor; its Save owns persistence
+          const bodyEl = document.querySelector(".vsat-focus__card--float [data-b]");
+          if (!bodyEl) {
+            voice.dictating = null;
+            setVoiceChip("the editor was closed — dictation ended", "err");
+            return;
+          }
+          bodyEl.textContent = (bodyEl.innerText || "").replace(/\s*$/, "") + "\n\n" + text;
+          bodyEl.scrollTop = bodyEl.scrollHeight;
+          setVoiceChip('“' + text.slice(0, 60) + (text.length > 60 ? "…" : "") + '” → ' + target.sn.title + ' — "done" saves', "ok");
           return;
         }
         for (const intent of vox.parseVoiceUtterance(text)) {
@@ -3787,10 +3803,17 @@ const clientData = {
         }
       };
 
-      const voiceKeyGuard = (e) =>
-        e.target instanceof Element && e.target.closest("input, textarea, [contenteditable]");
+      // typing fields swallow V — EXCEPT the floating card editor while
+      // dictating: there V records (and must not type a letter v), which is
+      // what makes click-open-editor-then-speak actually work
+      const voiceKeyGuard = (e) => {
+        if (!(e.target instanceof Element)) return false;
+        if (voice.dictating && e.target.closest(".vsat-focus__card--float")) return false;
+        return !!e.target.closest("input, textarea, [contenteditable]");
+      };
       window.addEventListener("keydown", (e) => {
         if (!voice.armed || e.repeat || e.key.toLowerCase() !== "v" || voiceKeyGuard(e)) return;
+        if (voice.dictating && e.target instanceof Element && e.target.closest(".vsat-focus__card--float")) e.preventDefault();
         voice.recording = true;
         voice.frames = [];
         setVoiceChip(voice.dictating ? "recording (dictation)…" : "recording…", "rec");
