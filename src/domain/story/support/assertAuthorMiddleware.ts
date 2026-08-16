@@ -1,11 +1,16 @@
 import type { MiddlewareHandler } from "astro";
 
+import isStewardUser from "../../../authentication/isStewardUser.js";
 import { ErrorCodes } from "../../error/errorCode.js";
 import toStoryId from "../toStoryId.js";
 import isAuthorOfTheStory from "./isAuthorOfTheStory.js";
 
 /**
- * Astro middleware asserting that the current user is the author of the story.
+ * Astro middleware asserting that the current user may edit the story:
+ * its author, or a steward (story editing was widened to author-or-steward
+ * with the edit changelog, 2026-07 — the API routes already honour this;
+ * this middleware predated it and used to check plain authorship only,
+ * locking stewards out of the editor UI they were allowed to write through).
  *
  * This middleware will fire for all requests but will target Astro pages/routes
  * of the form `/author/story/:storyId/...`
@@ -49,7 +54,13 @@ const assertAuthorMiddleware: MiddlewareHandler = async (context, next) => {
         storyId,
       });
 
-      if (!isAuthor) {
+      if (
+        !isAuthor &&
+        !isStewardUser(
+          context.locals.user,
+          context.request.headers.get("cookie"),
+        )
+      ) {
         log.warn(
           {
             req: context.request,
@@ -57,7 +68,7 @@ const assertAuthorMiddleware: MiddlewareHandler = async (context, next) => {
             storyId,
             authorId,
           },
-          "The current user is not the author of the story",
+          "The current user is neither the author of the story nor a steward",
         );
 
         return context.redirect(`/author/story?err=${ErrorCodes.Unauthorized}`);
