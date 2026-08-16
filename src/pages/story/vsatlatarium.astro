@@ -2971,7 +2971,11 @@ const clientData = {
 
     // --- Story list: rotate turntable to face cluster toward camera ---
     const _facingFrom = new THREE.Vector3();
-    const _facingTo = new THREE.Vector3(0, 0, 1);
+    // The camera always looks down -Z. In GeomView it sits at +Z looking
+    // back at the origin, so a cluster "facing the camera" belongs at +Z;
+    // in the planetarium the camera is near the origin looking INTO the
+    // -Z dome wall, so the cluster must rotate to -Z instead.
+    const _facingTo = new THREE.Vector3(0, 0, isPlanetarium ? -1 : 1);
     document.querySelectorAll(".vsatlatarium__story").forEach((button) => {
       button.addEventListener("click", () => {
         const storyId = Number(button.getAttribute("data-story-id"));
