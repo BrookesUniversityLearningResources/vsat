@@ -81,6 +81,17 @@ describe("parseVoiceUtterance", () => {
     );
   });
 
+  it("parses focus and its chain with deictic edit", () => {
+    const intents = parseVoiceUtterance("Focus hall, edit this card.");
+    assert.deepEqual(intents.map((i) => i.kind), ["focus", "edit-card"]);
+    assert.equal(intents[0].kind === "focus" && intents[0].targetPhrase, "hall");
+    const variants = ["focus on the hall", "look at the hall", "go to hall", "show hall"];
+    for (const v of variants) {
+      const intent = parseVoiceIntent(v);
+      assert.equal(intent.kind, "focus", v);
+    }
+  });
+
   it("splits comma-joined commands (real transcript: 'Confirm, cancel.')", () => {
     assert.deepEqual(
       parseVoiceUtterance("Confirm, cancel.").map((i) => i.kind),

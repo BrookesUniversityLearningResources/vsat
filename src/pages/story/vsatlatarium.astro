@@ -857,7 +857,7 @@ const clientData = {
                 <li>A <strong>teal frame</strong> marks a card with no narrative connections yet (newly created scenes start this way) — connect it in or out and the frame turns steel blue</li>
                 <li><strong>Hover a narrative arc</strong> — it lights up as the current link, named in a chip at the top with a <strong>Delete</strong> that removes the underlying link line (the arc disappears; inter-story links keep their steward-gated retire flow)</li>
                 <li><strong>− remove</strong> in the popover — delete the scene itself, after a confirmation that counts the narrative arcs going with it</li>
-                <li><strong>🎙 Voice</strong> — arm, then hold <kbd>V</kbd> and speak: <em>new card (called …)</em> · <em>connect this card to …</em> · <em>remove this link / card</em> · <em>edit this card</em> (dictate paragraphs) · <em>done</em> · <em>confirm</em>/<em>cancel</em>. "This card" is the card under your pointer. Needs a Whisper server (localStorage <code>vsat-whisper-url</code>, default localhost:8081)</li>
+                <li><strong>🎙 Voice</strong> — arm, then hold <kbd>V</kbd> and speak: <em>new card (called …)</em> · <em>connect this card to …</em> · <em>focus …</em> (rotate a named card to the front) · <em>remove this link / card</em> · <em>edit this card</em> (dictate paragraphs) · <em>done</em> · <em>confirm</em>/<em>cancel</em>. "This card" is the card under your pointer — or the last <em>focus</em>ed card until the pointer moves, so chains like <em>"focus hall, edit this card"</em> work. Needs a Whisper server (localStorage <code>vsat-whisper-url</code>, default localhost:8081)</li>
                 <li><kbd>Esc</kbd> — cancel a connect or scene form in progress</li>
               </ul>
             </>
@@ -3587,6 +3587,7 @@ const clientData = {
         armed: false, ctx: null, node: null, stream: null,
         frames: [], recording: false, dictating: null, chip: null,
         lastMouse: { x: 0, y: 0 },
+        currentCardSceneId: null, currentCardMouse: { x: 0, y: 0 },
       };
       const whisperBase = () =>
         (localStorage.getItem("vsat-whisper-url") || "http://localhost:8081").replace(/\/+$/, "");
@@ -3611,9 +3612,43 @@ const clientData = {
       const focusedCluster = () =>
         clientData.clusters.find((c) => String(c.storyId) === focus3D.storyId);
 
-      // "this card" = the card nearest the pointer, generously
+      // rotate the orb so a card faces the camera — the voice "focus X"
+      // verb. Same setFromUnitVectors approach as the planetarium facing
+      // fix; a short slerp so the move reads as motion, not a cut.
+      const rotateBoardToEntry = (entry) => {
+        entry.card.object3D.getWorldPosition(_worldPos);
+        if (_worldPos.length() < 1) return; // center card: already facing
+        const from = _worldPos.clone().normalize();
+        const to = new THREE.Vector3(0, 0, 1);
+        const delta = new THREE.Quaternion().setFromUnitVectors(from, to);
+        const q0 = turntableQuat.clone();
+        const q1 = turntableQuat.clone().premultiply(delta).normalize();
+        const started = performance.now();
+        const DURATION = 550;
+        const step = (now) => {
+          const t = Math.min(1, (now - started) / DURATION);
+          const eased = t * (2 - t);
+          turntableQuat.slerpQuaternions(q0, q1, eased);
+          applyTransform();
+          if (t < 1) requestAnimationFrame(step);
+        };
+        requestAnimationFrame(step);
+      };
+
+      // "this card" = the card nearest the pointer — unless a voice
+      // "focus X" set the current card and the pointer hasn't moved
+      // since, which is what makes "focus hall, edit this card" chain
       const deixisEntry = () => {
         if (!focus3D.storyId) return null;
+        if (voice.currentCardSceneId !== null) {
+          const moved = Math.hypot(
+            voice.lastMouse.x - voice.currentCardMouse.x,
+            voice.lastMouse.y - voice.currentCardMouse.y,
+          );
+          const entry = focus3D.cards.get(voice.currentCardSceneId);
+          if (entry && moved < 60) return entry;
+          voice.currentCardSceneId = null;
+        }
         const rect = canvas.getBoundingClientRect();
         const cam = sceneEl.camera;
         let best = null;
@@ -3755,6 +3790,20 @@ const clientData = {
               setVoiceChip("dictation discarded", "ok");
             } else if (voice.dictating) { voice.dictating = null; setVoiceChip("dictation cancelled", "ok"); }
             else setVoiceChip("nothing to cancel", "err");
+            return;
+          }
+          case "focus": {
+            if (!cluster) { setVoiceChip("focus a story first (right-click one)", "err"); return; }
+            const match = vox.matchSceneTitle(intent.targetPhrase, cluster.scenes.map((s) => s.title));
+            if (match.kind === "none") { setVoiceChip('no card matches "' + intent.targetPhrase + '"', "err"); return; }
+            if (match.kind === "ambiguous") { setVoiceChip('"' + intent.targetPhrase + '" is ambiguous: ' + match.candidates.join(" · "), "err"); return; }
+            const sn = cluster.scenes.find((s) => s.title === match.title);
+            const entry = sn && focus3D.cards.get(sn.sceneId);
+            if (!entry) { setVoiceChip('"' + match.title + '" has no card on the board', "err"); return; }
+            rotateBoardToEntry(entry);
+            voice.currentCardSceneId = sn.sceneId;
+            voice.currentCardMouse = { ...voice.lastMouse };
+            setVoiceChip('focused "' + match.title + '" — it is now "this card"', "ok");
             return;
           }
           case "edit-card": {
