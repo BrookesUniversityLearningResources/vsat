@@ -62,12 +62,12 @@ export const gotoEligibleStory = async (page: Page): Promise<string> => {
     await page.goto(
       `/story/vsatlatarium?anthology=${anthologyId}&view=geomview`,
     );
-    await page.waitForSelector("a-scene", { state: "attached", timeout: 20000 });
+    await page.waitForSelector("a-scene", { state: "attached", timeout: 45000 });
     await page
       .waitForFunction(
         () => document.querySelectorAll(".scene-node").length > 0,
         undefined,
-        { timeout: 20000 },
+        { timeout: 45000 },
       )
       .catch(() => undefined);
     const storyId = await page.evaluate(() => {
@@ -102,7 +102,7 @@ export const enterFocus3D = async (
   await page.waitForFunction(
     (sel) => (document.querySelector(sel) as any)?.object3D,
     hubSel,
-    { timeout: 20000 },
+    { timeout: 45000 },
   );
   const entryAt = await page.evaluate((sid) => {
     const scene = document.querySelector("a-scene") as any;

@@ -63,19 +63,26 @@ test("GeomView focus board: connect writes the link line and draws the arc", asy
     expect(targetSceneId).not.toBeNull();
     const targetCardSel = `.focus3d-card[data-card-scene="${targetSceneId}"]`;
 
-    const segsFor = () =>
+    // raw segment count is no longer monotonic on connect: a real
+    // connection also removes both endpoints' scene→hub tether visuals.
+    // Assert the precise behaviour instead — a NEW arc uid appears.
+    const uidsFor = () =>
       page.evaluate(
-        (sid) =>
-          document.querySelectorAll(`.arc-segment[data-story-id="${sid}"]`)
-            .length,
+        (sid) => [
+          ...new Set(
+            [...document.querySelectorAll(
+              `.arc-segment[data-story-id="${sid}"]`,
+            )].map((el) => el.getAttribute("data-arc-uid")),
+          ),
+        ],
         storyId,
       );
-    const segsBefore = await segsFor();
+    const uidsBefore = await uidsFor();
 
     // --- Esc cancels an in-flight connect without writing -----------------
     await dispatchCanvasMouse(page, "click", (await projectSelector(page, probeCardSel))!);
     await page.waitForSelector(".vsat-focus__card--float", { timeout: 5000 });
-    await page.locator(".vsat-focus__card-verbs button").click();
+    await page.locator(".vsat-focus__card-verbs button", { hasText: "connect" }).click();
     await page.waitForSelector(".vsat-focus3d-hint", { timeout: 5000 });
     await page.keyboard.press("Escape");
     expect(await page.locator(".vsat-focus3d-hint").count()).toBe(0);
@@ -87,7 +94,7 @@ test("GeomView focus board: connect writes the link line and draws the arc", asy
     // --- the connect itself ----------------------------------------------
     await dispatchCanvasMouse(page, "click", (await projectSelector(page, probeCardSel))!);
     await page.waitForSelector(".vsat-focus__card--float", { timeout: 5000 });
-    await page.locator(".vsat-focus__card-verbs button").click();
+    await page.locator(".vsat-focus__card-verbs button", { hasText: "connect" }).click();
     await page.waitForSelector(".vsat-focus3d-hint", { timeout: 5000 });
     await dispatchCanvasMouse(page, "click", (await projectSelector(page, targetCardSel))!);
     await page.waitForSelector(".vsat-focus3d-connect", { timeout: 5000 });
@@ -98,8 +105,9 @@ test("GeomView focus board: connect writes the link line and draws the arc", asy
       timeout: 15000,
     });
 
-    // arc drawn live, no reload
-    expect(await segsFor()).toBeGreaterThan(segsBefore);
+    // arc drawn live, no reload — a new arc uid exists
+    const newUids = (await uidsFor()).filter((u) => !uidsBefore.includes(u));
+    expect(newUids.length).toBeGreaterThan(0);
 
     // exactly one new [label](target) line, in the probe scene's draft
     const draftRes = await page.request.get(
