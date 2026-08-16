@@ -16,6 +16,10 @@ describe("parseVoiceIntent", () => {
     assert.equal(parseVoiceIntent("remove this card").kind, "remove-card");
     assert.equal(parseVoiceIntent("Confirm.").kind, "confirm");
     assert.equal(parseVoiceIntent("cancel").kind, "cancel");
+    assert.equal(parseVoiceIntent("edit this card").kind, "edit-card");
+    assert.equal(parseVoiceIntent("Done").kind, "done");
+    assert.equal(parseVoiceIntent("I'm done").kind, "done");
+    assert.equal(parseVoiceIntent("that's it").kind, "done");
   });
 
   it("captures the create title when spoken", () => {

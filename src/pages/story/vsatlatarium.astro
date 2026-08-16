@@ -804,6 +804,15 @@ const clientData = {
               title="Hear story audio from each cluster direction"
             >🔊 Surround</button>
           )}
+          {!isPlanetarium && (
+            <button
+              type="button"
+              id="vsat-toggle-voice"
+              class="vsatlatarium__btn"
+              aria-pressed="false"
+              title="Voice verbs on the focus board — hold V to speak (needs a Whisper server; set vsat-whisper-url in localStorage, default localhost:8081)"
+            >🎙 Voice</button>
+          )}
           <a
             class={`vsatlatarium__btn ${isPlanetarium ? "" : "vsatlatarium__btn--active"}`}
             href={`/story/vsatlatarium?view=geomview${selectedAnthology ? "&anthology=" + selectedAnthology.id : ""}`}
@@ -848,6 +857,7 @@ const clientData = {
                 <li>A <strong>teal frame</strong> marks a card with no narrative connections yet (newly created scenes start this way) — connect it in or out and the frame turns steel blue</li>
                 <li><strong>Hover a narrative arc</strong> — it lights up as the current link, named in a chip at the top with a <strong>Delete</strong> that removes the underlying link line (the arc disappears; inter-story links keep their steward-gated retire flow)</li>
                 <li><strong>− remove</strong> in the popover — delete the scene itself, after a confirmation that counts the narrative arcs going with it</li>
+                <li><strong>🎙 Voice</strong> — arm, then hold <kbd>V</kbd> and speak: <em>new card (called …)</em> · <em>connect this card to …</em> · <em>remove this link / card</em> · <em>edit this card</em> (dictate paragraphs) · <em>done</em> · <em>confirm</em>/<em>cancel</em>. "This card" is the card under your pointer. Needs a Whisper server (localStorage <code>vsat-whisper-url</code>, default localhost:8081)</li>
                 <li><kbd>Esc</kbd> — cancel a connect or scene form in progress</li>
               </ul>
             </>
@@ -2648,6 +2658,11 @@ const clientData = {
         ".vsat-focus3d-linkchip span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}",
         ".vsat-focus3d-linkchip button{font:inherit;font-size:0.75rem;padding:0.15rem 0.6rem;border-radius:0.45rem;border:1px solid #7a3c3c;background:#3a2020;color:#f0c9c9;cursor:pointer;flex:none}",
         ".vsat-focus3d-linkchip-err{color:#e74c3c;font-size:0.75rem}",
+        ".vsat-voice-chip{position:absolute;bottom:0.9rem;left:50%;transform:translateX(-50%);z-index:16;max-width:80%;background:rgba(18,21,27,0.95);border:1px solid rgba(120,140,180,0.6);color:#ecf0f1;font-size:0.85rem;padding:0.4rem 0.9rem;border-radius:999px;font-family:'Source Sans Pro',system-ui,sans-serif;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}",
+        ".vsat-voice-chip[data-state='rec']{border-color:#e74c3c;color:#f5b7b1}",
+        ".vsat-voice-chip[data-state='busy']{border-color:#e8a33d}",
+        ".vsat-voice-chip[data-state='ok']{border-color:#3fa08f}",
+        ".vsat-voice-chip[data-state='err']{border-color:#e74c3c}",
       ].join("");
       document.head.appendChild(focusCss);
 
@@ -2890,6 +2905,8 @@ const clientData = {
         cancelConnect3D();
         clearCurrentArc();
         arcCurrent.samples.clear();
+        voice.dictating = null;
+        if (voice.chip) clearVoiceChip();
         focus3D.createPill?.remove();
         focus3D.createPill = null;
         focus3D.createForm?.remove();
@@ -3104,6 +3121,35 @@ const clientData = {
       // trimmed, whitespace→"-", lowercased
       const sceneLinkTarget = (t) => t.trim().replace(/\s+/g, "-").toLocaleLowerCase();
 
+      // write a narrative link line from one scene to another and mirror it
+      // on the board — shared by the CONNECT form and the voice verb
+      const applyConnection = async (fromSn, toSn, label) => {
+        const edit = window.__vsatEdit;
+        if (!edit) throw new Error("edit bridge unavailable");
+        const line = "[" + (label || toSn.title) + "](" + sceneLinkTarget(toSn.title) + ")";
+        await edit.mutateDraftContent(fromSn.storyId, fromSn.sceneId, (content) =>
+          edit.insertHotspotLine(content, fromSn.pageCount - 1, line));
+        const cluster = clientData.clusters.find((c) => String(c.storyId) === focus3D.storyId);
+        if (cluster && !cluster.internalArcs.some((a) => a.from === fromSn.id && a.to === toSn.id)) {
+          cluster.internalArcs.push({ from: fromSn.id, to: toSn.id });
+          const bow = isPlanetarium ? 0.15 : 1.2;
+          const cp = localArcControlPoint(fromSn.position, toSn.position, cluster.center, bow);
+          const uid = drawArc(fromSn.position, toSn.position, cp, "#fb923c", 0.8, 0.06, "internal", undefined, cluster.storyId);
+          internalArcByUid.set(uid, { from: fromSn.id, to: toSn.id, storyId: String(cluster.storyId) });
+        }
+        // a real connection replaces any scene→hub tether visuals
+        if (cluster) {
+          for (const nodeId of [fromSn.id, toSn.id]) {
+            const hubUid = hubArcUidByScene.get(nodeId);
+            if (hubUid !== undefined) {
+              for (const seg of arcSegments(hubUid)) seg.remove();
+              hubArcUidByScene.delete(nodeId);
+            }
+          }
+          refreshUnconnectedFrames(cluster);
+        }
+      };
+
       const cancelConnect3D = () => {
         const st = focus3D.connect;
         if (!st) return;
@@ -3157,29 +3203,8 @@ const clientData = {
           actions.querySelector("[data-save]").disabled = true;
           err.hidden = true;
           try {
-            const line = "[" + label + "](" + sceneLinkTarget(toSn.title) + ")";
-            await edit.mutateDraftContent(st.from.storyId, st.from.sceneId, (content) =>
-              edit.insertHotspotLine(content, st.from.pageCount - 1, line));
-            const cluster = clientData.clusters.find((c) => String(c.storyId) === focus3D.storyId);
-            if (cluster && !cluster.internalArcs.some((a) => a.from === st.from.id && a.to === toSn.id)) {
-              cluster.internalArcs.push({ from: st.from.id, to: toSn.id });
-              const bow = isPlanetarium ? 0.15 : 1.2;
-              const cp = localArcControlPoint(st.from.position, toSn.position, cluster.center, bow);
-              const uid = drawArc(st.from.position, toSn.position, cp, "#fb923c", 0.8, 0.06, "internal", undefined, cluster.storyId);
-              internalArcByUid.set(uid, { from: st.from.id, to: toSn.id, storyId: String(cluster.storyId) });
-            }
-            // a real connection replaces any scene→hub tether visuals
-            if (cluster) {
-              for (const nodeId of [st.from.id, toSn.id]) {
-                const hubUid = hubArcUidByScene.get(nodeId);
-                if (hubUid !== undefined) {
-                  for (const seg of arcSegments(hubUid)) seg.remove();
-                  hubArcUidByScene.delete(nodeId);
-                }
-              }
-            }
+            await applyConnection(st.from, toSn, label);
             cancelConnect3D();
-            if (cluster) refreshUnconnectedFrames(cluster);
           } catch (e2) {
             err.textContent = String((e2 && e2.message) || e2);
             err.hidden = false;
@@ -3190,6 +3215,52 @@ const clientData = {
         st.form = panel;
         input.focus();
         input.select();
+      };
+
+      // create + title + publish + board mirror — shared by the + scene
+      // form and the voice CREATE verb
+      const createSceneOnBoard = async (storyId, title) => {
+        // createScene ignores a source body today, so the title and a
+        // heading are stamped in follow-up saves before republishing
+        const res = await fetch("/api/story/" + storyId + "/scene", { method: "POST" });
+        if (!res.ok) {
+          throw new Error(res.status === 401 || res.status === 403
+            ? "you need to be signed in as this story's author"
+            : "couldn't create the scene (" + res.status + ")");
+        }
+        const scene = await res.json();
+        const base = "/api/story/" + storyId + "/scene/" + scene.id;
+        const titleRes = await fetch(base + "/title", {
+          method: "PUT", headers: { "content-type": "text/plain" }, body: title });
+        if (!titleRes.ok) throw new Error("scene created, but couldn't set its title (" + titleRes.status + ")");
+        const contentRes = await fetch(base + "/content", {
+          method: "PUT", headers: { "content-type": "text/plain" }, body: "# " + title + "\n" });
+        if (!contentRes.ok) throw new Error("scene created, but couldn't set its content (" + contentRes.status + ")");
+        const pubRes = await fetch("/api/story/" + storyId + "/publish", { method: "POST" });
+        if (!pubRes.ok) throw new Error("scene created, but couldn't republish (" + pubRes.status + ")");
+        // surface the new scene as a card: extend the client-side cluster
+        // (the server's spring layout only knows it after a reload) and
+        // rebuild the focus board
+        const cluster = clientData.clusters.find((c) => String(c.storyId) === storyId);
+        if (cluster) {
+          cluster.scenes.push({
+            id: "story-" + cluster.storyId + "-scene-" + scene.id,
+            sceneId: scene.id,
+            storyId: cluster.storyId,
+            title,
+            isOpening: false,
+            pageCount: 1,
+            heading: title,
+            excerpt: "",
+            position: {
+              x: cluster.center.x,
+              y: cluster.center.y + cluster.localRadius * 1.15,
+              z: cluster.center.z,
+            },
+          });
+        }
+        enterFocus3D(storyId);
+        return scene;
       };
 
       const openCreateForm3D = () => {
@@ -3222,47 +3293,8 @@ const clientData = {
           actions.querySelector("[data-save]").disabled = true;
           err.hidden = true;
           try {
-            // createScene ignores a source body today, so the title and a
-            // heading are stamped in follow-up saves before republishing
-            const res = await fetch("/api/story/" + storyId + "/scene", { method: "POST" });
-            if (!res.ok) {
-              throw new Error(res.status === 401 || res.status === 403
-                ? "you need to be signed in as this story's author"
-                : "couldn't create the scene (" + res.status + ")");
-            }
-            const scene = await res.json();
-            const base = "/api/story/" + storyId + "/scene/" + scene.id;
-            const titleRes = await fetch(base + "/title", {
-              method: "PUT", headers: { "content-type": "text/plain" }, body: title });
-            if (!titleRes.ok) throw new Error("scene created, but couldn't set its title (" + titleRes.status + ")");
-            const contentRes = await fetch(base + "/content", {
-              method: "PUT", headers: { "content-type": "text/plain" }, body: "# " + title + "\n" });
-            if (!contentRes.ok) throw new Error("scene created, but couldn't set its content (" + contentRes.status + ")");
-            const pubRes = await fetch("/api/story/" + storyId + "/publish", { method: "POST" });
-            if (!pubRes.ok) throw new Error("scene created, but couldn't republish (" + pubRes.status + ")");
-            // surface the new scene as a card: extend the client-side
-            // cluster (the server's spring layout only knows it after a
-            // reload) and rebuild the focus board
-            const cluster = clientData.clusters.find((c) => String(c.storyId) === storyId);
-            if (cluster) {
-              cluster.scenes.push({
-                id: "story-" + cluster.storyId + "-scene-" + scene.id,
-                sceneId: scene.id,
-                storyId: cluster.storyId,
-                title,
-                isOpening: false,
-                pageCount: 1,
-                heading: title,
-                excerpt: "",
-                position: {
-                  x: cluster.center.x,
-                  y: cluster.center.y + cluster.localRadius * 1.15,
-                  z: cluster.center.z,
-                },
-              });
-            }
+            await createSceneOnBoard(storyId, title);
             close();
-            enterFocus3D(storyId);
           } catch (e2) {
             err.textContent = String((e2 && e2.message) || e2);
             err.hidden = false;
@@ -3526,6 +3558,251 @@ const clientData = {
         document.body.appendChild(panel);
         focus3D.removeForm = panel;
       };
+
+      // --- VOICE demo mode (M-voice-board, Whisper-URL direct) ---------
+      // Hold V to talk while armed; verbs act on the card nearest the
+      // pointer ("this card") or the current hovered arc ("this link").
+      // Capture → 16 kHz WAV → POST {vsat-whisper-url}/transcribe →
+      // parseVoiceUtterance → the SAME apply paths as the pointer verbs.
+      // This is local authoring under the author's own session; the
+      // relay/provenance story (M-voice-board slices 2-4) is separate.
+      const vox = window.__vsatVoice;
+      const voice = {
+        armed: false, ctx: null, node: null, stream: null,
+        frames: [], recording: false, dictating: null, chip: null,
+        lastMouse: { x: 0, y: 0 },
+      };
+      const whisperBase = () =>
+        (localStorage.getItem("vsat-whisper-url") || "http://localhost:8081").replace(/\/+$/, "");
+      const voiceBtn = document.getElementById("vsat-toggle-voice");
+
+      const setVoiceChip = (text, state) => {
+        if (!voice.chip) {
+          voice.chip = document.createElement("div");
+          voice.chip.className = "vsat-voice-chip";
+          canvas.appendChild(voice.chip);
+        }
+        voice.chip.textContent = text;
+        voice.chip.dataset.state = state || "info";
+      };
+      const clearVoiceChip = () => { voice.chip?.remove(); voice.chip = null; };
+
+      window.addEventListener("mousemove", (e) => {
+        voice.lastMouse.x = e.clientX;
+        voice.lastMouse.y = e.clientY;
+      });
+
+      const focusedCluster = () =>
+        clientData.clusters.find((c) => String(c.storyId) === focus3D.storyId);
+
+      // "this card" = the card nearest the pointer, generously
+      const deixisEntry = () => {
+        if (!focus3D.storyId) return null;
+        const rect = canvas.getBoundingClientRect();
+        const cam = sceneEl.camera;
+        let best = null;
+        let bestD = 260;
+        for (const entry of focus3D.cards.values()) {
+          entry.card.object3D.getWorldPosition(_worldPos);
+          _projected.copy(_worldPos).project(cam);
+          if (_projected.z > 1) continue;
+          const sx = rect.left + ((_projected.x + 1) / 2) * rect.width;
+          const sy = rect.top + ((1 - _projected.y) / 2) * rect.height;
+          const d = Math.hypot(voice.lastMouse.x - sx, voice.lastMouse.y - sy);
+          if (d < bestD) { bestD = d; best = entry; }
+        }
+        return best;
+      };
+
+      const armVoice = async () => {
+        try {
+          voice.stream = await navigator.mediaDevices.getUserMedia({
+            audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true },
+          });
+          voice.ctx = new AudioContext({ sampleRate: 16000 });
+          const source = voice.ctx.createMediaStreamSource(voice.stream);
+          voice.node = voice.ctx.createScriptProcessor(4096, 1, 1);
+          voice.node.onaudioprocess = (e) => {
+            if (voice.recording) voice.frames.push(new Float32Array(e.inputBuffer.getChannelData(0)));
+          };
+          source.connect(voice.node);
+          voice.node.connect(voice.ctx.destination);
+          voice.armed = true;
+          voiceBtn.classList.add("vsatlatarium__btn--active");
+          voiceBtn.setAttribute("aria-pressed", "true");
+          setVoiceChip("voice armed — hold V and speak: new card (called …) · connect this card to … · remove this link / card · edit this card · done", "info");
+        } catch (e2) {
+          setVoiceChip("microphone unavailable: " + ((e2 && e2.message) || e2), "err");
+        }
+      };
+      const disarmVoice = () => {
+        voice.armed = false;
+        voice.recording = false;
+        voice.frames = [];
+        voice.dictating = null;
+        voice.node?.disconnect();
+        voice.ctx?.close().catch(() => undefined);
+        voice.stream?.getTracks().forEach((t) => t.stop());
+        voice.node = null; voice.ctx = null; voice.stream = null;
+        voiceBtn?.classList.remove("vsatlatarium__btn--active");
+        voiceBtn?.setAttribute("aria-pressed", "false");
+        clearVoiceChip();
+      };
+      voiceBtn?.addEventListener("click", () => (voice.armed ? disarmVoice() : armVoice()));
+
+      const encodeWav = (frames, rate) => {
+        let len = 0;
+        for (const f of frames) len += f.length;
+        const pcm = new Int16Array(len);
+        let o = 0;
+        for (const f of frames) {
+          for (let i = 0; i < f.length; i++) {
+            const s = Math.max(-1, Math.min(1, f[i]));
+            pcm[o++] = s < 0 ? s * 0x8000 : s * 0x7fff;
+          }
+        }
+        const buf = new ArrayBuffer(44 + pcm.length * 2);
+        const v = new DataView(buf);
+        const ws = (off, str) => { for (let i = 0; i < str.length; i++) v.setUint8(off + i, str.charCodeAt(i)); };
+        ws(0, "RIFF"); v.setUint32(4, 36 + pcm.length * 2, true); ws(8, "WAVE"); ws(12, "fmt ");
+        v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+        v.setUint32(24, rate, true); v.setUint32(28, rate * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true);
+        ws(36, "data"); v.setUint32(40, pcm.length * 2, true);
+        new Int16Array(buf, 44).set(pcm);
+        return buf;
+      };
+
+      const applyIntent = async (intent) => {
+        const cluster = focusedCluster();
+        switch (intent.kind) {
+          case "create": {
+            if (!cluster) { setVoiceChip("focus a story first (right-click one)", "err"); return; }
+            setVoiceChip("creating card…", "busy");
+            await createSceneOnBoard(focus3D.storyId, intent.title || "A Scene");
+            setVoiceChip('created "' + (intent.title || "A Scene") + '"', "ok");
+            return;
+          }
+          case "connect": {
+            if (!cluster) { setVoiceChip("focus a story first", "err"); return; }
+            const from = deixisEntry();
+            if (!from) { setVoiceChip("point at the source card, then speak", "err"); return; }
+            const match = vox.matchSceneTitle(intent.targetPhrase, cluster.scenes.map((s) => s.title));
+            if (match.kind === "none") { setVoiceChip('no scene matches "' + intent.targetPhrase + '"', "err"); return; }
+            if (match.kind === "ambiguous") { setVoiceChip('"' + intent.targetPhrase + '" is ambiguous: ' + match.candidates.join(" · "), "err"); return; }
+            const toSn = cluster.scenes.find((s) => s.title === match.title);
+            if (!toSn || toSn.id === from.sn.id) { setVoiceChip("can't connect a card to itself", "err"); return; }
+            setVoiceChip("connecting " + from.sn.title + " → " + toSn.title + "…", "busy");
+            await applyConnection(from.sn, toSn, toSn.title);
+            setVoiceChip(from.sn.title + " → " + toSn.title + " ✓", "ok");
+            return;
+          }
+          case "remove-link": {
+            const btn = arcCurrent.chip?.querySelector("button");
+            if (arcCurrent.uid === null || !btn) { setVoiceChip("hover the link first, then speak", "err"); return; }
+            btn.click();
+            setVoiceChip("removing the current link…", "ok");
+            return;
+          }
+          case "remove-card": {
+            const entry = deixisEntry();
+            if (!entry) { setVoiceChip("point at the card, then speak", "err"); return; }
+            openRemoveSceneForm3D(entry);
+            setVoiceChip('say "confirm" to delete "' + entry.sn.title + '", or "cancel"', "info");
+            return;
+          }
+          case "confirm": {
+            const save = focus3D.removeForm?.querySelector("[data-save]");
+            if (save) { save.click(); setVoiceChip("confirmed", "ok"); }
+            else setVoiceChip("nothing to confirm", "err");
+            return;
+          }
+          case "cancel": {
+            const cancelBtn = focus3D.removeForm?.querySelector("[data-cancel]");
+            if (cancelBtn) { cancelBtn.click(); setVoiceChip("cancelled", "ok"); }
+            else if (voice.dictating) { voice.dictating = null; setVoiceChip("dictation cancelled", "ok"); }
+            else setVoiceChip("nothing to cancel", "err");
+            return;
+          }
+          case "edit-card": {
+            const entry = deixisEntry();
+            if (!entry) { setVoiceChip("point at the card, then speak", "err"); return; }
+            voice.dictating = entry;
+            setVoiceChip('dictating into "' + entry.sn.title + '" — each utterance becomes a paragraph; say "done" to finish', "info");
+            return;
+          }
+          case "done": {
+            if (voice.dictating) {
+              const t = voice.dictating.sn.title;
+              voice.dictating = null;
+              setVoiceChip('finished dictating into "' + t + '"', "ok");
+            }
+            return;
+          }
+          default: {
+            setVoiceChip('heard, not a command: "' + intent.transcript.slice(0, 80) + '"', "err");
+            console.info("[voice] refused:", intent);
+          }
+        }
+      };
+
+      const handleTranscript = async (text) => {
+        if (voice.dictating) {
+          const intents = vox.parseVoiceUtterance(text);
+          if (intents.length && intents.every((i) => i.kind === "done" || i.kind === "cancel")) {
+            await applyIntent(intents[0]);
+            return;
+          }
+          const target = voice.dictating;
+          const cluster = focusedCluster();
+          if (!cluster) { setVoiceChip("focus lost — dictation ended", "err"); voice.dictating = null; return; }
+          setVoiceChip("writing…", "busy");
+          await window.__vsatEdit.mutateDraftContent(cluster.storyId, target.sn.sceneId, (content) =>
+            content.replace(/\s*$/, "") + "\n\n" + text + "\n");
+          setVoiceChip('“' + text.slice(0, 60) + (text.length > 60 ? "…" : "") + '” → ' + target.sn.title + ' — say "done" to finish', "ok");
+          return;
+        }
+        for (const intent of vox.parseVoiceUtterance(text)) {
+          try {
+            await applyIntent(intent);
+          } catch (e2) {
+            setVoiceChip("failed: " + ((e2 && e2.message) || e2), "err");
+            return;
+          }
+        }
+      };
+
+      const voiceKeyGuard = (e) =>
+        e.target instanceof Element && e.target.closest("input, textarea, [contenteditable]");
+      window.addEventListener("keydown", (e) => {
+        if (!voice.armed || e.repeat || e.key.toLowerCase() !== "v" || voiceKeyGuard(e)) return;
+        voice.recording = true;
+        voice.frames = [];
+        setVoiceChip(voice.dictating ? "recording (dictation)…" : "recording…", "rec");
+      });
+      window.addEventListener("keyup", async (e) => {
+        if (!voice.armed || e.key.toLowerCase() !== "v" || !voice.recording) return;
+        voice.recording = false;
+        const frames = voice.frames;
+        voice.frames = [];
+        const rate = (voice.ctx && voice.ctx.sampleRate) || 16000;
+        const seconds = frames.reduce((n, f) => n + f.length, 0) / rate;
+        if (seconds < 0.4) { setVoiceChip("(too short — keep V held while speaking)", "err"); return; }
+        setVoiceChip("transcribing " + seconds.toFixed(1) + "s…", "busy");
+        try {
+          const res = await fetch(whisperBase() + "/transcribe?model=large-v3-turbo&ac=512&greedy=0", {
+            method: "POST",
+            headers: { "Content-Type": "audio/wav" },
+            body: encodeWav(frames, rate),
+          });
+          if (!res.ok) throw new Error("transcribe " + res.status);
+          const data = await res.json();
+          const text = (data.text || "").trim();
+          if (!text) { setVoiceChip("(heard nothing)", "err"); return; }
+          await handleTranscript(text);
+        } catch (e2) {
+          setVoiceChip("voice error: " + ((e2 && e2.message) || e2) + " — whisper tunnel up? (localStorage vsat-whisper-url)", "err");
+        }
+      });
 
       const openFloatingEditor = (entry) => {
         if (document.querySelector(".vsat-focus__card--float")) return;
@@ -3849,10 +4126,20 @@ const clientData = {
     mutateDraftContent,
     replaceSectionText,
   } from "@components/story/published/placeHotspot";
+  import {
+    buildVoicePrompt,
+    matchSceneTitle,
+    parseVoiceUtterance,
+  } from "@domain/voice/parseVoiceIntent";
   (window as any).__vsatEdit = {
     insertHotspotLine,
     mutateDraftContent,
     replaceSectionText,
+  };
+  (window as any).__vsatVoice = {
+    buildVoicePrompt,
+    matchSceneTitle,
+    parseVoiceUtterance,
   };
   (window as any).__vsatQR = QRCode;
 </script>

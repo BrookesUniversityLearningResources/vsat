@@ -12,6 +12,8 @@ export type VoiceIntent =
   | { kind: "connect"; targetPhrase: string; transcript: string }
   | { kind: "remove-link"; transcript: string }
   | { kind: "remove-card"; transcript: string }
+  | { kind: "edit-card"; transcript: string }
+  | { kind: "done"; transcript: string }
   | { kind: "confirm"; transcript: string }
   | { kind: "cancel"; transcript: string }
   | {
@@ -44,6 +46,10 @@ const CONNECT =
   /^connect(?:ed|s)? (?:this|the|that|his) (?:card|car|cart) (?:to|with|too|two|2) (.+)$/;
 const REMOVE_LINK = /^remove[sd]? (?:this|the|that) link$/;
 const REMOVE_CARD = /^remove[sd]? (?:this|the|that) (?:card|car|cart)$/;
+const EDIT_CARD = /^edit (?:this|the|that) (?:card|car|cart)$/;
+// NB patterns run on normalize()d text, where apostrophes are spaces:
+// "I'm done" → "i m done", "that's it" → "that s it"
+const DONE = /^(?:done|i ?m done|that ?s (?:it|all)|finished?)$/;
 const CONFIRM = /^confirm(?:ed)?$/;
 const CANCEL = /^cancel(?:led|ed)?$/;
 
@@ -65,6 +71,8 @@ export function parseVoiceIntent(rawTranscript: string): VoiceIntent {
   }
   if (REMOVE_LINK.test(text)) return { kind: "remove-link", transcript };
   if (REMOVE_CARD.test(text)) return { kind: "remove-card", transcript };
+  if (EDIT_CARD.test(text)) return { kind: "edit-card", transcript };
+  if (DONE.test(text)) return { kind: "done", transcript };
   if (CONFIRM.test(text)) return { kind: "confirm", transcript };
   if (CANCEL.test(text)) return { kind: "cancel", transcript };
 
@@ -183,7 +191,8 @@ export function matchSceneTitle(
 export function buildVoicePrompt(sceneTitles: string[]): string {
   const verbs =
     "New card. New card called night market. Connect this card to. " +
-    "Remove this link. Remove this card. Confirm. Cancel.";
+    "Remove this link. Remove this card. Edit this card. Done. " +
+    "Confirm. Cancel.";
   return sceneTitles.length
     ? `${verbs} ${sceneTitles.join(". ")}.`
     : verbs;
