@@ -526,7 +526,26 @@ const linkedStoryCards = Array.from(linkedStories.values()).slice(0, 5);
           y,
         );
       })
-        .then(() => location.reload())
+        .then(() => {
+          // the marker is already sitting where it was dropped — no
+          // reload (operator QA: the reload interrupted the flow). Keep
+          // the client copies coherent instead: the entity's component
+          // data (future grabs match the draft line by these coords) and
+          // the in-memory published block (page re-renders).
+          grab.entity.setAttribute("scene-audio-hotspot", { x, y });
+          const current = (window as any).current;
+          const block = current?.page?.content?.find(
+            (b: any) =>
+              b.kind === "blockAudioHotspot" &&
+              b.text === grab.text &&
+              b.x === grab.x &&
+              b.y === grab.y,
+          );
+          if (block) {
+            block.x = x;
+            block.y = y;
+          }
+        })
         .catch((err: any) => {
           grab.entity.setAttribute("position", grab.originalPosition);
           grab.entity.setAttribute("rotation", grab.originalRotation);
