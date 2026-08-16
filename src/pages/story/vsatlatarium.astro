@@ -793,6 +793,44 @@ const clientData = {
             class={`vsatlatarium__btn ${isPlanetarium ? "vsatlatarium__btn--active" : ""}`}
             href={`/story/vsatlatarium${selectedAnthology ? "?anthology=" + selectedAnthology.id : ""}`}
           >Planetarium</a>
+          <button type="button" id="vsat-help" class="vsatlatarium__btn" title="Controls & authoring verbs">?</button>
+        </div>
+        <div id="vsat-help-panel" class="vsatlatarium__usage" hidden>
+          <h3>Looking around</h3>
+          <ul>
+            <li><strong>Drag</strong> — rotate the constellation · <strong>scroll</strong> — zoom</li>
+            <li><strong>Hover a node</strong> — details in the side panel</li>
+            <li><strong>Story name in the sidebar</strong> — bring that story to the front</li>
+            <li>Toolbar: reset view · <em>Phone</em> hands this view to your phone via QR · wireframes · arc IDs for bug reports</li>
+          </ul>
+          {isPlanetarium ? (
+            <>
+              <h3>Connecting stories (global)</h3>
+              <ul>
+                <li><strong>Click a scene node</strong>, then <em>propose a link from this scene</em> in the side panel: pick a target node, choose the link type and give a rationale — an interpretive link between stories</li>
+              </ul>
+              <h3>Editing a story</h3>
+              <ul>
+                <li><strong>Right-click a story</strong> — its scenes become cards; <strong>click a card</strong> to edit its heading and text in place · <kbd>Esc</kbd> closes</li>
+              </ul>
+            </>
+          ) : (
+            <>
+              <h3>Editing a story (focus board)</h3>
+              <ul>
+                <li><strong>Right-click a story</strong> — its scenes become floating 3D cards · <kbd>Esc</kbd> closes</li>
+                <li><strong>Click a card</strong> — read and edit the scene in a popover</li>
+                <li><strong>⤳ connect</strong> in the popover, then <strong>click a target card</strong> and set the link label — writes a narrative link from the source scene and draws the arc (connections within the story)</li>
+                <li><strong>+ scene</strong> (bottom of the board) — add a new scene to the focused story; it appears as a fresh card, imageless until you add one in the classic editor</li>
+                <li>A <strong>teal frame</strong> marks a card with no narrative connections yet (newly created scenes start this way) — connect it in or out and the frame turns steel blue</li>
+                <li><kbd>Esc</kbd> — cancel a connect or scene form in progress</li>
+              </ul>
+            </>
+          )}
+          <p class="vsatlatarium__usage-note">
+            Editing and connecting write to the story's draft and republish it —
+            you need to be signed in as the story's author (or a steward).
+          </p>
         </div>
         <a-scene
           embedded
@@ -1413,6 +1451,30 @@ const clientData = {
         el.setAttribute("visible", wireframesVisible);
       });
       wireframeBtn.classList.toggle("vsatlatarium__btn--active", wireframesVisible);
+    });
+
+    // --- In-app usage note ("?" in the toolbar): the authoring verbs are
+    // gesture-driven and otherwise invisible — this panel is where a new
+    // user finds out they exist. Registered BEFORE initInteraction's
+    // keydown, so an open help panel swallows Esc instead of also
+    // collapsing an open focus board.
+    const helpBtn = document.getElementById("vsat-help");
+    const helpPanel = document.getElementById("vsat-help-panel");
+    const setHelpVisible = (show) => {
+      if (!helpPanel) return;
+      helpPanel.hidden = !show;
+      helpBtn?.classList.toggle("vsatlatarium__btn--active", show);
+    };
+    helpBtn?.addEventListener("click", () => setHelpVisible(helpPanel.hidden));
+    window.addEventListener("keydown", (e) => {
+      const typing = e.target instanceof Element &&
+        (e.target.closest("input, textarea, [contenteditable]") !== null);
+      if (typing) return;
+      if (e.key === "?") setHelpVisible(helpPanel?.hidden);
+      if (e.key === "Escape" && helpPanel && !helpPanel.hidden) {
+        setHelpVisible(false);
+        e.stopImmediatePropagation();
+      }
     });
 
     // --- Debug: number + colour-code every arc for precise bug reports ---
@@ -3502,6 +3564,57 @@ const clientData = {
 
   .vsatlatarium__btn:hover {
     border-color: #4cc9f0;
+  }
+
+  .vsatlatarium__usage {
+    position: absolute;
+    top: 3.1rem;
+    right: 0.75rem;
+    z-index: 20;
+    width: 330px;
+    max-height: calc(100% - 4.5rem);
+    overflow-y: auto;
+    background: rgba(6, 7, 20, 0.96);
+    border: 1px solid #334;
+    border-radius: 0.75rem;
+    color: #c8d6ff;
+    padding: 0.9rem 1.1rem;
+    font-size: 0.8rem;
+    line-height: 1.45;
+  }
+
+  .vsatlatarium__usage h3 {
+    margin: 0.5rem 0 0.15rem;
+    font-size: 0.72rem;
+    color: #e2eaff;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  .vsatlatarium__usage h3:first-child {
+    margin-top: 0;
+  }
+
+  .vsatlatarium__usage ul {
+    margin: 0.2rem 0 0.5rem;
+    padding-left: 1.1rem;
+  }
+
+  .vsatlatarium__usage li {
+    margin: 0.18rem 0;
+  }
+
+  .vsatlatarium__usage kbd {
+    background: #1a2244;
+    border-radius: 0.25rem;
+    padding: 0 0.3rem;
+    font-family: inherit;
+  }
+
+  .vsatlatarium__usage-note {
+    color: #8fa0c8;
+    font-size: 0.75rem;
+    margin: 0.45rem 0 0;
   }
 
   .vsatlatarium__vapor-control {
