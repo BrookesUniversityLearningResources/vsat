@@ -2422,6 +2422,10 @@ const clientData = {
 
       canvas.addEventListener("click", (e) => {
         if (dragTotal > 5) return;
+        // "canvas" is the wrapper div: clicks on real controls layered
+        // over it (toolbar, "?" panel, popovers) are not node picks
+        if (e.target instanceof Element &&
+            e.target.closest("button, a, input, textarea, [contenteditable], .vsatlatarium__usage")) return;
         const hit = findNearest(e.clientX, e.clientY);
         if (!hit) return;
 
@@ -2480,6 +2484,16 @@ const clientData = {
         ".vsat-focus__card-actions button{font:inherit;font-size:0.75rem;padding:0.2rem 0.65rem;border-radius:0.45rem;border:1px solid #3c5976;background:#2c3e50;color:#ecf0f1;cursor:pointer}",
         ".vsat-focus__card-actions button[data-save]{background:#3c5976}",
         ".vsat-focus__card-err{font-size:0.72rem;color:#e74c3c;margin-top:0.3rem}",
+        ".vsat-focus__card-verbs{display:flex;gap:0.35rem;margin-top:0.35rem}",
+        ".vsat-focus__card-verbs button{font:inherit;font-size:0.68rem;padding:0.1rem 0.5rem;border-radius:0.4rem;border:1px solid rgba(150,170,190,0.35);background:transparent;color:#9fb3c8;cursor:pointer}",
+        ".vsat-focus__card-verbs button:hover{border-color:rgba(241,196,15,0.7);color:#ecf0f1}",
+        ".vsat-focus__connect-form{margin-top:0.4rem;display:flex;flex-direction:column;gap:0.35rem}",
+        ".vsat-focus__connect-form input{font:inherit;font-size:0.78rem;padding:0.25rem 0.4rem;border-radius:0.35rem;border:1px solid #3c5976;background:#0d1117;color:#ecf0f1}",
+        ".vsat-focus3d-hint{position:fixed;top:0.9rem;left:50%;transform:translateX(-50%);z-index:10005;background:rgba(18,21,27,0.95);border:1px solid rgba(232,163,61,0.8);color:#ecf0f1;font-size:0.85rem;padding:0.4rem 0.9rem;border-radius:999px;font-family:'Source Sans Pro',system-ui,sans-serif}",
+        // bottom:4rem clears both the Astro dev toolbar (dev mode,
+        // bottom-centre, intercepts clicks) and the Cardboard hint text
+        ".vsat-focus3d-create{position:fixed;bottom:4rem;left:50%;transform:translateX(-50%);z-index:10003;font-family:'Source Sans Pro',system-ui,sans-serif;font-size:0.85rem;padding:0.4rem 1rem;border-radius:999px;border:1px solid #3c5976;background:rgba(18,21,27,0.95);color:#ecf0f1;cursor:pointer}",
+        ".vsat-focus3d-create:hover{border-color:rgba(232,163,61,0.8)}",
       ].join("");
       document.head.appendChild(focusCss);
 
@@ -2715,10 +2729,15 @@ const clientData = {
       // everything else hidden in-scene. Click a card to edit via a
       // centred popover; saves sync back onto the 3D card. This is the
       // VR-capable path (no DOM board).
-      const focus3D = { storyId: null, entities: [], hidden: [], cards: new Map() };
+      const focus3D = { storyId: null, entities: [], hidden: [], cards: new Map(), connect: null, createPill: null, createForm: null };
 
       const exitFocus3D = () => {
         if (!focus3D.storyId) return;
+        cancelConnect3D();
+        focus3D.createPill?.remove();
+        focus3D.createPill = null;
+        focus3D.createForm?.remove();
+        focus3D.createForm = null;
         sceneLabelsPinnedHidden = false;
         cancelAnimationFrame(focus3D.raf);
         if (focus3D.holdPivot) {
@@ -2824,6 +2843,15 @@ const clientData = {
         };
         rafLoop();
 
+        // an unconnected scene (no narrative arc in or out — newly
+        // created ones start life this way) gets a teal frame so it's
+        // easy to spot the cards that still need wiring in
+        const connectedIds = new Set();
+        for (const arc of cluster.internalArcs) {
+          connectedIds.add(arc.from);
+          connectedIds.add(arc.to);
+        }
+
         for (const sn of cluster.scenes) {
           const card = document.createElement("a-entity");
           card.setAttribute("position", sn.position.x + " " + sn.position.y + " " + sn.position.z);
@@ -2842,7 +2870,10 @@ const clientData = {
           frame.setAttribute("width", "2.88");
           frame.setAttribute("height", "1.78");
           frame.setAttribute("position", "0 0 -0.01");
-          frame.setAttribute("material", "color: #3c5976; opacity: 0.9; shader: flat");
+          const baseFrameMaterial = connectedIds.has(sn.id)
+            ? FOCUS3D_FRAME_MATERIAL
+            : FOCUS3D_FRAME_MATERIAL_UNCONNECTED;
+          frame.setAttribute("material", baseFrameMaterial);
 
           const title = cardText(sn.title.toUpperCase() + (sn.isOpening ? "  ·  START" : ""), 0.12, "#9fb3c8", 0.72);
           const heading = cardText(sn.heading, 0.19, "#ecf0f1", 0.52);
@@ -2851,14 +2882,29 @@ const clientData = {
           card.append(frame, backdrop, title, heading, excerpt);
           clusterEl?.appendChild(card) ?? turntable.appendChild(card);
           focus3D.entities.push(card);
-          focus3D.cards.set(sn.sceneId, { card, sn, heading, excerpt, title });
+          focus3D.cards.set(sn.sceneId, { card, sn, heading, excerpt, title, frame, baseFrameMaterial });
         }
+
+        // CREATE (slice 3, verb 2): "+ scene" on the board → title form →
+        // existing createScene API → the new card appears. The scene has
+        // no image yet — hollow as a photosphere, fine as a card.
+        const createPill = document.createElement("button");
+        createPill.type = "button";
+        createPill.className = "vsat-focus3d-create";
+        createPill.textContent = "+ scene";
+        createPill.addEventListener("click", () => openCreateForm3D());
+        document.body.appendChild(createPill);
+        focus3D.createPill = createPill;
       };
 
       // click a floating card (screen-space pick, same idiom as node hover)
       canvas.addEventListener("click", (e) => {
         if (!focus3D.storyId) return;
         if (dragTotal > 5) return; // a drag ending near a card is not a pick
+        // "canvas" is the wrapper div: don't steal clicks that belong to
+        // real controls layered over it (toolbar, "?" panel, popovers)
+        if (e.target instanceof Element &&
+            e.target.closest("button, a, input, textarea, [contenteditable], .vsatlatarium__usage")) return;
         const rect = canvas.getBoundingClientRect();
         const cam = sceneEl.camera;
         let best = null;
@@ -2876,9 +2922,191 @@ const clientData = {
           // capture phase: keep the pick from falling through to the
           // navigate-into-story click handler underneath
           e.stopPropagation();
+          if (focus3D.connect) {
+            if (best.sn.sceneId === focus3D.connect.from.sceneId) cancelConnect3D();
+            else openConnectForm3D(best);
+            return;
+          }
           openFloatingEditor(best);
         }
       }, true);
+
+      // CONNECT (slice 3, verb 1 — GeomView focus board): pick source card
+      // (via its popover's verb) → pick target card → label form; writes an
+      // ordinary [label](target) line into the source scene's draft via the
+      // shared write path. Story-scoped and immediate — NOT an interpretive
+      // proposal. The arc re-derives on republish; we draw it in-scene at
+      // once so the board reflects the connect without a reload.
+      const FOCUS3D_FRAME_MATERIAL = "color: #3c5976; opacity: 0.9; shader: flat";
+      const FOCUS3D_FRAME_MATERIAL_UNCONNECTED = "color: #3fa08f; opacity: 0.9; shader: flat";
+      // same derivation as the server's parseLinkTarget: scene title →
+      // trimmed, whitespace→"-", lowercased
+      const sceneLinkTarget = (t) => t.trim().replace(/\s+/g, "-").toLocaleLowerCase();
+
+      const cancelConnect3D = () => {
+        const st = focus3D.connect;
+        if (!st) return;
+        if (st.srcEntry?.frame) st.srcEntry.frame.setAttribute("material", st.srcEntry.baseFrameMaterial || FOCUS3D_FRAME_MATERIAL);
+        st.hint?.remove();
+        st.form?.remove();
+        focus3D.connect = null;
+      };
+
+      const beginConnect3D = (entry) => {
+        cancelConnect3D();
+        focus3D.connect = { from: entry.sn, srcEntry: entry, hint: null, form: null };
+        entry.frame?.setAttribute("material", "color: #e8a33d; opacity: 0.95; shader: flat");
+        const hint = document.createElement("div");
+        hint.className = "vsat-focus3d-hint";
+        hint.textContent = 'connect: click the target card — a link line lands in "' + entry.sn.title + '" (Esc cancels)';
+        document.body.appendChild(hint);
+        focus3D.connect.hint = hint;
+      };
+
+      const openConnectForm3D = (toEntry) => {
+        const st = focus3D.connect;
+        if (!st || st.form) return;
+        const toSn = toEntry.sn;
+        const panel = document.createElement("div");
+        panel.className = "vsat-focus__card vsat-focus3d-connect";
+        panel.style.cssText = "position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:10004;width:340px;cursor:default";
+        const t = document.createElement("div");
+        t.className = "vsat-focus__card-title";
+        t.textContent = "connect: " + st.from.title + " → " + toSn.title;
+        const form = document.createElement("form");
+        form.className = "vsat-focus__connect-form";
+        const input = document.createElement("input");
+        input.value = toSn.title;
+        input.placeholder = "link label";
+        const err = document.createElement("p");
+        err.className = "vsat-focus__card-err";
+        err.hidden = true;
+        const actions = document.createElement("div");
+        actions.className = "vsat-focus__card-actions";
+        actions.innerHTML = '<button type="button" data-cancel>Cancel</button><button type="submit" data-save>Connect</button>';
+        form.append(input, err, actions);
+        panel.append(t, form);
+        actions.querySelector("[data-cancel]").addEventListener("click", cancelConnect3D);
+        form.addEventListener("submit", async (e) => {
+          e.preventDefault();
+          const label = input.value.trim();
+          if (!label) return;
+          const edit = window.__vsatEdit;
+          if (!edit) { err.textContent = "edit bridge unavailable"; err.hidden = false; return; }
+          actions.querySelector("[data-save]").disabled = true;
+          err.hidden = true;
+          try {
+            const line = "[" + label + "](" + sceneLinkTarget(toSn.title) + ")";
+            await edit.mutateDraftContent(st.from.storyId, st.from.sceneId, (content) =>
+              edit.insertHotspotLine(content, st.from.pageCount - 1, line));
+            const cluster = clientData.clusters.find((c) => String(c.storyId) === focus3D.storyId);
+            if (cluster && !cluster.internalArcs.some((a) => a.from === st.from.id && a.to === toSn.id)) {
+              cluster.internalArcs.push({ from: st.from.id, to: toSn.id });
+              const bow = isPlanetarium ? 0.15 : 1.2;
+              const cp = localArcControlPoint(st.from.position, toSn.position, cluster.center, bow);
+              drawArc(st.from.position, toSn.position, cp, "#fb923c", 0.8, 0.06, "internal", undefined, cluster.storyId);
+            }
+            // both ends are connected now — drop any unconnected teal
+            for (const entry of [st.srcEntry, toEntry]) {
+              if (entry?.frame) {
+                entry.baseFrameMaterial = FOCUS3D_FRAME_MATERIAL;
+                entry.frame.setAttribute("material", FOCUS3D_FRAME_MATERIAL);
+              }
+            }
+            cancelConnect3D();
+          } catch (e2) {
+            err.textContent = String((e2 && e2.message) || e2);
+            err.hidden = false;
+            actions.querySelector("[data-save]").disabled = false;
+          }
+        });
+        document.body.appendChild(panel);
+        st.form = panel;
+        input.focus();
+        input.select();
+      };
+
+      const openCreateForm3D = () => {
+        if (!focus3D.storyId || focus3D.createForm) return;
+        const storyId = focus3D.storyId;
+        const panel = document.createElement("div");
+        panel.className = "vsat-focus__card vsat-focus3d-createform";
+        panel.style.cssText = "position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:10004;width:340px;cursor:default";
+        const t = document.createElement("div");
+        t.className = "vsat-focus__card-title";
+        t.textContent = "new scene";
+        const form = document.createElement("form");
+        form.className = "vsat-focus__connect-form";
+        const input = document.createElement("input");
+        input.placeholder = "scene title";
+        const err = document.createElement("p");
+        err.className = "vsat-focus__card-err";
+        err.hidden = true;
+        const actions = document.createElement("div");
+        actions.className = "vsat-focus__card-actions";
+        actions.innerHTML = '<button type="button" data-cancel>Cancel</button><button type="submit" data-save>Create</button>';
+        form.append(input, err, actions);
+        panel.append(t, form);
+        const close = () => { panel.remove(); focus3D.createForm = null; };
+        actions.querySelector("[data-cancel]").addEventListener("click", close);
+        form.addEventListener("submit", async (e) => {
+          e.preventDefault();
+          const title = input.value.trim();
+          if (!title) return;
+          actions.querySelector("[data-save]").disabled = true;
+          err.hidden = true;
+          try {
+            // createScene ignores a source body today, so the title and a
+            // heading are stamped in follow-up saves before republishing
+            const res = await fetch("/api/story/" + storyId + "/scene", { method: "POST" });
+            if (!res.ok) {
+              throw new Error(res.status === 401 || res.status === 403
+                ? "you need to be signed in as this story's author"
+                : "couldn't create the scene (" + res.status + ")");
+            }
+            const scene = await res.json();
+            const base = "/api/story/" + storyId + "/scene/" + scene.id;
+            const titleRes = await fetch(base + "/title", {
+              method: "PUT", headers: { "content-type": "text/plain" }, body: title });
+            if (!titleRes.ok) throw new Error("scene created, but couldn't set its title (" + titleRes.status + ")");
+            const contentRes = await fetch(base + "/content", {
+              method: "PUT", headers: { "content-type": "text/plain" }, body: "# " + title + "\n" });
+            if (!contentRes.ok) throw new Error("scene created, but couldn't set its content (" + contentRes.status + ")");
+            const pubRes = await fetch("/api/story/" + storyId + "/publish", { method: "POST" });
+            if (!pubRes.ok) throw new Error("scene created, but couldn't republish (" + pubRes.status + ")");
+            // surface the new scene as a card: extend the client-side
+            // cluster (the server's spring layout only knows it after a
+            // reload) and rebuild the focus board
+            const cluster = clientData.clusters.find((c) => String(c.storyId) === storyId);
+            if (cluster) {
+              cluster.scenes.push({
+                id: "story-" + cluster.storyId + "-scene-" + scene.id,
+                sceneId: scene.id,
+                storyId: cluster.storyId,
+                title,
+                isOpening: false,
+                pageCount: 1,
+                heading: title,
+                excerpt: "",
+                position: {
+                  x: cluster.center.x,
+                  y: cluster.center.y + cluster.localRadius * 1.15,
+                  z: cluster.center.z,
+                },
+              });
+            }
+            close();
+            enterFocus3D(storyId);
+          } catch (e2) {
+            err.textContent = String((e2 && e2.message) || e2);
+            err.hidden = false;
+            actions.querySelector("[data-save]").disabled = false;
+          }
+        });
+        document.body.appendChild(panel);
+        focus3D.createForm = panel;
+        input.focus();
+      };
 
       const openFloatingEditor = (entry) => {
         if (document.querySelector(".vsat-focus__card--float")) return;
@@ -2897,7 +3125,20 @@ const clientData = {
         b.className = "vsat-focus__card-body";
         b.setAttribute("data-b", "");
         b.textContent = sn.excerpt || "";
-        panel.append(t, h, b);
+        const verbs = document.createElement("div");
+        verbs.className = "vsat-focus__card-verbs";
+        const connectBtn = document.createElement("button");
+        connectBtn.type = "button";
+        connectBtn.textContent = "⤳ connect";
+        connectBtn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          // dropping the editing class hands the popover to the editor's
+          // MutationObserver below, which syncs the card and removes it
+          panel.classList.remove("vsat-focus__card--editing");
+          beginConnect3D(entry);
+        });
+        verbs.appendChild(connectBtn);
+        panel.append(t, h, b, verbs);
         document.body.appendChild(panel);
         openCardEditor(sn, panel);
         // when the editor chrome goes away (save or cancel), sync the 3D
@@ -2916,6 +3157,9 @@ const clientData = {
       // right-click enters focus on the story under the cursor; right-click
       // on empty space (or Esc) leaves it
       canvas.addEventListener("contextmenu", (e) => {
+        // same wrapper-div caveat as the click pick above
+        if (e.target instanceof Element &&
+            e.target.closest("button, a, input, textarea, [contenteditable], .vsatlatarium__usage")) return;
         const hit = findNearest(e.clientX, e.clientY);
         let storyId = hit ? hit.getAttribute("data-story-id") : null;
         if (!storyId) {
@@ -2949,6 +3193,17 @@ const clientData = {
       });
       window.addEventListener("keydown", (e) => {
         if (e.key === "Escape") {
+          // an open create form or in-flight connect swallows the first
+          // Esc; focus stays up
+          if (focus3D.createForm) {
+            focus3D.createForm.remove();
+            focus3D.createForm = null;
+            return;
+          }
+          if (focus3D.connect && focus3D.connect.from) {
+            cancelConnect3D();
+            return;
+          }
           exitFocus();
           exitFocus3D();
         }
@@ -3154,10 +3409,15 @@ const clientData = {
   import QRCode from "qrcode";
 
   import {
+    insertHotspotLine,
     mutateDraftContent,
     replaceSectionText,
   } from "@components/story/published/placeHotspot";
-  (window as any).__vsatEdit = { mutateDraftContent, replaceSectionText };
+  (window as any).__vsatEdit = {
+    insertHotspotLine,
+    mutateDraftContent,
+    replaceSectionText,
+  };
   (window as any).__vsatQR = QRCode;
 </script>
 
