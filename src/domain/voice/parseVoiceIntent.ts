@@ -13,6 +13,7 @@ export type VoiceIntent =
   | { kind: "remove-link"; transcript: string }
   | { kind: "remove-card"; transcript: string }
   | { kind: "focus"; targetPhrase: string; transcript: string }
+  | { kind: "focus-this"; transcript: string }
   | { kind: "edit-card"; transcript: string }
   | { kind: "done"; transcript: string }
   | { kind: "confirm"; transcript: string }
@@ -47,8 +48,12 @@ const CONNECT =
   /^connect(?:ed|s)? (?:this|the|that|his) (?:card|car|cart) (?:to|with|too|two|2) (.+)$/;
 const REMOVE_LINK = /^remove[sd]? (?:this|the|that) link$/;
 const REMOVE_CARD = /^remove[sd]? (?:this|the|that) (?:card|car|cart)$/;
+// deictic focus MUST be tested before the by-title form: its generic
+// (.+) would happily swallow "this card" as a title phrase
+const FOCUS_THIS =
+  /^(?:focus|focused|look at) (?:on )?(?:this|here)(?: (?:card|car|cart|one))?$/;
 const FOCUS = /^(?:focus|focused|look at|go to|show) (?:on )?(?:the )?(.+)$/;
-const EDIT_CARD = /^edit (?:this|the|that) (?:card|car|cart)$/;
+const EDIT_CARD = /^edit (?:this|the|that)(?: (?:card|car|cart|one))?$/;
 // NB patterns run on normalize()d text, where apostrophes are spaces:
 // "I'm done" → "i m done", "that's it" → "that s it"
 const DONE = /^(?:done|i ?m done|that ?s (?:it|all)|finished?)$/;
@@ -74,6 +79,7 @@ export function parseVoiceIntent(rawTranscript: string): VoiceIntent {
   if (REMOVE_LINK.test(text)) return { kind: "remove-link", transcript };
   if (REMOVE_CARD.test(text)) return { kind: "remove-card", transcript };
   if (EDIT_CARD.test(text)) return { kind: "edit-card", transcript };
+  if (FOCUS_THIS.test(text)) return { kind: "focus-this", transcript };
   const focus = FOCUS.exec(text);
   if (focus) return { kind: "focus", targetPhrase: focus[1].trim(), transcript };
   if (DONE.test(text)) return { kind: "done", transcript };
@@ -215,7 +221,7 @@ export function buildVoicePrompt(sceneTitles: string[]): string {
   const verbs =
     "New card. New card called night market. Connect this card to. " +
     "Remove this link. Remove this card. Edit this card. Done. " +
-    "Focus. Focus on the hall. Confirm. Cancel.";
+    "Focus this card. Focus on the hall. Confirm. Cancel.";
   return sceneTitles.length
     ? `${verbs} ${sceneTitles.join(". ")}.`
     : verbs;

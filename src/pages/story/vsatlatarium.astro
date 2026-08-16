@@ -3855,6 +3855,15 @@ const clientData = {
             setVoiceChip('focused "' + match.title + '" — it is now "this card"', "ok");
             return;
           }
+          case "focus-this": {
+            const entry = deixisEntry();
+            if (!entry) { setVoiceChip("point at a card, then speak", "err"); return; }
+            rotateBoardToEntry(entry);
+            voice.currentCardSceneId = entry.sn.sceneId;
+            voice.currentCardMouse = { ...voice.lastMouse };
+            setVoiceChip('focused "' + entry.sn.title + '" — it is now "this card"', "ok");
+            return;
+          }
           case "edit-card": {
             const entry = deixisEntry();
             if (!entry) { setVoiceChip("point at the card, then speak", "err"); return; }

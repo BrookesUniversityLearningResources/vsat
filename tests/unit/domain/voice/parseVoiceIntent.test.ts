@@ -81,6 +81,17 @@ describe("parseVoiceUtterance", () => {
     );
   });
 
+  it("parses deictic focus and the focus-this/edit-this chain", () => {
+    for (const v of ["focus this card", "focus this", "focus here", "look at this one"]) {
+      assert.equal(parseVoiceIntent(v).kind, "focus-this", v);
+    }
+    assert.equal(parseVoiceIntent("edit this").kind, "edit-card");
+    assert.deepEqual(
+      parseVoiceUtterance("Focus this, edit this.").map((i) => i.kind),
+      ["focus-this", "edit-card"],
+    );
+  });
+
   it("parses focus and its chain with deictic edit", () => {
     const intents = parseVoiceUtterance("Focus hall, edit this card.");
     assert.deepEqual(intents.map((i) => i.kind), ["focus", "edit-card"]);
