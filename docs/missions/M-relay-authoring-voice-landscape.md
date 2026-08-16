@@ -12,6 +12,19 @@ latex-wysiwyg.el` + `~/opt/voice-typing-linux/enhanced-voice-typing.py`
 
 ## The two systems in one paragraph each
 
+**Update 2026-08-16 (later):** voxterm's implementation was located on
+**zone-joe** at `~/code/voxterm/` (server.py 596 lines, index.html 600,
+voxterm.el 273). It is ahead of its README: capture supports BOTH
+hold-to-talk (button or spacebar) and an "Always listening" toggle backed by
+an in-page VAD state machine (ring pre-roll buffer, calibratable threshold —
+a Recalibrate control — and speech/silence hysteresis), i.e. it has already
+converged toward the WYSIWYG loop's continuous-capture model. Server: single
+in-flight transcription lock (whisper is CPU-bound), both small.en and
+large-v3-turbo models on disk, in-position PROMPT biasing + small FIXUPS
+backstop. The degrade-to-silence invariant is enforced in the page as well.
+For WP3 this means the phone-capture page is largely BUILT — the reuse
+question is porting/pointing it at the relay rather than writing capture.
+
 **voxterm** (design + benchmarks): phone browser over an ssh -L tunnel
 (loopback = secure context, mic works without TLS), utterance-chunked WAV
 POSTs to whisper.cpp `small.en` (~550 ms for 6 s speech on CPU; large-v3-turbo
