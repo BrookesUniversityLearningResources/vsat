@@ -3739,6 +3739,10 @@ const clientData = {
           const eased = t * (2 - t);
           turntableQuat.slerpQuaternions(q0, q1, eased);
           applyTransform();
+          // the pivot correction must run in the SAME frame as the quat
+          // change (the enterFocus3D comment: a rAF-only correction lags a
+          // frame and the ball's centre appears to wander — operator QA)
+          focus3D.holdPivot?.();
           if (t < 1) requestAnimationFrame(step);
         };
         requestAnimationFrame(step);
