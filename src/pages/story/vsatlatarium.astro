@@ -3588,6 +3588,7 @@ const clientData = {
         frames: [], recording: false, dictating: null, chip: null,
         lastMouse: { x: 0, y: 0 },
         currentCardSceneId: null, currentCardMouse: { x: 0, y: 0 },
+        hoverSceneId: null, activeHighlightId: null,
       };
       const whisperBase = () =>
         (localStorage.getItem("vsat-whisper-url") || "http://localhost:8081").replace(/\/+$/, "");
@@ -3653,9 +3654,59 @@ const clientData = {
         vrHud.body?.setAttribute("visible", "false");
       };
 
+      // continuous ACTIVATION: the card under the pointer is visibly
+      // marked (gold frame) and is authoritatively "this card" — the
+      // referent is decided and shown BEFORE a command runs, so a
+      // mis-pick is visible instead of inferred afterwards (operator
+      // debugging request)
+      const FOCUS3D_FRAME_ACTIVE = "color: #f1c40f; opacity: 0.95; transparent: true; shader: flat";
+      const setActiveHighlight = (entry) => {
+        if (voice.activeHighlightId !== null) {
+          const prev = focus3D.cards.get(voice.activeHighlightId);
+          if (prev && !(focus3D.connect && focus3D.connect.srcEntry === prev)) {
+            prev.frame.setAttribute("material", prev.baseFrameMaterial);
+          }
+        }
+        voice.activeHighlightId = entry ? entry.sn.sceneId : null;
+        if (entry && !(focus3D.connect && focus3D.connect.srcEntry === entry)) {
+          entry.frame.setAttribute("material", FOCUS3D_FRAME_ACTIVE);
+        }
+      };
+      const pickPointerCard = () => {
+        if (!focus3D.storyId) return null;
+        const rect = canvas.getBoundingClientRect();
+        const cam = sceneEl.camera;
+        let best = null;
+        let bestD = 140;
+        for (const entry of focus3D.cards.values()) {
+          entry.card.object3D.getWorldPosition(_worldPos);
+          _projected.copy(_worldPos).project(cam);
+          if (_projected.z > 1) continue;
+          const sx = rect.left + ((_projected.x + 1) / 2) * rect.width;
+          const sy = rect.top + ((1 - _projected.y) / 2) * rect.height;
+          const d = Math.hypot(voice.lastMouse.x - sx, voice.lastMouse.y - sy);
+          if (d < bestD) { bestD = d; best = entry; }
+        }
+        return best;
+      };
       window.addEventListener("mousemove", (e) => {
         voice.lastMouse.x = e.clientX;
         voice.lastMouse.y = e.clientY;
+        // hover re-claims the referent only on REAL pointer movement —
+        // cards sliding under a stationary pointer (rotation) don't
+        if (!focus3D.storyId) return;
+        const hover = pickPointerCard();
+        const hoverId = hover ? hover.sn.sceneId : null;
+        if (hoverId !== voice.hoverSceneId) {
+          voice.hoverSceneId = hoverId;
+          if (hoverId !== null) {
+            voice.currentCardSceneId = null;
+            setActiveHighlight(hover);
+            console.info('[voice] active card:', hover.sn.title);
+          } else if (voice.currentCardSceneId === null) {
+            setActiveHighlight(null);
+          }
+        }
       });
 
       const focusedCluster = () =>
@@ -3696,40 +3747,19 @@ const clientData = {
       // "this card" = the card nearest the pointer — unless a voice
       // "focus X" set the current card and the pointer hasn't moved
       // since, which is what makes "focus hall, edit this card" chain
+      // "this card" = the visibly active card: hover claim first (set only
+      // by real pointer movement), else the voice-focused card
       const deixisEntry = () => {
         if (!focus3D.storyId) return null;
-        const current = voice.currentCardSceneId !== null
-          ? focus3D.cards.get(voice.currentCardSceneId) ?? null
-          : null;
-        const moved = Math.hypot(
-          voice.lastMouse.x - voice.currentCardMouse.x,
-          voice.lastMouse.y - voice.currentCardMouse.y,
-        ) > 25;
-        // a STATIONARY pointer keeps the focused card — the rotation
-        // itself slides other cards under an unmoving pointer. A
-        // deliberate move onto a DIFFERENT card hands deixis back to the
-        // pointer (a fixed px grace failed on dense boards where the next
-        // card sits within it — operator QA).
-        if (current && !moved) return current;
-        const rect = canvas.getBoundingClientRect();
-        const cam = sceneEl.camera;
-        let best = null;
-        let bestD = 260;
-        for (const entry of focus3D.cards.values()) {
-          entry.card.object3D.getWorldPosition(_worldPos);
-          _projected.copy(_worldPos).project(cam);
-          if (_projected.z > 1) continue;
-          const sx = rect.left + ((_projected.x + 1) / 2) * rect.width;
-          const sy = rect.top + ((1 - _projected.y) / 2) * rect.height;
-          const d = Math.hypot(voice.lastMouse.x - sx, voice.lastMouse.y - sy);
-          if (d < bestD) { bestD = d; best = entry; }
+        if (voice.hoverSceneId !== null) {
+          const entry = focus3D.cards.get(voice.hoverSceneId);
+          if (entry) return entry;
         }
-        if (best && bestD < 140 && best !== current) {
-          voice.currentCardSceneId = null;
-          return best;
+        if (voice.currentCardSceneId !== null) {
+          const entry = focus3D.cards.get(voice.currentCardSceneId);
+          if (entry) return entry;
         }
-        // moved into empty space: the focused card is still the referent
-        return current ?? best;
+        return null;
       };
 
       const armVoice = async () => {
@@ -3869,7 +3899,8 @@ const clientData = {
             if (!entry) { setVoiceChip('"' + match.title + '" has no card on the board', "err"); return; }
             rotateBoardToEntry(entry);
             voice.currentCardSceneId = sn.sceneId;
-            voice.currentCardMouse = { ...voice.lastMouse };
+            voice.hoverSceneId = null;
+            setActiveHighlight(entry);
             setVoiceChip('focused "' + match.title + '" — it is now "this card"', "ok");
             return;
           }
@@ -3878,7 +3909,8 @@ const clientData = {
             if (!entry) { setVoiceChip("point at a card, then speak", "err"); return; }
             rotateBoardToEntry(entry);
             voice.currentCardSceneId = entry.sn.sceneId;
-            voice.currentCardMouse = { ...voice.lastMouse };
+            voice.hoverSceneId = null;
+            setActiveHighlight(entry);
             setVoiceChip('focused "' + entry.sn.title + '" — it is now "this card"', "ok");
             return;
           }
@@ -3963,7 +3995,13 @@ const clientData = {
         if (voice.ctx && voice.ctx.state === "suspended") void voice.ctx.resume().catch(() => undefined);
         voice.recording = true;
         voice.frames = [];
-        setVoiceChip(voice.dictating ? "recording (dictation)…" : "recording…", "rec");
+        const active = voice.dictating ? null : deixisEntry();
+        setVoiceChip(
+          voice.dictating
+            ? "recording (dictation)…"
+            : "recording…" + (active ? ' (this card: "' + active.sn.title + '")' : ""),
+          "rec",
+        );
       });
       window.addEventListener("keyup", async (e) => {
         if (!voice.armed || e.key.toLowerCase() !== "v" || !voice.recording) return;
