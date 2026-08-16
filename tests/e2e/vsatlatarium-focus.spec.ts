@@ -1,4 +1,6 @@
-import { test, expect } from "@playwright/test";
+import { expect, test } from "@playwright/test";
+
+import { enterFocus3D, gotoEligibleStory } from "./vsatlatariumBoard";
 
 // WebGL-heavy page: allow retries (dev-server load makes first paints slow)
 test.describe.configure({ retries: 2 });
@@ -10,20 +12,40 @@ test("right-clicking a story opens its focus board of scene cards", async ({
 }) => {
   await page.goto("/story/vsatlatarium?anthology=1");
   await page.waitForSelector("a-scene", { state: "attached", timeout: 20000 });
-  await page.waitForFunction(() =>
-    document.querySelectorAll(".scene-node").length > 0,
+  await page.waitForFunction(
+    () => document.querySelectorAll(".scene-node").length > 0,
   );
   await page.waitForTimeout(3000);
 
   // right-click a story hub that actually projects inside the canvas
   const pos = await page.evaluate(() => {
-    const scene = document.querySelector("a-scene") as any;
+    type Vector = {
+      x: number;
+      y: number;
+      z: number;
+      clone(): Vector;
+      project(camera: unknown): Vector;
+    };
+    type Node3D = Element & {
+      object3D: { getWorldPosition(vector: Vector): void };
+    };
+    const scene = document.querySelector("a-scene") as unknown as {
+      camera: unknown;
+      canvas: HTMLElement;
+    };
     const rect = scene.canvas.getBoundingClientRect();
-    const v = new (window as any).AFRAME.THREE.Vector3();
-    for (const el of document.querySelectorAll(".scene-node")) {
+    const Vector3 = (
+      window as unknown as {
+        AFRAME: { THREE: { Vector3: new () => Vector } };
+      }
+    ).AFRAME.THREE.Vector3;
+    const v = new Vector3();
+    for (const el of document.querySelectorAll(
+      ".scene-node",
+    ) as NodeListOf<Node3D>) {
       const id = el.getAttribute("data-scene-id") || "";
       if (!id.endsWith("-hub")) continue;
-      (el as any).object3D.getWorldPosition(v);
+      el.object3D.getWorldPosition(v);
       const p = v.clone().project(scene.camera);
       if (p.z > 1 || p.z < 0) continue;
       const x = rect.left + ((p.x + 1) / 2) * rect.width;
@@ -40,12 +62,13 @@ test("right-clicking a story opens its focus board of scene cards", async ({
     return null;
   });
   expect(pos).not.toBeNull();
+  if (!pos) throw new Error("no projectable story hub");
   // retry the right-click: under load the hover index may not be primed yet
   let boardOpen = false;
   for (let attempt = 0; attempt < 3 && !boardOpen; attempt++) {
-    await page.mouse.move(pos!.x, pos!.y);
+    await page.mouse.move(pos.x, pos.y);
     await page.waitForTimeout(300);
-    await page.mouse.click(pos!.x, pos!.y, { button: "right" });
+    await page.mouse.click(pos.x, pos.y, { button: "right" });
     boardOpen = await page
       .waitForSelector(".vsat-focus__card", { timeout: 4000 })
       .then(() => true)
@@ -80,77 +103,25 @@ test("right-clicking a story opens its focus board of scene cards", async ({
 
 // GeomView flavour: the cards live IN the 3D space (a-plane + troika
 // entities), everything else hidden in-scene — the VR-capable path.
-// SKIPPED headless: the right-click → spawn path works consistently in a
-// headed browser (verified interactively via CDP with screenshots) but the
-// screen-space pick doesn't land under headless GeomView; revisit when the
-// planetarium spec suite gets its proper rewrite.
-test.skip("right-click in GeomView spawns floating 3D scene cards", async ({
+test("right-click in GeomView spawns floating 3D scene cards", async ({
   page,
 }) => {
-  await page.goto("/story/vsatlatarium?view=geomview&anthology=1");
-  await page.waitForSelector("a-scene", { state: "attached", timeout: 20000 });
-  await page.waitForFunction(() =>
-    document.querySelectorAll(".scene-node").length > 0,
+  test.setTimeout(120_000);
+  const storyId = await gotoEligibleStory(page);
+  await enterFocus3D(page, storyId, ".focus3d-card");
+
+  const cardSceneIds = await page.$$eval(".focus3d-card", (cards) =>
+    cards.map((card) => card.getAttribute("data-card-scene")),
   );
-  await page.waitForTimeout(3000);
-
-  const pos = await page.evaluate(() => {
-    const scene = document.querySelector("a-scene") as any;
-    const rect = scene.canvas.getBoundingClientRect();
-    const v = new (window as any).AFRAME.THREE.Vector3();
-    for (const el of document.querySelectorAll(".scene-node")) {
-      (el as any).object3D.getWorldPosition(v);
-      const p = v.clone().project(scene.camera);
-      if (p.z > 1 || p.z < 0) continue;
-      const x = rect.left + ((p.x + 1) / 2) * rect.width;
-      const y = rect.top + ((1 - p.y) / 2) * rect.height;
-      if (
-        x > rect.left + 80 &&
-        x < rect.right - 80 &&
-        y > rect.top + 100 &&
-        y < rect.bottom - 80
-      ) {
-        return { x, y };
-      }
-    }
-    return null;
-  });
-  expect(pos).not.toBeNull();
-  let spawned = false;
-  for (let attempt = 0; attempt < 3 && !spawned; attempt++) {
-    await page.mouse.move(pos!.x, pos!.y);
-    await page.waitForTimeout(300);
-    await page.mouse.click(pos!.x, pos!.y, { button: "right" });
-    spawned = await page
-      .waitForSelector(".focus3d-card", { timeout: 4000 })
-      .then(() => true)
-      .catch(() => false);
-  }
-  expect(spawned).toBe(true);
-  expect(await page.locator(".focus3d-card").count()).toBeGreaterThan(0);
-
-  // the cards carry the text now — no graph label may render behind them.
-  // The dolly-in used to trip updateGeomViewLabelMode into re-revealing the
-  // focused cluster's scene labels; resolve effective visibility up the
-  // object3D parent chain (other clusters keep visible="true" under a hidden
-  // parent, so the attribute alone lies).
-  await page.waitForTimeout(1500);
-  const rendered = await page.evaluate(() => {
-    const effVisible = (el: any) => {
-      let o = el.object3D;
-      while (o) {
-        if (!o.visible) return false;
-        o = o.parent;
-      }
-      return true;
-    };
-    const eff = (sel: string) =>
-      [...document.querySelectorAll(sel)].filter(effVisible).length;
-    return { sceneLabels: eff(".scene-label"), storyLabels: eff(".story-label") };
-  });
-  expect(rendered.sceneLabels).toBe(0);
-  expect(rendered.storyLabels).toBe(0);
+  expect(cardSceneIds.length).toBeGreaterThan(0);
+  const storySceneIds = await page.$$eval(
+    `.story-cluster[data-story-id="${storyId}"] .scene-node[data-db-scene-id]`,
+    (nodes) => nodes.map((node) => node.getAttribute("data-db-scene-id")),
+  );
+  expect(cardSceneIds.every((sceneId) => storySceneIds.includes(sceneId))).toBe(
+    true,
+  );
 
   await page.keyboard.press("Escape");
-  expect(await page.locator(".focus3d-card").count()).toBe(0);
+  await expect(page.locator(".focus3d-card")).toHaveCount(0);
 });
