@@ -127,10 +127,21 @@ hallucinates — "rocket" matches rock-it/racket/rocked):
 5. **Dictation-for-edit** ("edit this card" → dictate text) — only after
    1–4 hold up in use.
 
+## Decisions
+
+- **Transcriber (Joe, 2026-08-16): zone-joe, voxterm plumbing, whisper
+  large-v3 for the demo.** Rationale: accuracy — and specifically, the demo
+  stories carry Portuguese scene titles ("Amor em Movimento", the fisica
+  series); small.en is English-only, so TITLE arguments need the
+  multilingual large model. Carry-over caveats from voxterm's measurements:
+  do NOT reuse small.en's `-ac 512` flag with large models (measured: it
+  induces decoder repetition loops on large-v3-turbo), and re-measure
+  utterance latency on zone's hardware — if large lands slow there, PTT
+  masks latency far better than always-listening mode, so default the demo
+  to PTT unless measured fast.
+
 ## Open questions (Joe)
 
-- Where does whisper serve from for VSAT sessions — workstation (new
-  install) or zone-joe (exists; adds a network hop ~nothing vs 550 ms)?
 - Phone mic or workstation mic first? (voxterm supports both already.)
 - "connect this card to TITLE" (one utterance) vs deictic two-step
   ("connect this card" … look at target … "to here")? v1 assumes the
