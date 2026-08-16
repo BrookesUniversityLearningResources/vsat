@@ -140,6 +140,58 @@ hallucinates — "rocket" matches rock-it/racket/rocked):
   masks latency far better than always-listening mode, so default the demo
   to PTT unless measured fast.
 
+## Checkpoint 2026-08-16 — the demo works (live session with Joe)
+
+Slice 1 + a working demo mode shipped the same evening, live-debugged
+with Joe's voice on real content (story 165). "OK, so, yes, the demo
+basically works."
+
+**Shipped (commits):** grammar parser + tests `5cc2de2`; live-transcript
+lessons — comma splitting, decoder-loop dedupe, transliteration folding
+`1c918ca`; demo mode on the GeomView board (Whisper-URL direct, 🎙 arm +
+hold-V PTT, shared apply paths) `ef43b28`; visible dictation into the
+floating editor `487b5c8`; V auto-repeat suppression `0e2da34`;
+session-scoped arming `0542344`; prose loop-collapse `4aa2016`; focus-by-
+title `e631cb0`; deictic focus-this `f0fff98`; pivot-relative rotation
+`5336d41` + in-frame pivot hold `5e6b17e`; visible activation (gold
+frame = "this card") `954a4ac`; arc-hover yields to cards `aeee6d7`.
+Server side: CORS added to voxterm server.py on zone (backup kept).
+
+**Working verb set:** new card (called …) · connect this card to TITLE ·
+focus TITLE · focus this (card) · edit this (card) → visible dictation →
+done/cancel · remove this link/card + confirm/cancel. Latency ~2.2s per
+utterance (large-v3-turbo, ac 512, zone) — conversational with PTT.
+
+**Design findings from live use (all pinned by real transcripts/tests):**
+- Whisper comma-joins short commands and loops trailing sentences; both
+  handled at parse (commands) and append (prose) layers.
+- Slug titles (I-FISICA-III) do NOT survive speech — deixis must exist
+  for every targeting verb; titles are the fallback, not the primary.
+- The referent must be VISIBLE before the command: gold-frame activation
+  replaced all distance heuristics after a live mis-pick ("for debugging
+  it might help if the card was activated when the pointer moved over
+  it" — that instinct became the design).
+- Voice-focus claims the referent for chains ("focus this, edit this");
+  real pointer movement releases it — cards sliding under a stationary
+  pointer must not.
+- Programmatic board rotations need the same in-frame pivot hold as
+  drags (the enterFocus3D comment's warning, confirmed the hard way).
+
+**Known remaining:**
+- VR: the chip/dictation HUD mirror exists (c0a8c2e) but the editor-pop
+  flow in immersive mode is unverified/rough; VR-native PTT (controller
+  trigger or always-listening VAD) undecided. Joe: "we can work in the
+  A-frame for now."
+- Two-step deictic connect ("connect this card … to here") — designed,
+  unbuilt; given the slug finding it is probably how connects should
+  actually be spoken.
+- No e2e for the demo mode yet (the relay slices were designed testable
+  by intent injection; the demo mode bypasses the relay — a spec can
+  drive handleTranscript-equivalent via a test hook, or wait for the
+  relay slices to make injection natural).
+- Relay slices 2-4 (provenance, phone mic, arming for REMOTE steering)
+  remain the invoiced WP3 core; the demo mode is local-session only.
+
 ## Open questions (Joe)
 
 - Phone mic or workstation mic first? (voxterm supports both already.)
