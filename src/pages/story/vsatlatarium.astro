@@ -483,6 +483,10 @@ const { clusters, interArcs } = cached<{
       storyNodePos,
       scenes: sceneNodes,
       internalArcs,
+      // the exact target→sceneId resolution the arcs were derived with,
+      // so client-side verbs (arc REMOVE) can map an arc back to the
+      // content lines that created it
+      linkTargets: [...linkTargetToSceneId.entries()],
     });
   }
 
@@ -823,6 +827,8 @@ const clientData = {
                 <li><strong>⤳ connect</strong> in the popover, then <strong>click a target card</strong> and set the link label — writes a narrative link from the source scene and draws the arc (connections within the story)</li>
                 <li><strong>+ scene</strong> (bottom of the board) — add a new scene to the focused story; it appears as a fresh card, imageless until you add one in the classic editor</li>
                 <li>A <strong>teal frame</strong> marks a card with no narrative connections yet (newly created scenes start this way) — connect it in or out and the frame turns steel blue</li>
+                <li><strong>Hover a narrative arc</strong> — it lights up as the current link, named in a chip at the top with a <strong>Delete</strong> that removes the underlying link line (the arc disappears; inter-story links keep their steward-gated retire flow)</li>
+                <li><strong>− remove</strong> in the popover — delete the scene itself, after a confirmation that counts the narrative arcs going with it</li>
                 <li><kbd>Esc</kbd> — cancel a connect or scene form in progress</li>
               </ul>
             </>
@@ -1628,6 +1634,15 @@ const clientData = {
     const arcDefs = [];
     let currentBlend = 0;
 
+    // Narrative-arc identity: data-arc-uid → { from, to, storyId } node ids,
+    // recorded wherever an internal arc is drawn. This is what lets the
+    // focus board's REMOVE verb map a hovered arc back to the content line
+    // that created it. Scene→hub tether arcs (drawn for unconnected
+    // scenes) have no content line behind them, so they are excluded and
+    // tracked separately for cleanup on scene delete.
+    const internalArcByUid = new Map();
+    const hubArcUidByScene = new Map();
+
     // Debug "Arc IDs" mode: every arc gets a unique sequential number and a
     // distinct colour so a specific arc can be named in a bug report. Built up
     // as arcs are drawn, consumed by the #vsat-toggle-arcids handler below.
@@ -1690,6 +1705,7 @@ const clientData = {
         }
         turntable.appendChild(el);
       }
+      return uid;
     };
 
     // Wait for scene to be loaded, then draw arcs
@@ -1707,7 +1723,12 @@ const clientData = {
           if (!from || !to) continue;
           const internalBow = isPlanetarium ? 0.15 : 1.2;
           const cp = localArcControlPoint(from, to, cluster.center, internalBow);
-          drawArc(from, to, cp, "#fb923c", 0.8, 0.06, "internal", undefined, cluster.storyId);
+          const uid = drawArc(from, to, cp, "#fb923c", 0.8, 0.06, "internal", undefined, cluster.storyId);
+          if (arc.from === cluster.storyNodeId || arc.to === cluster.storyNodeId) {
+            hubArcUidByScene.set(arc.from === cluster.storyNodeId ? arc.to : arc.from, uid);
+          } else {
+            internalArcByUid.set(uid, { from: arc.from, to: arc.to, storyId: String(cluster.storyId) });
+          }
         }
       }
 
@@ -2551,11 +2572,18 @@ const clientData = {
         ".vsat-focus__card-verbs button:hover{border-color:rgba(241,196,15,0.7);color:#ecf0f1}",
         ".vsat-focus__connect-form{margin-top:0.4rem;display:flex;flex-direction:column;gap:0.35rem}",
         ".vsat-focus__connect-form input{font:inherit;font-size:0.78rem;padding:0.25rem 0.4rem;border-radius:0.35rem;border:1px solid #3c5976;background:#0d1117;color:#ecf0f1}",
-        ".vsat-focus3d-hint{position:fixed;top:0.9rem;left:50%;transform:translateX(-50%);z-index:10005;background:rgba(18,21,27,0.95);border:1px solid rgba(232,163,61,0.8);color:#ecf0f1;font-size:0.85rem;padding:0.4rem 0.9rem;border-radius:999px;font-family:'Source Sans Pro',system-ui,sans-serif}",
+        // hint + link chip live INSIDE the canvas wrapper, below its
+        // toolbar — viewport-fixed placement covered the toolbar (QA,
+        // 2026-08-16)
+        ".vsat-focus3d-hint{position:absolute;top:3.1rem;left:50%;transform:translateX(-50%);z-index:15;background:rgba(18,21,27,0.95);border:1px solid rgba(232,163,61,0.8);color:#ecf0f1;font-size:0.85rem;padding:0.4rem 0.9rem;border-radius:999px;font-family:'Source Sans Pro',system-ui,sans-serif;max-width:80%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}",
         // bottom:4rem clears both the Astro dev toolbar (dev mode,
         // bottom-centre, intercepts clicks) and the Cardboard hint text
         ".vsat-focus3d-create{position:fixed;bottom:4rem;left:50%;transform:translateX(-50%);z-index:10003;font-family:'Source Sans Pro',system-ui,sans-serif;font-size:0.85rem;padding:0.4rem 1rem;border-radius:999px;border:1px solid #3c5976;background:rgba(18,21,27,0.95);color:#ecf0f1;cursor:pointer}",
         ".vsat-focus3d-create:hover{border-color:rgba(232,163,61,0.8)}",
+        ".vsat-focus3d-linkchip{position:absolute;z-index:15;display:flex;gap:0.6rem;align-items:center;background:rgba(18,21,27,0.95);border:1px solid rgba(232,163,61,0.8);color:#ecf0f1;font-size:0.85rem;padding:0.35rem 0.7rem;border-radius:999px;font-family:'Source Sans Pro',system-ui,sans-serif;max-width:60%;}",
+        ".vsat-focus3d-linkchip span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}",
+        ".vsat-focus3d-linkchip button{font:inherit;font-size:0.75rem;padding:0.15rem 0.6rem;border-radius:0.45rem;border:1px solid #7a3c3c;background:#3a2020;color:#f0c9c9;cursor:pointer;flex:none}",
+        ".vsat-focus3d-linkchip-err{color:#e74c3c;font-size:0.75rem}",
       ].join("");
       document.head.appendChild(focusCss);
 
@@ -2791,15 +2819,19 @@ const clientData = {
       // everything else hidden in-scene. Click a card to edit via a
       // centred popover; saves sync back onto the 3D card. This is the
       // VR-capable path (no DOM board).
-      const focus3D = { storyId: null, entities: [], hidden: [], cards: new Map(), connect: null, createPill: null, createForm: null };
+      const focus3D = { storyId: null, entities: [], hidden: [], cards: new Map(), connect: null, createPill: null, createForm: null, removeForm: null };
 
       const exitFocus3D = () => {
         if (!focus3D.storyId) return;
         cancelConnect3D();
+        clearCurrentArc();
+        arcCurrent.samples.clear();
         focus3D.createPill?.remove();
         focus3D.createPill = null;
         focus3D.createForm?.remove();
         focus3D.createForm = null;
+        focus3D.removeForm?.remove();
+        focus3D.removeForm = null;
         sceneLabelsPinnedHidden = false;
         cancelAnimationFrame(focus3D.raf);
         if (focus3D.holdPivot) {
@@ -2907,9 +2939,12 @@ const clientData = {
 
         // an unconnected scene (no narrative arc in or out — newly
         // created ones start life this way) gets a teal frame so it's
-        // easy to spot the cards that still need wiring in
+        // easy to spot the cards that still need wiring in. Scene→hub
+        // tether arcs are what the server draws FOR unconnected scenes,
+        // so they don't count as connections.
         const connectedIds = new Set();
         for (const arc of cluster.internalArcs) {
+          if (arc.from === cluster.storyNodeId || arc.to === cluster.storyNodeId) continue;
           connectedIds.add(arc.from);
           connectedIds.add(arc.to);
         }
@@ -3021,7 +3056,7 @@ const clientData = {
         const hint = document.createElement("div");
         hint.className = "vsat-focus3d-hint";
         hint.textContent = 'connect: click the target card — a link line lands in "' + entry.sn.title + '" (Esc cancels)';
-        document.body.appendChild(hint);
+        canvas.appendChild(hint);
         focus3D.connect.hint = hint;
       };
 
@@ -3066,16 +3101,21 @@ const clientData = {
               cluster.internalArcs.push({ from: st.from.id, to: toSn.id });
               const bow = isPlanetarium ? 0.15 : 1.2;
               const cp = localArcControlPoint(st.from.position, toSn.position, cluster.center, bow);
-              drawArc(st.from.position, toSn.position, cp, "#fb923c", 0.8, 0.06, "internal", undefined, cluster.storyId);
+              const uid = drawArc(st.from.position, toSn.position, cp, "#fb923c", 0.8, 0.06, "internal", undefined, cluster.storyId);
+              internalArcByUid.set(uid, { from: st.from.id, to: toSn.id, storyId: String(cluster.storyId) });
             }
-            // both ends are connected now — drop any unconnected teal
-            for (const entry of [st.srcEntry, toEntry]) {
-              if (entry?.frame) {
-                entry.baseFrameMaterial = FOCUS3D_FRAME_MATERIAL;
-                entry.frame.setAttribute("material", FOCUS3D_FRAME_MATERIAL);
+            // a real connection replaces any scene→hub tether visuals
+            if (cluster) {
+              for (const nodeId of [st.from.id, toSn.id]) {
+                const hubUid = hubArcUidByScene.get(nodeId);
+                if (hubUid !== undefined) {
+                  for (const seg of arcSegments(hubUid)) seg.remove();
+                  hubArcUidByScene.delete(nodeId);
+                }
               }
             }
             cancelConnect3D();
+            if (cluster) refreshUnconnectedFrames(cluster);
           } catch (e2) {
             err.textContent = String((e2 && e2.message) || e2);
             err.hidden = false;
@@ -3170,6 +3210,259 @@ const clientData = {
         input.focus();
       };
 
+      // recompute which cards are unconnected (teal) from the cluster's
+      // current arcs — used after connect, arc delete, and scene delete
+      const refreshUnconnectedFrames = (cluster) => {
+        const connected = new Set();
+        for (const a of cluster.internalArcs) {
+          if (a.from === cluster.storyNodeId || a.to === cluster.storyNodeId) continue;
+          connected.add(a.from);
+          connected.add(a.to);
+        }
+        for (const entry of focus3D.cards.values()) {
+          const base = connected.has(entry.sn.id)
+            ? FOCUS3D_FRAME_MATERIAL
+            : FOCUS3D_FRAME_MATERIAL_UNCONNECTED;
+          entry.baseFrameMaterial = base;
+          if (!(focus3D.connect && focus3D.connect.srcEntry === entry)) {
+            entry.frame.setAttribute("material", base);
+          }
+        }
+      };
+
+      // REMOVE (slice 3, verb 3): hovering a narrative arc while focused
+      // marks it as the CURRENT link — a chip names it (source → target,
+      // link labels once the published story loads) with a Delete
+      // affordance, so you see exactly what you're deleting before you
+      // do. Delete strips every link line in the source scene that
+      // resolves to the target scene (the removeLine transform through
+      // the shared write path) and republishes; the arc disappears.
+      // Sticky: the current link persists until another arc is hovered,
+      // Esc, or focus exit. Inter-story arcs keep their steward-gated
+      // RETIRE flow — this touches narrative arcs only.
+      const arcCurrent = { uid: null, chip: null, samples: new Map() };
+
+      const arcSegments = (uid) =>
+        [...turntable.querySelectorAll('.arc-segment[data-arc-uid="' + uid + '"]')];
+
+      const setArcHighlight = (uid, on) => {
+        for (const seg of arcSegments(uid)) {
+          const color = on ? "#ffd27f" : (seg.getAttribute("data-arc-color") || "#fb923c");
+          const opacity = on ? 1 : Number(seg.getAttribute("data-arc-opacity") || 0.8);
+          seg.setAttribute("material", "color: " + color + "; opacity: " + opacity + "; transparent: true; shader: flat");
+        }
+      };
+
+      const clearCurrentArc = () => {
+        if (arcCurrent.uid !== null) setArcHighlight(arcCurrent.uid, false);
+        arcCurrent.uid = null;
+        arcCurrent.chip?.remove();
+        arcCurrent.chip = null;
+      };
+
+      const removeInternalArcClientSide = (uid, meta, cluster) => {
+        for (const seg of arcSegments(uid)) seg.remove();
+        internalArcByUid.delete(uid);
+        arcCurrent.samples.delete(uid);
+        cluster.internalArcs = cluster.internalArcs.filter(
+          (a) => !(a.from === meta.from && a.to === meta.to),
+        );
+        refreshUnconnectedFrames(cluster);
+      };
+
+      const showCurrentArcChip = (uid, atClientX, atClientY) => {
+        const meta = internalArcByUid.get(uid);
+        const cluster = clientData.clusters.find((c) => String(c.storyId) === focus3D.storyId);
+        const fromSn = cluster?.scenes.find((s) => s.id === meta.from);
+        const toSn = cluster?.scenes.find((s) => s.id === meta.to);
+        if (!fromSn || !toSn) return;
+        const chip = document.createElement("div");
+        chip.className = "vsat-focus3d-linkchip";
+        // Delete first, under the pointer: in an edge-dense model,
+        // travelling to a fixed chip position crosses other arcs and the
+        // sticky pick re-targets before you arrive (QA, 2026-08-16). The
+        // annotation runs out to the right.
+        const del = document.createElement("button");
+        del.type = "button";
+        del.textContent = "Delete";
+        const label = document.createElement("span");
+        label.textContent = fromSn.title + " → " + toSn.title;
+        const err = document.createElement("span");
+        err.className = "vsat-focus3d-linkchip-err";
+        chip.append(del, label, err);
+        canvas.appendChild(chip);
+        // position at the pointer (wrapper-relative), clamped to the canvas
+        const rect = canvas.getBoundingClientRect();
+        let left = atClientX - rect.left + 6;
+        let top = atClientY - rect.top + 6;
+        left = Math.max(6, Math.min(left, rect.width - chip.offsetWidth - 6));
+        top = Math.max(6, Math.min(top, rect.height - chip.offsetHeight - 6));
+        chip.style.left = left + "px";
+        chip.style.top = top + "px";
+        arcCurrent.chip = chip;
+
+        // the target scene's link targets, from the server's own
+        // resolution (cluster.linkTargets) — the exact mapping the arc
+        // was derived with. The title-derived target is added on top:
+        // it's what CONNECT writes, and it's the only inbound form a
+        // scene created after page load can have.
+        const targets = new Set(
+          (cluster.linkTargets || [])
+            .filter(([, sid]) => sid === toSn.sceneId)
+            .map(([target]) => target),
+        );
+        targets.add(sceneLinkTarget(toSn.title));
+
+        // name the actual line labels once the source draft loads
+        fetch("/api/story/" + cluster.storyId + "/scene/" + fromSn.sceneId)
+          .then((r) => (r.ok ? r.json() : null))
+          .then((draft) => {
+            if (!draft) return;
+            const labels = [];
+            for (const line of (draft.content || "").split("\n")) {
+              const m = /^\s*\[([^\]]*)\]\(\s*([^)\s@]+)/.exec(line);
+              if (m && targets.has(m[2])) labels.push(m[1]);
+            }
+            if (labels.length) {
+              label.textContent = '"' + labels.join('", "') + '" → ' + toSn.title + " · from " + fromSn.title;
+            }
+          })
+          .catch(() => undefined);
+
+        del.addEventListener("click", async () => {
+          const edit = window.__vsatEdit;
+          if (!edit) { err.textContent = "edit bridge unavailable"; return; }
+          del.disabled = true;
+          err.textContent = "";
+          try {
+            await edit.mutateDraftContent(cluster.storyId, fromSn.sceneId, (content) =>
+              content
+                .split("\n")
+                .filter((line) => {
+                  const m = /^\s*\[[^\]]*\]\(\s*([^)\s@]+)/.exec(line);
+                  return !(m && targets.has(m[1]));
+                })
+                .join("\n"));
+            removeInternalArcClientSide(uid, meta, cluster);
+            clearCurrentArc();
+          } catch (e2) {
+            err.textContent = String((e2 && e2.message) || e2);
+            del.disabled = false;
+          }
+        });
+      };
+
+      const pickCurrentArc = (e) => {
+        if (!focus3D.storyId || focus3D.connect || focus3D.createForm || focus3D.removeForm) return;
+        if (e.target instanceof Element &&
+            e.target.closest("button, a, input, textarea, [contenteditable], .vsat-focus__card, .vsat-focus3d-linkchip")) return;
+        const rect = canvas.getBoundingClientRect();
+        const cam = sceneEl.camera;
+        let best = null;
+        let bestDist = 30;
+        for (const [uid, meta] of internalArcByUid) {
+          if (meta.storyId !== String(focus3D.storyId)) continue;
+          let samples = arcCurrent.samples.get(uid);
+          if (!samples) {
+            samples = arcSegments(uid).filter((_, i) => i % 6 === 0);
+            arcCurrent.samples.set(uid, samples);
+          }
+          for (const seg of samples) {
+            if (!seg.object3D) continue;
+            seg.object3D.getWorldPosition(_worldPos);
+            _projected.copy(_worldPos).project(cam);
+            if (_projected.z > 1) continue;
+            const sx = rect.left + ((_projected.x + 1) / 2) * rect.width;
+            const sy = rect.top + ((1 - _projected.y) / 2) * rect.height;
+            const d = Math.hypot(e.clientX - sx, e.clientY - sy);
+            if (d < bestDist) { bestDist = d; best = uid; }
+          }
+        }
+        if (best !== null && best !== arcCurrent.uid) {
+          clearCurrentArc();
+          arcCurrent.uid = best;
+          setArcHighlight(best, true);
+          showCurrentArcChip(best, e.clientX, e.clientY);
+        }
+      };
+      window.addEventListener("mousemove", pickCurrentArc);
+
+      // REMOVE, scene flavour: the popover's "− remove" verb — deletes the
+      // scene itself after an explicit confirmation that counts the
+      // narrative arcs going with it.
+      const openRemoveSceneForm3D = (entry) => {
+        if (!focus3D.storyId || focus3D.removeForm) return;
+        const sn = entry.sn;
+        const cluster = clientData.clusters.find((c) => String(c.storyId) === focus3D.storyId);
+        if (!cluster) return;
+        const touching = cluster.internalArcs.filter(
+          (a) => a.from === sn.id || a.to === sn.id,
+        ).length;
+        const panel = document.createElement("div");
+        panel.className = "vsat-focus__card vsat-focus3d-removeform";
+        panel.style.cssText = "position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:10004;width:340px;cursor:default";
+        const t = document.createElement("div");
+        t.className = "vsat-focus__card-title";
+        t.textContent = "remove scene";
+        const msg = document.createElement("div");
+        msg.className = "vsat-focus__card-body";
+        msg.textContent =
+          'Delete "' + sn.title + '"' +
+          (touching ? " and its " + touching + " narrative arc" + (touching > 1 ? "s" : "") : "") +
+          "? This cannot be undone.";
+        const err = document.createElement("p");
+        err.className = "vsat-focus__card-err";
+        err.hidden = true;
+        const actions = document.createElement("div");
+        actions.className = "vsat-focus__card-actions";
+        actions.innerHTML = '<button type="button" data-cancel>Cancel</button><button type="button" data-save>Delete</button>';
+        panel.append(t, msg, err, actions);
+        const close = () => { panel.remove(); focus3D.removeForm = null; };
+        actions.querySelector("[data-cancel]").addEventListener("click", close);
+        actions.querySelector("[data-save]").addEventListener("click", async (e) => {
+          e.target.disabled = true;
+          err.hidden = true;
+          try {
+            const res = await fetch("/api/story/" + cluster.storyId + "/scene/" + sn.sceneId, { method: "DELETE" });
+            if (!res.ok) {
+              throw new Error(res.status === 401 || res.status === 403
+                ? "you need to be signed in as this story's author"
+                : "couldn't delete the scene (" + res.status + ")");
+            }
+            const pubRes = await fetch("/api/story/" + cluster.storyId + "/publish", { method: "POST" });
+            if (!pubRes.ok) throw new Error("deleted, but couldn't republish (" + pubRes.status + ")");
+            // client mirror: the scene's arcs (incl. its hub tether),
+            // node (label is a child), card
+            for (const [uid, meta] of [...internalArcByUid]) {
+              if (meta.storyId === String(cluster.storyId) && (meta.from === sn.id || meta.to === sn.id)) {
+                for (const seg of arcSegments(uid)) seg.remove();
+                internalArcByUid.delete(uid);
+                arcCurrent.samples.delete(uid);
+              }
+            }
+            const hubUid = hubArcUidByScene.get(sn.id);
+            if (hubUid !== undefined) {
+              for (const seg of arcSegments(hubUid)) seg.remove();
+              hubArcUidByScene.delete(sn.id);
+            }
+            clearCurrentArc();
+            cluster.internalArcs = cluster.internalArcs.filter(
+              (a) => a.from !== sn.id && a.to !== sn.id,
+            );
+            cluster.scenes = cluster.scenes.filter((s) => s.id !== sn.id);
+            document.querySelector('.scene-node[data-scene-id="' + sn.id + '"]')?.remove();
+            close();
+            enterFocus3D(cluster.storyId);
+          } catch (e2) {
+            err.textContent = String((e2 && e2.message) || e2);
+            err.hidden = false;
+            e.target.disabled = false;
+          }
+        });
+        document.body.appendChild(panel);
+        focus3D.removeForm = panel;
+      };
+
       const openFloatingEditor = (entry) => {
         if (document.querySelector(".vsat-focus__card--float")) return;
         const sn = entry.sn;
@@ -3199,7 +3492,15 @@ const clientData = {
           panel.classList.remove("vsat-focus__card--editing");
           beginConnect3D(entry);
         });
-        verbs.appendChild(connectBtn);
+        const removeBtn = document.createElement("button");
+        removeBtn.type = "button";
+        removeBtn.textContent = "− remove";
+        removeBtn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          panel.classList.remove("vsat-focus__card--editing");
+          openRemoveSceneForm3D(entry);
+        });
+        verbs.append(connectBtn, removeBtn);
         panel.append(t, h, b, verbs);
         document.body.appendChild(panel);
         openCardEditor(sn, panel);
@@ -3255,15 +3556,24 @@ const clientData = {
       });
       window.addEventListener("keydown", (e) => {
         if (e.key === "Escape") {
-          // an open create form or in-flight connect swallows the first
-          // Esc; focus stays up
+          // an open form, in-flight connect, or current-link chip
+          // swallows the first Esc; focus stays up
           if (focus3D.createForm) {
             focus3D.createForm.remove();
             focus3D.createForm = null;
             return;
           }
+          if (focus3D.removeForm) {
+            focus3D.removeForm.remove();
+            focus3D.removeForm = null;
+            return;
+          }
           if (focus3D.connect && focus3D.connect.from) {
             cancelConnect3D();
+            return;
+          }
+          if (arcCurrent.uid !== null) {
+            clearCurrentArc();
             return;
           }
           exitFocus();
