@@ -5,6 +5,7 @@ import {
   buildVoicePrompt,
   matchSceneTitle,
   parseVoiceIntent,
+  parseVoiceUtterance,
 } from "../../../../src/domain/voice/parseVoiceIntent.js";
 
 describe("parseVoiceIntent", () => {
@@ -64,6 +65,42 @@ describe("parseVoiceIntent", () => {
   });
 });
 
+describe("parseVoiceUtterance", () => {
+  it("splits multi-command utterances on sentence boundaries", () => {
+    const intents = parseVoiceUtterance(
+      "New card. Connect this card to Physica 2. Remove this link.",
+    );
+    assert.deepEqual(
+      intents.map((i) => i.kind),
+      ["create", "connect", "remove-link"],
+    );
+  });
+
+  it("splits comma-joined commands (real transcript: 'Confirm, cancel.')", () => {
+    assert.deepEqual(
+      parseVoiceUtterance("Confirm, cancel.").map((i) => i.kind),
+      ["confirm", "cancel"],
+    );
+  });
+
+  it("collapses whisper's decoder-loop repetitions (real transcript, 2026-08-16 demo)", () => {
+    const looped =
+      "New card. New card called Night Market. Connect this card to Physica 2. " +
+      "New card called Night Market. Connect this card to Physica 2. " +
+      "New card called Night Market. Connect this card to Physica 2.";
+    const intents = parseVoiceUtterance(looped);
+    assert.deepEqual(
+      intents.map((i) => i.kind),
+      ["create", "create", "connect"],
+    );
+    assert.equal(intents[1].kind === "create" && intents[1].title, "night market");
+    assert.equal(
+      intents[2].kind === "connect" && intents[2].targetPhrase,
+      "physica 2",
+    );
+  });
+});
+
 describe("matchSceneTitle", () => {
   const titles = ["I-fisica-I", "I-fisica-II", "Amor em Movimento", "This is a place"];
 
@@ -75,6 +112,13 @@ describe("matchSceneTitle", () => {
     assert.deepEqual(matchSceneTitle("this is a place", titles), {
       kind: "match",
       title: "This is a place",
+    });
+  });
+
+  it("folds whisper's spelling of foreign titles (Physica 2 → I-fisica-II)", () => {
+    assert.deepEqual(matchSceneTitle("physica 2", titles), {
+      kind: "match",
+      title: "I-fisica-II",
     });
   });
 

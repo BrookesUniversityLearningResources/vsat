@@ -79,6 +79,39 @@ export function parseVoiceIntent(rawTranscript: string): VoiceIntent {
   };
 }
 
+/**
+ * A spoken turn often carries several commands ("New card. Connect this
+ * card to…") and whisper's decoder can loop, repeating trailing sentences.
+ * Split on sentence boundaries, parse each, and collapse consecutive
+ * duplicate intents (the loop artifact folds away; a human genuinely
+ * repeating a command back-to-back within one utterance is not a case we
+ * need — they can breathe).
+ */
+export function parseVoiceUtterance(rawTranscript: string): VoiceIntent[] {
+  // commas count as boundaries: whisper comma-joins short commands
+  // ("Confirm, cancel." — live demo transcript). Tradeoff: a comma inside
+  // a spoken create-title splits the title; titles survive via re-dictation.
+  const sentences = rawTranscript
+    .split(/[.?!;,]+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+  if (!sentences.length) {
+    return [parseVoiceIntent(rawTranscript)];
+  }
+  // decoder loops repeat exact sentences (observed live: a trailing pair
+  // repeated 3×) — keep each exact sentence's FIRST occurrence. Tradeoff:
+  // deliberately saying the same command twice within ONE utterance is not
+  // supported; say it in a new breath.
+  const seen = new Set<string>();
+  const unique = sentences.filter((s) => {
+    const key = s.toLowerCase();
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+  return unique.map(parseVoiceIntent);
+}
+
 export type TitleMatch =
   | { kind: "match"; title: string }
   | { kind: "ambiguous"; candidates: string[] }
@@ -88,19 +121,40 @@ export type TitleMatch =
  * Resolve a spoken TITLE argument against the focused story's scene titles.
  * Never guesses: ambiguity and no-match are refusals with candidates shown.
  */
+// Whisper spells what it hears ("Physica 2" for "fisica two"): fold
+// transliteration and numeral variants before comparing.
+const NUMERALS: Record<string, string> = {
+  one: "1", um: "1", i: "1",
+  two: "2", to: "2", dois: "2", ii: "2",
+  three: "3", tres: "3", iii: "3",
+  four: "4", quatro: "4", iv: "4",
+  five: "5", cinco: "5", v: "5",
+  six: "6", seis: "6", vi: "6",
+};
+
+const foldForMatch = (text: string): Set<string> =>
+  new Set(
+    normalize(text)
+      .replace(/[-_/]/g, " ")
+      .split(" ")
+      .filter(Boolean)
+      .map((w) => w.replace(/ph/g, "f").replace(/y/g, "i"))
+      .map((w) => NUMERALS[w] ?? w),
+  );
+
 export function matchSceneTitle(
   phrase: string,
   titles: string[],
 ): TitleMatch {
   const p = normalize(phrase);
   if (!p) return { kind: "none" };
+  const pw = foldForMatch(phrase);
 
   const scored = titles.map((title) => {
     const t = normalize(title);
     if (t === p) return { title, score: 1 };
     if (t.includes(p) || p.includes(t)) return { title, score: 0.8 };
-    const tw = new Set(t.split(" "));
-    const pw = new Set(p.split(" "));
+    const tw = foldForMatch(title);
     let common = 0;
     for (const w of pw) if (tw.has(w)) common += 1;
     const union = new Set([...tw, ...pw]).size;
