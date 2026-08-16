@@ -3454,6 +3454,22 @@ const clientData = {
             e.target.closest("button, a, input, textarea, [contenteditable], .vsat-focus__card, .vsat-focus3d-linkchip")) return;
         const rect = canvas.getBoundingClientRect();
         const cam = sceneEl.camera;
+        // cards take precedence over arcs: crossing an arc en route to a
+        // card kept spawning the chip under the pointer, eating the card's
+        // click (operator QA). Arcs pick only in empty space — same 120px
+        // radius as the card click pick — and reaching a card dismisses
+        // the current chip.
+        for (const entry of focus3D.cards.values()) {
+          entry.card.object3D.getWorldPosition(_worldPos);
+          _projected.copy(_worldPos).project(cam);
+          if (_projected.z > 1) continue;
+          const sx = rect.left + ((_projected.x + 1) / 2) * rect.width;
+          const sy = rect.top + ((1 - _projected.y) / 2) * rect.height;
+          if (Math.hypot(e.clientX - sx, e.clientY - sy) < 120) {
+            if (arcCurrent.uid !== null) clearCurrentArc();
+            return;
+          }
+        }
         let best = null;
         let bestDist = 30;
         for (const [uid, meta] of internalArcByUid) {
