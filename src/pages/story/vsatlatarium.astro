@@ -3644,6 +3644,10 @@ const clientData = {
           source.connect(voice.node);
           voice.node.connect(voice.ctx.destination);
           voice.armed = true;
+          // survive reloads within this tab: the FIRST arming is explicit;
+          // QA sessions reload constantly and silently losing armed state
+          // read as "voice doesn't work" three times (operator QA)
+          sessionStorage.setItem("vsat-voice-armed", "1");
           voiceBtn.classList.add("vsatlatarium__btn--active");
           voiceBtn.setAttribute("aria-pressed", "true");
           setVoiceChip("voice armed — hold V and speak: new card (called …) · connect this card to … · remove this link / card · edit this card · done", "info");
@@ -3664,7 +3668,15 @@ const clientData = {
         voiceBtn?.setAttribute("aria-pressed", "false");
         clearVoiceChip();
       };
-      voiceBtn?.addEventListener("click", () => (voice.armed ? disarmVoice() : armVoice()));
+      voiceBtn?.addEventListener("click", () => {
+        if (voice.armed) {
+          sessionStorage.removeItem("vsat-voice-armed");
+          disarmVoice();
+        } else {
+          armVoice();
+        }
+      });
+      if (sessionStorage.getItem("vsat-voice-armed") === "1") armVoice();
 
       const encodeWav = (frames, rate) => {
         let len = 0;
@@ -3818,6 +3830,9 @@ const clientData = {
         // v's (operator QA)
         if (voice.dictating && e.target instanceof Element && e.target.closest(".vsat-focus__card--float")) e.preventDefault();
         if (e.repeat || voice.recording) return;
+        // auto re-armed contexts start suspended (no user gesture yet) —
+        // this keydown IS the gesture
+        if (voice.ctx && voice.ctx.state === "suspended") void voice.ctx.resume().catch(() => undefined);
         voice.recording = true;
         voice.frames = [];
         setVoiceChip(voice.dictating ? "recording (dictation)…" : "recording…", "rec");
