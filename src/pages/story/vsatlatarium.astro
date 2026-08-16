@@ -3800,9 +3800,10 @@ const clientData = {
             setVoiceChip("the editor was closed — dictation ended", "err");
             return;
           }
-          bodyEl.textContent = (bodyEl.innerText || "").replace(/\s*$/, "") + "\n\n" + text;
+          const prose = vox.collapseLoopedSentences(text);
+          bodyEl.textContent = (bodyEl.innerText || "").replace(/\s*$/, "") + "\n\n" + prose;
           bodyEl.scrollTop = bodyEl.scrollHeight;
-          setVoiceChip('“' + text.slice(0, 60) + (text.length > 60 ? "…" : "") + '” → ' + target.sn.title + ' — "done" saves', "ok");
+          setVoiceChip('“' + prose.slice(0, 60) + (prose.length > 60 ? "…" : "") + '” → ' + target.sn.title + ' — "done" saves', "ok");
           return;
         }
         for (const intent of vox.parseVoiceUtterance(text)) {
@@ -4186,6 +4187,7 @@ const clientData = {
   } from "@components/story/published/placeHotspot";
   import {
     buildVoicePrompt,
+    collapseLoopedSentences,
     matchSceneTitle,
     parseVoiceUtterance,
   } from "@domain/voice/parseVoiceIntent";
@@ -4196,6 +4198,7 @@ const clientData = {
   };
   (window as any).__vsatVoice = {
     buildVoicePrompt,
+    collapseLoopedSentences,
     matchSceneTitle,
     parseVoiceUtterance,
   };

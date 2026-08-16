@@ -120,6 +120,25 @@ export function parseVoiceUtterance(rawTranscript: string): VoiceIntent[] {
   return unique.map(parseVoiceIntent);
 }
 
+/**
+ * Collapse whisper's decoder-loop repetitions in DICTATED PROSE: drop
+ * consecutive exact-duplicate sentences (punctuation preserved). Unlike the
+ * command path's first-occurrence dedupe, prose may legitimately repeat a
+ * sentence later — only back-to-back repeats are loop artifacts.
+ */
+export function collapseLoopedSentences(text: string): string {
+  const parts = text.match(/[^.?!;]+[.?!;]*\s*/g);
+  if (!parts) return text.trim();
+  const key = (s: string) => s.trim().toLowerCase().replace(/[.?!;\s]+$/, "");
+  const out: string[] = [];
+  for (const part of parts) {
+    const prev = out[out.length - 1];
+    if (prev !== undefined && key(prev) === key(part)) continue;
+    out.push(part);
+  }
+  return out.join("").trim();
+}
+
 export type TitleMatch =
   | { kind: "match"; title: string }
   | { kind: "ambiguous"; candidates: string[] }

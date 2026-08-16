@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 
 import {
   buildVoicePrompt,
+  collapseLoopedSentences,
   matchSceneTitle,
   parseVoiceIntent,
   parseVoiceUtterance,
@@ -102,6 +103,22 @@ describe("parseVoiceUtterance", () => {
       intents[2].kind === "connect" && intents[2].targetPhrase,
       "physica 2",
     );
+  });
+});
+
+describe("collapseLoopedSentences", () => {
+  it("drops back-to-back duplicates (real dictation transcript, 2026-08-16)", () => {
+    assert.equal(
+      collapseLoopedSentences(
+        "This is where I put my piano music. This is where I put my piano music.",
+      ),
+      "This is where I put my piano music.",
+    );
+  });
+
+  it("keeps deliberate later repeats and ordinary prose", () => {
+    const text = "It rains. The roof sings. It rains.";
+    assert.equal(collapseLoopedSentences(text), text);
   });
 });
 
