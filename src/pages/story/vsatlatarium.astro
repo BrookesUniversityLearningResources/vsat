@@ -3812,8 +3812,12 @@ const clientData = {
         return !!e.target.closest("input, textarea, [contenteditable]");
       };
       window.addEventListener("keydown", (e) => {
-        if (!voice.armed || e.repeat || e.key.toLowerCase() !== "v" || voiceKeyGuard(e)) return;
+        if (!voice.armed || e.key.toLowerCase() !== "v" || voiceKeyGuard(e)) return;
+        // suppress EVERY event including OS auto-repeats — an early return
+        // on e.repeat before this line let key-repeat fill the editor with
+        // v's (operator QA)
         if (voice.dictating && e.target instanceof Element && e.target.closest(".vsat-focus__card--float")) e.preventDefault();
+        if (e.repeat || voice.recording) return;
         voice.recording = true;
         voice.frames = [];
         setVoiceChip(voice.dictating ? "recording (dictation)…" : "recording…", "rec");
