@@ -114,6 +114,10 @@ Remaining work is sensory QA by the operator with real speakers/headphones and
 seeded story audio. Flat-view audio playback remains deliberately deferred;
 the flat renderer provides placement feedback with its visible ♪ marker only.
 
+Follow-on: in the 360° view, hold Shift while the centre-gaze reticle is within
+10° of an audio marker to grab it, look to move the live positional emitter,
+and release Shift to persist its new coordinates; Escape cancels the move.
+
 **Operator QA 2026-08-16 (first sensory pass, passed):** surround toggle in
 the planetarium ("frankly pretty cool" — flagged as the Eric demo); `a`-at-gaze
 placement positional and directional; two-emitter scene (437 of story 165)
@@ -126,4 +130,4 @@ audio without CORS, SILENTLY — an emitter for a URL whose host omits
 (CORS on by default); self-hosted files need the header added server-side
 (done for metameso.org in nginx, 2026-08-16). Polish candidates on file: red/
 hollow ♪ on sound-load error, CORS preflight warning in the placement form,
-move-hotspot-to-gaze key, friendlier not-published redirect (err=4).
+friendlier not-published redirect (err=4).

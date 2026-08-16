@@ -82,6 +82,60 @@ function sectionBounds(
   return { start, end: headings[pageNumber + 1] ?? lines.length };
 }
 
+const audioHotspotLinePattern =
+  /^(\s*!\[(.+)]\s*\([^)]*?\s+@\s*)(-?\d+(?:\.\d+)?)(\s*,\s*)(-?\d+(?:\.\d+)?)(\s*\).*)$/i;
+
+/** Find the first audio-hotspot source line matching a published block. */
+export function findAudioHotspotLine(
+  content: string,
+  pageNumber: number,
+  text: string,
+  x: number,
+  y: number,
+): string | null {
+  const lines = content.split("\n");
+  const bounds = sectionBounds(lines, pageNumber);
+  if (!bounds) return null;
+
+  for (let index = bounds.start + 1; index < bounds.end; index += 1) {
+    const line = lines[index] ?? "";
+    const match = audioHotspotLinePattern.exec(line);
+    if (
+      match?.[2]?.trim() === text &&
+      Number(match[3]) === x &&
+      Number(match[5]) === y
+    ) {
+      return line;
+    }
+  }
+  return null;
+}
+
+/**
+ * Move one exact audio-hotspot source line on one page. Only its coordinate
+ * tokens change; label, source, whitespace, and any trailing text survive.
+ */
+export function moveAudioHotspotLine(
+  content: string,
+  pageNumber: number,
+  originalRawLine: string,
+  newX: number,
+  newY: number,
+): string {
+  const lines = content.split("\n");
+  const bounds = sectionBounds(lines, pageNumber);
+  if (!bounds) return content;
+
+  for (let index = bounds.start + 1; index < bounds.end; index += 1) {
+    if (lines[index] !== originalRawLine) continue;
+    const match = audioHotspotLinePattern.exec(lines[index] ?? "");
+    if (!match) return content;
+    lines[index] = `${match[1]}${newX}${match[4]}${newY}${match[6]}`;
+    return lines.join("\n");
+  }
+  return content;
+}
+
 /**
  * Set (or move) the page's `@panel x,y` placement directive — removes any
  * existing panel line in the section, then inserts the new one at its end.

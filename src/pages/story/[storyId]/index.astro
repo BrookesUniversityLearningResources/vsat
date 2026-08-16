@@ -97,6 +97,7 @@ const linkedStoryCards = Array.from(linkedStories.values()).slice(0, 5);
           <dl>
             <div><dt><kbd>h</kbd></dt><dd>place link hotspot</dd></div>
             <div><dt><kbd>a</kbd></dt><dd>place audio hotspot</dd></div>
+            <div><dt><kbd>⇧</kbd></dt><dd>hold to move audio marker</dd></div>
             <div><dt><kbd>m</kbd></dt><dd>move story panel</dd></div>
             <div><dt><kbd>2</kbd></dt><dd>switch to flat view</dd></div>
           </dl>
@@ -231,8 +232,10 @@ const linkedStoryCards = Array.from(linkedStories.values()).slice(0, 5);
 <script>
   import {
     allTargetsIn,
+    findAudioHotspotLine,
     gazeToImagePercent,
     imagePercentToGaze,
+    moveAudioHotspotLine,
     mutateDraftContent,
     placeAudioHotspot,
     placeHotspot,
@@ -298,12 +301,43 @@ const linkedStoryCards = Array.from(linkedStories.values()).slice(0, 5);
   // same draft-insert → save → republish path.
   function setupGazePlacement() {
     let form: HTMLFormElement | null = null;
+    let audioGrab: {
+      entity: any;
+      frame: number;
+      radius: number;
+      originalPosition: { x: number; y: number; z: number };
+      originalRotation: { x: number; y: number; z: number };
+      originalScale: { x: number; y: number; z: number };
+      storyId: number;
+      sceneId: number;
+      pageNumber: number;
+      text: string;
+      x: number;
+      y: number;
+    } | null = null;
     const inputStyle =
       "font:inherit;color:#ecf0f1;background:#1b2129;border:1px solid #3c5976;border-radius:0.4rem;padding:0.35rem 0.5rem";
     const buttonStyle =
       "font:inherit;padding:0.3rem 0.8rem;border-radius:0.5rem;border:1px solid #3c5976;background:#2c3e50;color:#ecf0f1;cursor:pointer";
 
     window.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && audioGrab) {
+        event.preventDefault();
+        cancelAudioGrab();
+        return;
+      }
+      if (event.key === "Shift" && !event.repeat && !form) {
+        const target = event.target as HTMLElement;
+        if (
+          target?.tagName !== "INPUT" &&
+          target?.tagName !== "TEXTAREA" &&
+          !target?.isContentEditable &&
+          startAudioGrab()
+        ) {
+          event.preventDefault();
+        }
+        return;
+      }
       if (
         (event.key !== "a" && event.key !== "h" && event.key !== "m") ||
         event.metaKey ||
@@ -342,6 +376,178 @@ const linkedStoryCards = Array.from(linkedStories.values()).slice(0, 5);
         upsertPanelLine(content, page.number, x, y),
       ).catch((err: any) => alert(String(err?.message ?? err)));
     });
+
+    window.addEventListener("keyup", (event) => {
+      if (event.key === "Shift" && audioGrab) dropAudioGrab();
+    });
+
+    function cameraRotation(): { x: number; y: number } | null {
+      const camera = document.querySelector("a-camera") as any;
+      return camera?.getAttribute("rotation") ?? null;
+    }
+
+    function direction(yaw: number, pitch: number) {
+      const yawRadians = (yaw * Math.PI) / 180;
+      const pitchRadians = (pitch * Math.PI) / 180;
+      return {
+        x: -Math.sin(yawRadians) * Math.cos(pitchRadians),
+        y: Math.sin(pitchRadians),
+        z: -Math.cos(yawRadians) * Math.cos(pitchRadians),
+      };
+    }
+
+    function angularDistance(
+      first: { yaw: number; pitch: number },
+      second: { yaw: number; pitch: number },
+    ) {
+      const a = direction(first.yaw, first.pitch);
+      const b = direction(second.yaw, second.pitch);
+      const dot = Math.min(1, Math.max(-1, a.x * b.x + a.y * b.y + a.z * b.z));
+      return (Math.acos(dot) * 180) / Math.PI;
+    }
+
+    function startAudioGrab(): boolean {
+      const current = (window as any).current;
+      const story = current?.story;
+      const scene = current?.scene;
+      const page = current?.page;
+      const rotation = cameraRotation();
+      if (!story || !scene || !page || !rotation) return false;
+      if (!story.scenes.some((item: { id: number }) => item.id === scene.id))
+        return false;
+
+      const blocks = page.content.filter(
+        (block: any) => block.kind === "blockAudioHotspot" && block.src,
+      );
+      const entities = [
+        ...document.querySelectorAll("#hotspots [scene-audio-hotspot]"),
+      ] as any[];
+      const gaze = { yaw: rotation.y, pitch: rotation.x };
+      let nearest:
+        | { block: any; entity: any; distance: number }
+        | undefined;
+      blocks.forEach((block: any, index: number) => {
+        const entity = entities[index];
+        if (!entity) return;
+        const distance = angularDistance(
+          gaze,
+          imagePercentToGaze(block.x, block.y),
+        );
+        if (!nearest || distance < nearest.distance) {
+          nearest = { block, entity, distance };
+        }
+      });
+      if (!nearest || nearest.distance > 10) return false;
+
+      const position = nearest.entity.getAttribute("position");
+      const rotationAtStart = nearest.entity.getAttribute("rotation");
+      const scale = nearest.entity.getAttribute("scale");
+      audioGrab = {
+        entity: nearest.entity,
+        frame: 0,
+        radius: Math.hypot(position.x, position.y, position.z),
+        originalPosition: { ...position },
+        originalRotation: { ...rotationAtStart },
+        originalScale: { ...scale },
+        storyId: story.id,
+        sceneId: scene.id,
+        pageNumber: page.number,
+        text: nearest.block.text,
+        x: nearest.block.x,
+        y: nearest.block.y,
+      };
+      document.body.classList.add("audio-hotspot-grab--active");
+      setGrabHint(true);
+      nearest.entity.setAttribute("scale", "1.4 1.4 1.4");
+      followGaze();
+      return true;
+    }
+
+    function followGaze() {
+      if (!audioGrab) return;
+      const rotation = cameraRotation();
+      if (rotation) {
+        const percent = gazeToImagePercent(rotation.y, rotation.x);
+        const gaze = imagePercentToGaze(percent.x, percent.y);
+        const vector = direction(gaze.yaw, gaze.pitch);
+        audioGrab.entity.setAttribute(
+          "position",
+          `${vector.x * audioGrab.radius} ${vector.y * audioGrab.radius} ${vector.z * audioGrab.radius}`,
+        );
+        audioGrab.entity.setAttribute("rotation", `${gaze.pitch} ${gaze.yaw} 0`);
+      }
+      audioGrab.frame = requestAnimationFrame(followGaze);
+    }
+
+    function finishAudioGrab(grab: NonNullable<typeof audioGrab>) {
+      cancelAnimationFrame(grab.frame);
+      grab.entity.setAttribute("scale", grab.originalScale);
+      document.body.classList.remove("audio-hotspot-grab--active");
+      setGrabHint(false);
+      audioGrab = null;
+    }
+
+    function cancelAudioGrab() {
+      if (!audioGrab) return;
+      const grab = audioGrab;
+      grab.entity.setAttribute("position", grab.originalPosition);
+      grab.entity.setAttribute("rotation", grab.originalRotation);
+      finishAudioGrab(grab);
+    }
+
+    function dropAudioGrab() {
+      if (!audioGrab) return;
+      const grab = audioGrab;
+      const rotation = cameraRotation();
+      if (!rotation) {
+        cancelAudioGrab();
+        return;
+      }
+      const { x, y } = gazeToImagePercent(rotation.y, rotation.x);
+      finishAudioGrab(grab);
+      mutateDraftContent(grab.storyId, grab.sceneId, (content) => {
+        const originalRawLine = findAudioHotspotLine(
+          content,
+          grab.pageNumber,
+          grab.text,
+          grab.x,
+          grab.y,
+        );
+        if (!originalRawLine) {
+          throw new Error("couldn't find the audio hotspot in the draft");
+        }
+        return moveAudioHotspotLine(
+          content,
+          grab.pageNumber,
+          originalRawLine,
+          x,
+          y,
+        );
+      })
+        .then(() => location.reload())
+        .catch((err: any) => {
+          grab.entity.setAttribute("position", grab.originalPosition);
+          grab.entity.setAttribute("rotation", grab.originalRotation);
+          alert(String(err?.message ?? err));
+        });
+    }
+
+    function setGrabHint(active: boolean) {
+      const toggle = document.querySelector<HTMLButtonElement>(
+        ".story-key-hint__toggle",
+      );
+      if (!toggle) return;
+      toggle.textContent = active ? "release Shift to drop" : "?";
+      toggle.setAttribute(
+        "aria-label",
+        active ? "Release Shift to drop audio marker" : "360° keyboard controls",
+      );
+      if (active) toggle.setAttribute("aria-expanded", "false");
+      const panel = document.querySelector<HTMLElement>(
+        ".story-key-hint__panel",
+      );
+      if (active && panel) panel.hidden = true;
+    }
 
     function moveFictionTo(x: number, y: number) {
       const fiction = document.getElementById("fiction");
@@ -473,6 +679,7 @@ const linkedStoryCards = Array.from(linkedStories.values()).slice(0, 5);
   const endcap = document.querySelector(".interpretive-endcap");
   let pinnedOpen = false;
   let peekOpen = false;
+  let shiftHeld = false;
 
   const syncOverlay = () => {
     const isOpen = pinnedOpen || peekOpen;
@@ -495,8 +702,16 @@ const linkedStoryCards = Array.from(linkedStories.values()).slice(0, 5);
 
   window.addEventListener("keydown", (event) => {
     if (event.key === "Shift") {
-      peekOpen = true;
-      syncOverlay();
+      shiftHeld = true;
+      requestAnimationFrame(() => {
+        if (
+          shiftHeld &&
+          !document.body.classList.contains("audio-hotspot-grab--active")
+        ) {
+          peekOpen = true;
+          syncOverlay();
+        }
+      });
     }
     if (event.key.toLowerCase?.() === "i") {
       pinnedOpen = !pinnedOpen;
@@ -511,6 +726,7 @@ const linkedStoryCards = Array.from(linkedStories.values()).slice(0, 5);
 
   window.addEventListener("keyup", (event) => {
     if (event.key === "Shift") {
+      shiftHeld = false;
       peekOpen = false;
       syncOverlay();
     }
