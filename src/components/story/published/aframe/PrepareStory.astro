@@ -1,7 +1,6 @@
 ---
-import DOMPurify from "isomorphic-dompurify";
-
 import type { PublishedStory } from "@domain/story/publish/types";
+import DOMPurify from "isomorphic-dompurify";
 
 type Props = {
   story: PublishedStory;
@@ -25,6 +24,7 @@ const serializedStory = DOMPurify.sanitize(
 <script>
   import countLines from "@domain/story/publish/support/countLines";
   import {
+    isAudioHotspotBlock,
     isHeadingBlock,
     isHotspotBlock,
     isLinkBlock,
@@ -39,6 +39,7 @@ const serializedStory = DOMPurify.sanitize(
 
   import changePage from "./changePage";
   import { EVENT_LINK_ACTIVATED } from "./linkActivated";
+  import shouldAttachSceneAudio from "./shouldAttachSceneAudio";
   import { isTitleCardScene, titleCardSceneFor } from "./titleCardSceneFor";
   import type { Current, RenderOptions } from "./types";
 
@@ -73,6 +74,7 @@ const serializedStory = DOMPurify.sanitize(
   const TRAY_WIDTH = 1.0;
 
   const OPACITY = 0.75;
+  const HOTSPOT_RADIUS = 9;
 
   const THEME = Object.freeze({
     color: {
@@ -148,10 +150,19 @@ const serializedStory = DOMPurify.sanitize(
         }
       },
       pointermove: function () {
-        const sound = this.el.components.sound;
-        if (!sound?.isPlaying) {
-          sound?.playSound?.();
+        const audioContext = AFRAME.THREE.AudioContext.getContext();
+        if (audioContext.state === "suspended") {
+          void audioContext.resume().catch(() => undefined);
         }
+
+        [this.el, ...document.querySelectorAll("[scene-audio-hotspot]")]
+          .map((entity) => entity.components?.sound)
+          .filter(Boolean)
+          .forEach((sound) => {
+            if (!sound.isPlaying) {
+              sound.playSound?.();
+            }
+          });
       },
     },
     render: function (current: Current, options: RenderOptions) {
@@ -171,7 +182,7 @@ const serializedStory = DOMPurify.sanitize(
           existingSound.stopSound();
         }
 
-        if (current.scene.audio) {
+        if (shouldAttachSceneAudio(current.scene)) {
           this.el.setAttribute(
             "sound",
             `src: #audio-${current.scene.audio.id}; autoplay: true; positional: false`,
@@ -286,6 +297,9 @@ const serializedStory = DOMPurify.sanitize(
       // viewer uses (via the calibrated equirect mapping).
       const hotspots = document.getElementById("hotspots");
       if (hotspots) {
+        hotspots
+          .querySelectorAll("[scene-audio-hotspot]")
+          .forEach((entity) => entity.components?.sound?.stopSound?.());
         removeAllChildNodes(hotspots);
         if (!isTitleCardScene(current.scene)) {
           current.page.content.filter(isHotspotBlock).forEach((block) => {
@@ -296,6 +310,18 @@ const serializedStory = DOMPurify.sanitize(
             );
             hotspots.appendChild(entity);
           });
+
+          current.page.content
+            .filter(isAudioHotspotBlock)
+            .filter((block) => !!block.src)
+            .forEach((block) => {
+              const entity = document.createElement("a-entity");
+              entity.setAttribute(
+                "scene-audio-hotspot",
+                `src: ${block.src}; x: ${block.x}; y: ${block.y}`,
+              );
+              hotspots.appendChild(entity);
+            });
         }
       }
 
@@ -475,7 +501,6 @@ const serializedStory = DOMPurify.sanitize(
       // percent-of-image → direction → a point on a sphere well inside the
       // sky, facing back at the viewer
       const { yaw, pitch } = imagePercentToGaze(this.data.x, this.data.y);
-      const HOTSPOT_RADIUS = 9;
       const yawRadians = (yaw * Math.PI) / 180;
       const pitchRadians = (pitch * Math.PI) / 180;
       const px = -Math.sin(yawRadians) * Math.cos(pitchRadians) * HOTSPOT_RADIUS;
@@ -525,6 +550,42 @@ const serializedStory = DOMPurify.sanitize(
       click: function () {
         this.el.emit(EVENT_LINK_ACTIVATED, this.data.link);
       },
+    },
+  });
+
+  AFRAME.registerComponent("scene-audio-hotspot", {
+    schema: {
+      src: { type: "string", default: "" },
+      x: { type: "number", default: 50 },
+      y: { type: "number", default: 50 },
+    },
+    init: function () {
+      const { yaw, pitch } = imagePercentToGaze(this.data.x, this.data.y);
+      const yawRadians = (yaw * Math.PI) / 180;
+      const pitchRadians = (pitch * Math.PI) / 180;
+      const px = -Math.sin(yawRadians) * Math.cos(pitchRadians) * HOTSPOT_RADIUS;
+      const py = Math.sin(pitchRadians) * HOTSPOT_RADIUS;
+      const pz = -Math.cos(yawRadians) * Math.cos(pitchRadians) * HOTSPOT_RADIUS;
+      this.el.setAttribute("position", `${px} ${py} ${pz}`);
+      this.el.setAttribute("rotation", `${pitch} ${yaw} 0`);
+      this.el.setAttribute("sound", {
+        src: this.data.src,
+        positional: true,
+        autoplay: true,
+        loop: true,
+        volume: 1,
+        refDistance: 3,
+      });
+
+      const glyph = document.createElement("a-troika-text");
+      glyph.setAttribute("value", "♪");
+      glyph.setAttribute("font-size", "0.45");
+      glyph.setAttribute("color", THEME.color.audio.background);
+      glyph.setAttribute("anchor", "center");
+      glyph.setAttribute("baseline", "center");
+      glyph.setAttribute("outline-width", "0.015");
+      glyph.setAttribute("outline-color", THEME.color.primary.background);
+      this.el.appendChild(glyph);
     },
   });
 
