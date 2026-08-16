@@ -16,6 +16,10 @@ test.describe.configure({ mode: "serial" });
 test("DEV_AUTH_BYPASS=1 opens protected author pages without Magic login", async ({
   page,
 }) => {
+  test.skip(
+    process.env.DEV_AUTH_BYPASS !== "1",
+    "asserts bypass-on; needs a dedicated server run with DEV_AUTH_BYPASS=1",
+  );
   const servers = await startDevServers({ DEV_AUTH_BYPASS: "1" });
 
   try {
@@ -33,6 +37,10 @@ test("DEV_AUTH_BYPASS=1 opens protected author pages without Magic login", async
 test("DEV_AUTH_BYPASS=0 redirects protected author pages to Magic login", async ({
   page,
 }) => {
+  test.skip(
+    process.env.DEV_AUTH_BYPASS !== "0",
+    "asserts bypass-off; needs a dedicated server run with DEV_AUTH_BYPASS=0",
+  );
   const servers = await startDevServers({ DEV_AUTH_BYPASS: "0" });
 
   try {
