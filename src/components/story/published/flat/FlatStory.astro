@@ -1,4 +1,5 @@
 ---
+import type { PublishedStory } from "@domain/story/publish/types.js";
 // The flat (2D-mode) renderer for a published story — a worse-is-better VSAT
 // that needs no 360° camera and no WebGL. It reuses the real published-story
 // data and the existing `changePage` navigation logic; only the rendering is
@@ -17,8 +18,6 @@
 //            (and any remote ?room=) across the swap.
 import DOMPurify from "isomorphic-dompurify";
 
-import type { PublishedStory } from "@domain/story/publish/types.js";
-
 type Props = {
   story: PublishedStory;
   view: "flat" | "poster";
@@ -35,7 +34,7 @@ const serializedStory = DOMPurify.sanitize(
   JSON.stringify({ story })
     .replace(/</g, "\\u003C")
     .replace(/>/g, "\\u003E")
-    .replace(/&/g, "\\u0026")
+    .replace(/&/g, "\\u0026"),
 );
 ---
 
@@ -70,11 +69,16 @@ const serializedStory = DOMPurify.sanitize(
   {
     view === "flat" && (
       <form class="flat-hotspot-form" data-hotspot-form hidden>
+        <fieldset data-placement-kind>
+          <legend>place</legend>
+          <label><input type="radio" name="kind" value="link" checked /> link</label>
+          <label><input type="radio" name="kind" value="audio" /> audio</label>
+        </fieldset>
         <label>
           label
           <input name="label" required autocomplete="off" />
         </label>
-        <label>
+        <label data-link-target>
           goes to
           <input
             name="target"
@@ -84,6 +88,10 @@ const serializedStory = DOMPurify.sanitize(
           />
         </label>
         <datalist id="flat-hotspot-targets" />
+        <label data-audio-source hidden>
+          audio URL <span>(optional; blank uses this scene's audio)</span>
+          <input name="audio-url" type="url" autocomplete="off" />
+        </label>
         <p class="flat-hotspot-form-error" data-form-error hidden />
         <div class="flat-hotspot-form-actions">
           <button type="submit">Place</button>
@@ -128,6 +136,7 @@ const serializedStory = DOMPurify.sanitize(
   import openingPageFor from "@domain/story/publish/support/openingPage";
   import openingSceneFor from "@domain/story/publish/support/openingScene";
   import {
+    isAudioHotspotBlock,
     isHeadingBlock,
     isHotspotBlock,
     isLinkBlock,
@@ -138,6 +147,7 @@ const serializedStory = DOMPurify.sanitize(
     allTargetsIn,
     insertHotspotLine,
     mutateDraftContent,
+    placeAudioHotspot,
     replaceSectionText,
     upsertPanelLine,
   } from "@components/story/published/placeHotspot";
@@ -388,6 +398,21 @@ const serializedStory = DOMPurify.sanitize(
       });
       el.hotspots.appendChild(marker);
     }
+    for (const block of page.content.filter(isAudioHotspotBlock)) {
+      const marker = document.createElement("span");
+      marker.className = "flat-hotspot flat-audio-hotspot";
+      marker.dataset.x = String(block.x);
+      marker.dataset.y = String(block.y);
+      marker.title = block.text;
+      const glyph = document.createElement("span");
+      glyph.className = "flat-audio-hotspot-glyph";
+      glyph.textContent = "♪";
+      const label = document.createElement("span");
+      label.className = "flat-hotspot-label";
+      label.textContent = block.text;
+      marker.append(glyph, label);
+      el.hotspots.appendChild(marker);
+    }
     positionHotspots();
   }
 
@@ -627,10 +652,35 @@ const serializedStory = DOMPurify.sanitize(
     const targetInput = el.form.elements.namedItem(
       "target",
     ) as HTMLInputElement;
+    const audioUrlInput = el.form.elements.namedItem(
+      "audio-url",
+    ) as HTMLInputElement;
+    const linkRadio = el.form.elements.namedItem("kind")[0] as HTMLInputElement;
+    const audioRadio = el.form.elements.namedItem(
+      "kind",
+    )[1] as HTMLInputElement;
+    const kindFields = el.form.querySelector(
+      "[data-placement-kind]",
+    ) as HTMLElement;
+    const linkTarget = el.form.querySelector(
+      "[data-link-target]",
+    ) as HTMLElement;
+    const audioSource = el.form.querySelector(
+      "[data-audio-source]",
+    ) as HTMLElement;
     const submitButton = el.form.querySelector(
       "button[type=submit]",
     ) as HTMLButtonElement;
     let pending = null;
+
+    const syncPlacementKind = () => {
+      const isAudio = pending?.kind === "hotspot" && audioRadio.checked;
+      linkTarget.hidden = isAudio;
+      audioSource.hidden = !isAudio;
+      targetInput.required = !isAudio;
+    };
+    linkRadio.addEventListener("change", syncPlacementKind);
+    audioRadio.addEventListener("change", syncPlacementKind);
 
     openPlacementForm = (newPending, clientX, clientY) => {
       pending = newPending;
@@ -638,9 +688,13 @@ const serializedStory = DOMPurify.sanitize(
       formError.hidden = true;
       // the form floats above everything in viewport space
       el.form.style.left = `${Math.max(8, Math.min(clientX, window.innerWidth - 280))}px`;
-      el.form.style.top = `${Math.max(8, Math.min(clientY + 14, window.innerHeight - 220))}px`;
+      el.form.style.top = `${Math.max(8, Math.min(clientY + 14, window.innerHeight - 330))}px`;
       labelInput.value = "";
       targetInput.value = "";
+      audioUrlInput.value = "";
+      linkRadio.checked = true;
+      kindFields.hidden = newPending.kind === "link";
+      syncPlacementKind();
       labelInput.focus();
     };
 
@@ -678,7 +732,15 @@ const serializedStory = DOMPurify.sanitize(
       if (!pending) return;
       const label = labelInput.value.trim();
       const target = targetInput.value.trim();
-      if (!label || !target) return;
+      const url = audioUrlInput.value.trim();
+      const isAudio = pending.kind === "hotspot" && audioRadio.checked;
+      if (!label || (!isAudio && !target)) return;
+      if (isAudio && !url && !scene.audio) {
+        formError.textContent =
+          "This scene has no audio asset; add one or provide an audio URL.";
+        formError.hidden = false;
+        return;
+      }
       submitButton.disabled = true;
       formError.hidden = true;
       const line =
@@ -686,9 +748,21 @@ const serializedStory = DOMPurify.sanitize(
           ? `[${label}](${target})`
           : `[${label}](${target} @ ${pending.x},${pending.y})`;
       try {
-        await mutateDraftContent(story.id, scene.id, (content) =>
-          insertHotspotLine(content, page.number, line),
-        );
+        if (isAudio) {
+          await placeAudioHotspot({
+            storyId: story.id,
+            sceneId: scene.id,
+            pageNumber: page.number,
+            label,
+            url,
+            x: pending.x,
+            y: pending.y,
+          });
+        } else {
+          await mutateDraftContent(story.id, scene.id, (content) =>
+            insertHotspotLine(content, page.number, line),
+          );
+        }
         location.reload();
       } catch (err) {
         formError.textContent = String(err?.message ?? err);
@@ -896,6 +970,18 @@ const serializedStory = DOMPurify.sanitize(
     0%, 100% { box-shadow: 0 0 0 4px rgba(236, 240, 241, 0.12), 0 2px 10px rgba(0, 0, 0, 0.45); }
     50% { box-shadow: 0 0 0 9px rgba(236, 240, 241, 0.05), 0 2px 10px rgba(0, 0, 0, 0.45); }
   }
+  .flat-audio-hotspot { cursor: default; pointer-events: none; }
+  .flat-audio-hotspot-glyph {
+    display: grid;
+    place-items: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: rgba(7, 156, 15, 0.88);
+    color: #ecf0f1;
+    font-size: 0.95rem;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.45);
+  }
 
   /* hotspot editing */
   .flat--editing .flat-hero { cursor: crosshair; }
@@ -930,6 +1016,15 @@ const serializedStory = DOMPurify.sanitize(
     font-size: 0.88rem;
   }
   .flat-hotspot-form label { display: grid; gap: 0.2rem; color: #9fb3c8; }
+  .flat-hotspot-form fieldset {
+    display: flex;
+    gap: 0.8rem;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    color: #9fb3c8;
+  }
+  .flat-hotspot-form fieldset label { display: flex; align-items: center; gap: 0.25rem; }
   .flat-hotspot-form input {
     font: inherit;
     color: #ecf0f1;

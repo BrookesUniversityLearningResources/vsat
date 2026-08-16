@@ -100,7 +100,9 @@ export function upsertPanelLine(
   }
   const kept = lines.filter(
     (line, index) =>
-      index < bounds.start || index >= bounds.end || !/^\s*@panel\b/i.test(line),
+      index < bounds.start ||
+      index >= bounds.end ||
+      !/^\s*@panel\b/i.test(line),
   );
   return insertHotspotLine(kept.join("\n"), pageNumber, directive);
 }
@@ -128,7 +130,7 @@ export function replaceSectionText(
   const newHeading = anchor ? `# ${heading} | ${anchor}` : `# ${heading}`;
   const keptLines = section
     .slice(1)
-    .filter((line) => /^\s*(\[|@panel\b)/i.test(line));
+    .filter((line) => /^\s*(!?\[|@panel\b)/i.test(line));
   const bodyLines = body
     .split("\n")
     .map((line) => line.replace(/\s+$/, ""))
@@ -140,7 +142,11 @@ export function replaceSectionText(
     ...(keptLines.length ? ["", ...keptLines] : []),
     "",
   ];
-  return [...lines.slice(0, bounds.start), ...rebuilt, ...lines.slice(bounds.end)]
+  return [
+    ...lines.slice(0, bounds.start),
+    ...rebuilt,
+    ...lines.slice(bounds.end),
+  ]
     .join("\n")
     .replace(/\n{3,}/g, "\n\n");
 }
@@ -206,6 +212,27 @@ export async function placeHotspot({
   y,
 }: PlaceHotspotRequest): Promise<void> {
   const line = `[${label}](${target} @ ${x},${y})`;
+  await mutateDraftContent(storyId, sceneId, (content) =>
+    insertHotspotLine(content, pageNumber, line),
+  );
+}
+
+export type PlaceAudioHotspotRequest = Omit<PlaceHotspotRequest, "target"> & {
+  /** Empty means the scene's attached audio asset. */
+  url?: string;
+};
+
+export async function placeAudioHotspot({
+  storyId,
+  sceneId,
+  pageNumber,
+  label,
+  url,
+  x,
+  y,
+}: PlaceAudioHotspotRequest): Promise<void> {
+  const source = url?.trim() || "audio";
+  const line = `![${label}](${source} @ ${x},${y})`;
   await mutateDraftContent(storyId, sceneId, (content) =>
     insertHotspotLine(content, pageNumber, line),
   );
