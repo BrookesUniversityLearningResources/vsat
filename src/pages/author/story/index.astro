@@ -47,6 +47,12 @@ const [publishedStories, unpublishedStories] = groupByPublicationStatus(
 );
 
 const thereIsAtLeastOneStory = isNonEmptyArray(stories.stories);
+
+// Redirects from an unavailable story land here with ?err= (e.g. a link to a
+// story that is not published yet) — explain instead of dumping silently.
+import { ErrorCodes } from "@domain/error/errorCode";
+const errParam = Number(Astro.url.searchParams.get("err"));
+const storyUnavailable = errParam === ErrorCodes.StoryNotFound;
 ---
 
 <Layout
@@ -54,6 +60,13 @@ const thereIsAtLeastOneStory = isNonEmptyArray(stories.stories);
   description={i18n.t("page.stories.meta.description")}
 >
   <main>
+    {storyUnavailable && (
+      <p class="story-unavailable-notice">
+        That story isn't available — it may not be published yet, or the link
+        may be out of date. If it's yours, you can publish it from its editor
+        below.
+      </p>
+    )}
     <StoriesHeader
       author={stories.author}
       translations={translations}
@@ -107,6 +120,15 @@ const thereIsAtLeastOneStory = isNonEmptyArray(stories.stories);
 </Layout>
 
 <style>
+  .story-unavailable-notice {
+    color: var(--color-text);
+    background: color-mix(in srgb, var(--color-text) 8%, transparent);
+    border-left: 3px solid #e8a33d;
+    border-radius: 0.3rem;
+    padding: 0.6rem 0.9rem;
+    margin: 0;
+  }
+
   main {
     display: flex;
     flex-direction: column;
