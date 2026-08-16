@@ -92,6 +92,10 @@ story editor header, read live at render time (no republish needed).
   draft-insert → save → republish path (`placeHotspot.ts`); author-gated.
 - Mission record: `docs/missions/M-authoring-2d.md`.
 
+Positioned story audio and the planetarium surround prototype are documented
+in `docs/missions/M-audio-hotspots.md`, including their markup, placement
+gestures, playback/suppression rules, and operator QA checkpoint.
+
 ## Future directions
 
 - Import flexiarg pattern library as cosmos (pilot-filtered)

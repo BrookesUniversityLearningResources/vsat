@@ -73,6 +73,14 @@ Test each item and mark with ✅ or ❌.
 - [ ] Linear Story shows 3 scenes in a chain
 - [ ] Busted Story handles dangling links gracefully (orphan nodes connect to hub)
 
+## Audio Hotspots
+
+- [ ] Flat `?edit=hotspots` audio mode places a ♪ marker using either the scene audio asset or an explicit URL
+- [ ] Pressing `a` in the 360° view places audio at gaze; `h` still places a link hotspot
+- [ ] A published audio hotspot loops positionally from its marker direction; a hotspot with no resolved source is skipped
+- [ ] Positioning the scene's own audio suppresses the non-positional scene-level bed (no double playback)
+- [ ] Planetarium surround is off by default; enabling it creates directional story emitters and disabling it stops/removes them
+
 ## GeomView Mode (`/story/vsatlatarium?view=geomview`)
 
 - [ ] Turntable rotation works (drag to rotate model)

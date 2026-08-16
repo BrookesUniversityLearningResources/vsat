@@ -79,6 +79,31 @@ const linkedStoryCards = Array.from(linkedStories.values()).slice(0, 5);
       <FlatStory story={story} view={view} layout={layout} />
     )
   }
+  {
+    view === "360" && (
+      <aside class="story-key-hint">
+        <button
+          class="story-key-hint__toggle"
+          type="button"
+          aria-label="360° keyboard controls"
+          aria-expanded="false"
+          aria-controls="story-key-hint-list"
+          title="360° keyboard controls"
+        >
+          ?
+        </button>
+        <div id="story-key-hint-list" class="story-key-hint__panel" hidden>
+          <strong>360° keys</strong>
+          <dl>
+            <div><dt><kbd>h</kbd></dt><dd>place link hotspot</dd></div>
+            <div><dt><kbd>a</kbd></dt><dd>place audio hotspot</dd></div>
+            <div><dt><kbd>m</kbd></dt><dd>move story panel</dd></div>
+            <div><dt><kbd>2</kbd></dt><dd>switch to flat view</dd></div>
+          </dl>
+        </div>
+      </aside>
+    )
+  }
   <button class="interpretive-toggle" type="button" aria-expanded="false">
     Interpretive
   </button>
@@ -219,6 +244,7 @@ const linkedStoryCards = Array.from(linkedStories.values()).slice(0, 5);
   if (!document.querySelector("main.flat")) {
     startHostController();
     setupGazePlacement();
+    setupKeyHint();
 
     // Sneaky hop out of the photosphere: press 2 for the flat view, keeping
     // the current scene/page (and any ?room=). Bare digit because the browser
@@ -242,6 +268,26 @@ const linkedStoryCards = Array.from(linkedStories.values()).slice(0, 5);
       if (current?.page?.number != null)
         params.set("page", String(current.page.number));
       location.href = `${location.pathname}?${params.toString()}`;
+    });
+  }
+
+  function setupKeyHint() {
+    const toggle = document.querySelector<HTMLButtonElement>(
+      ".story-key-hint__toggle",
+    );
+    const panel = document.querySelector<HTMLElement>(
+      ".story-key-hint__panel",
+    );
+    if (!toggle || !panel) return;
+
+    const setOpen = (open: boolean) => {
+      panel.hidden = !open;
+      toggle.setAttribute("aria-expanded", String(open));
+    };
+
+    toggle.addEventListener("click", () => setOpen(panel.hidden));
+    window.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") setOpen(false);
     });
   }
 
@@ -474,6 +520,66 @@ const linkedStoryCards = Array.from(linkedStories.values()).slice(0, 5);
 </script>
 
 <style>
+  .story-key-hint {
+    position: fixed;
+    right: 1rem;
+    bottom: 1rem;
+    z-index: 10002;
+    font-family: "Source Sans Pro", system-ui, sans-serif;
+    color: #d4dbe2;
+    pointer-events: auto;
+  }
+
+  .story-key-hint__toggle {
+    display: block;
+    margin-left: auto;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    padding: 0.12rem 0.5rem;
+    background: #2c3e50;
+    color: #9fb3c8;
+    font: inherit;
+    font-size: 0.68rem;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .story-key-hint__toggle:hover,
+  .story-key-hint__toggle[aria-expanded="true"] {
+    border-color: #3c5976;
+    background: #34495e;
+    color: #d4dbe2;
+  }
+
+  .story-key-hint__panel {
+    margin-bottom: 0.4rem;
+    border: 1px solid #3c5976;
+    border-radius: 0.6rem;
+    padding: 0.55rem 0.7rem;
+    background: rgba(27, 33, 41, 0.95);
+    box-shadow: 0 0.25rem 1rem rgba(0, 0, 0, 0.3);
+    font-size: 0.78rem;
+  }
+
+  .story-key-hint__panel dl {
+    margin: 0.35rem 0 0;
+  }
+
+  .story-key-hint__panel dl > div {
+    display: grid;
+    grid-template-columns: 1.5rem auto;
+    gap: 0.35rem;
+  }
+
+  .story-key-hint__panel dt,
+  .story-key-hint__panel dd {
+    margin: 0;
+  }
+
+  .story-key-hint__panel kbd {
+    color: #fff;
+  }
+
   .interpretive-drawer {
     position: fixed;
     top: 1rem;

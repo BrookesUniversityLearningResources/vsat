@@ -98,7 +98,7 @@ lands, but the full demo consumes both.
 - **Scope out / deferred:** full text-document editing in VR (the
   thought experiment informs the design; we are not building a word
   processor); multi-user simultaneous authoring; SimLab projection;
-  surround audio; link *voting/acceptance* flows in 3D (propose
+  surround audio (**DELIVERED via M-audio-hotspots, invoice 202506 WP4**); link *voting/acceptance* flows in 3D (propose
   only); meta-planetarium.
 - **Completion criteria:**
   1. From the planetarium, a steward-authenticated user creates a
