@@ -3593,6 +3593,49 @@ const clientData = {
         (localStorage.getItem("vsat-whisper-url") || "http://localhost:8081").replace(/\/+$/, "");
       const voiceBtn = document.getElementById("vsat-toggle-voice");
 
+      // In immersive VR the DOM chrome (chip, editor, forms) doesn't
+      // exist — mirror the chip and the dictation body onto head-locked
+      // troika panels. The hidden DOM stays the single source of truth;
+      // voice verbs drive its buttons programmatically either way.
+      const vrHud = { root: null, chip: null, body: null };
+      const ensureVrHud = () => {
+        if (vrHud.root) return;
+        const camEl = document.querySelector("#vsat-cam-rig a-camera");
+        if (!camEl) return;
+        vrHud.root = document.createElement("a-entity");
+        vrHud.root.setAttribute("position", "0 0 -1.3");
+        vrHud.chip = document.createElement("a-entity");
+        vrHud.chip.setAttribute("position", "0 -0.52 0");
+        vrHud.chip.setAttribute("troika-text",
+          "value: ; fontSize: 0.045; color: #ecf0f1; maxWidth: 1.5; anchorX: center; anchorY: middle; outlineWidth: 0.004; outlineColor: #10131b");
+        vrHud.body = document.createElement("a-entity");
+        vrHud.body.setAttribute("position", "0 0.05 0");
+        vrHud.body.setAttribute("troika-text",
+          "value: ; fontSize: 0.05; color: #f5f7fa; maxWidth: 1.2; anchorX: center; anchorY: middle; outlineWidth: 0.004; outlineColor: #10131b");
+        vrHud.body.setAttribute("visible", "false");
+        vrHud.root.append(vrHud.chip, vrHud.body);
+        camEl.appendChild(vrHud.root);
+      };
+      const syncVrHud = () => {
+        if (!sceneEl.is("vr-mode")) return;
+        ensureVrHud();
+        if (!vrHud.root) return;
+        const esc = (s) => String(s).replace(/;/g, ",");
+        vrHud.chip.setAttribute("troika-text", "value", esc(voice.chip?.textContent || ""));
+        const bodyEl = document.querySelector(".vsat-focus__card--float [data-b]");
+        const showBody = !!bodyEl && !!voice.dictating;
+        vrHud.body.setAttribute("visible", showBody);
+        if (showBody) {
+          const t = bodyEl.innerText || "";
+          vrHud.body.setAttribute("troika-text", "value", esc(t.length > 700 ? "…" + t.slice(-700) : t));
+        }
+      };
+      sceneEl.addEventListener("enter-vr", () => { ensureVrHud(); syncVrHud(); });
+      sceneEl.addEventListener("exit-vr", () => {
+        vrHud.chip?.setAttribute("troika-text", "value", "");
+        vrHud.body?.setAttribute("visible", "false");
+      });
+
       const setVoiceChip = (text, state) => {
         if (!voice.chip) {
           voice.chip = document.createElement("div");
@@ -3601,8 +3644,14 @@ const clientData = {
         }
         voice.chip.textContent = text;
         voice.chip.dataset.state = state || "info";
+        syncVrHud();
       };
-      const clearVoiceChip = () => { voice.chip?.remove(); voice.chip = null; };
+      const clearVoiceChip = () => {
+        voice.chip?.remove();
+        voice.chip = null;
+        vrHud.chip?.setAttribute("troika-text", "value", "");
+        vrHud.body?.setAttribute("visible", "false");
+      };
 
       window.addEventListener("mousemove", (e) => {
         voice.lastMouse.x = e.clientX;
@@ -3815,6 +3864,8 @@ const clientData = {
             openFloatingEditor(entry);
             voice.dictating = entry;
             setVoiceChip('editing "' + entry.sn.title + '" — hold V and speak paragraphs; "done" saves, "cancel" discards', "info");
+            // the editor loads the full draft async — re-mirror for VR
+            setTimeout(syncVrHud, 700);
             return;
           }
           case "done": {
