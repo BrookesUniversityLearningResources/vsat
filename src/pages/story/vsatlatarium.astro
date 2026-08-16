@@ -3665,10 +3665,19 @@ const clientData = {
       // verb. Same setFromUnitVectors approach as the planetarium facing
       // fix; a short slerp so the move reads as motion, not a cut.
       const rotateBoardToEntry = (entry) => {
+        // the focused board rotates about the CLUSTER center (holdPivot
+        // keeps that pivot world-fixed) — directions must be pivot-relative,
+        // not origin-relative, or the swing lands anywhere but front
+        const cluster = focusedCluster();
+        if (!cluster) return;
+        const pivot = new THREE.Vector3(cluster.center.x, cluster.center.y, cluster.center.z)
+          .applyQuaternion(turntable.object3D.quaternion)
+          .add(turntable.object3D.position);
         entry.card.object3D.getWorldPosition(_worldPos);
-        if (_worldPos.length() < 1) return; // center card: already facing
-        const from = _worldPos.clone().normalize();
-        const to = new THREE.Vector3(0, 0, 1);
+        const from = _worldPos.clone().sub(pivot);
+        if (from.length() < 0.5) return; // pivot-centred card: nothing to do
+        from.normalize();
+        const to = new THREE.Vector3(0, 0, camZ).sub(pivot).normalize();
         const delta = new THREE.Quaternion().setFromUnitVectors(from, to);
         const q0 = turntableQuat.clone();
         const q1 = turntableQuat.clone().premultiply(delta).normalize();
