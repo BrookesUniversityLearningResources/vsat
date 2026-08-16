@@ -3698,15 +3698,19 @@ const clientData = {
       // since, which is what makes "focus hall, edit this card" chain
       const deixisEntry = () => {
         if (!focus3D.storyId) return null;
-        if (voice.currentCardSceneId !== null) {
-          const moved = Math.hypot(
-            voice.lastMouse.x - voice.currentCardMouse.x,
-            voice.lastMouse.y - voice.currentCardMouse.y,
-          );
-          const entry = focus3D.cards.get(voice.currentCardSceneId);
-          if (entry && moved < 60) return entry;
-          voice.currentCardSceneId = null;
-        }
+        const current = voice.currentCardSceneId !== null
+          ? focus3D.cards.get(voice.currentCardSceneId) ?? null
+          : null;
+        const moved = Math.hypot(
+          voice.lastMouse.x - voice.currentCardMouse.x,
+          voice.lastMouse.y - voice.currentCardMouse.y,
+        ) > 25;
+        // a STATIONARY pointer keeps the focused card — the rotation
+        // itself slides other cards under an unmoving pointer. A
+        // deliberate move onto a DIFFERENT card hands deixis back to the
+        // pointer (a fixed px grace failed on dense boards where the next
+        // card sits within it — operator QA).
+        if (current && !moved) return current;
         const rect = canvas.getBoundingClientRect();
         const cam = sceneEl.camera;
         let best = null;
@@ -3720,7 +3724,12 @@ const clientData = {
           const d = Math.hypot(voice.lastMouse.x - sx, voice.lastMouse.y - sy);
           if (d < bestD) { bestD = d; best = entry; }
         }
-        return best;
+        if (best && bestD < 140 && best !== current) {
+          voice.currentCardSceneId = null;
+          return best;
+        }
+        // moved into empty space: the focused card is still the referent
+        return current ?? best;
       };
 
       const armVoice = async () => {
