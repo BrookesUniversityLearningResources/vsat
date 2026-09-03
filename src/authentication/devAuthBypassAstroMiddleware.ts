@@ -1,5 +1,6 @@
 import type { MiddlewareHandler } from "astro";
 
+import { wantsSignedOutPreview } from "./demoRole.js";
 import type { PersistentUser } from "./types.js";
 
 const isLocalDevHost = (host: string) =>
@@ -24,7 +25,11 @@ const devAuthBypassAstroMiddleware: MiddlewareHandler = async (
     (process.env.DEV_AUTH_BYPASS === "1" ||
       process.env.DEV_AUTH_BYPASS === "true");
 
-  if (!enabled || context.locals.user) {
+  if (
+    !enabled ||
+    context.locals.user ||
+    wantsSignedOutPreview(context.request.headers.get("cookie"))
+  ) {
     return next();
   }
 

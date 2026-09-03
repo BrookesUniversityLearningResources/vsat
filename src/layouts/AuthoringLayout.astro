@@ -1,6 +1,8 @@
 ---
 import "@fontsource/source-sans-pro";
 
+import DemoRoleBar from "@components/demo/DemoRoleBar.astro";
+
 interface Props {
   title?: string;
   description?: string;
@@ -28,6 +30,7 @@ const language = i18n.hasSupportFor(Astro.preferredLocale)
     <link rel="stylesheet" href="/styles/site-authoring.css" />
   </head>
   <body>
+    <DemoRoleBar />
     <slot />
   </body>
 </html>

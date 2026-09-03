@@ -1,4 +1,6 @@
 ---
+import DemoRoleBar from "@components/demo/DemoRoleBar.astro";
+
 interface Props {
   pageName: string;
   title?: string;
@@ -23,6 +25,7 @@ const { i18n } = Astro.locals.environment<App.WithI18N>();
     <link rel="stylesheet" href="/styles/site-public.css" />
   </head>
   <body>
+    <DemoRoleBar />
     <div>
       <slot />
     </div>

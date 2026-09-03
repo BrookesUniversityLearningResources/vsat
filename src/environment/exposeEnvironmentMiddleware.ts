@@ -1,5 +1,6 @@
 import type { MiddlewareHandler } from "astro";
 
+import { wantsSignedOutPreview } from "../authentication/demoRole.js";
 import getEnvironment from "./getEnvironment.js";
 
 /**
@@ -13,14 +14,21 @@ import getEnvironment from "./getEnvironment.js";
  * You'll almost certainly want to put this middleware first (or early) in the
  * midleware chain so that any subsequent middleware can use the environment.
  */
-const exposeEnvironmentMiddleware: MiddlewareHandler = async (context, next) => {
+const exposeEnvironmentMiddleware: MiddlewareHandler = async (
+  context,
+  next,
+) => {
   context.locals.environment = getEnvironment;
 
   const devBypassEnabled =
     process.env.DEV_AUTH_BYPASS === "1" ||
     process.env.DEV_AUTH_BYPASS === "true";
 
-  if (devBypassEnabled && !context.locals.user) {
+  const signedOutPreview = wantsSignedOutPreview(
+    context.request.headers.get("cookie"),
+  );
+
+  if (devBypassEnabled && !signedOutPreview && !context.locals.user) {
     const devEmail = process.env.DEV_AUTH_BYPASS_EMAIL ?? "dev@localhost";
     const devName = process.env.DEV_AUTH_BYPASS_NAME ?? "Dev User";
 

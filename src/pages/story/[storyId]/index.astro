@@ -1,4 +1,5 @@
 ---
+import DemoRoleBar from "@components/demo/DemoRoleBar.astro";
 import ImportAFrameScripts from "@components/story/published/aframe/ImportAFrameScripts.astro";
 import FlatStory from "@components/story/published/flat/FlatStory.astro";
 import PublishedStory from "@components/story/published/PublishedStory.astro";
@@ -72,6 +73,7 @@ const linkedStoryCards = Array.from(linkedStories.values()).slice(0, 5);
   </head>
 </html>
 <body>
+  <DemoRoleBar />
   {
     view === "360" ? (
       <PublishedStory story={story} />

@@ -2,6 +2,7 @@ import type { RequestHandler } from "express";
 import type { Logger } from "pino";
 
 import type { RepositoryAuthor } from "../domain/index.js";
+import { wantsSignedOutPreview } from "./demoRole.js";
 import type { PersistentUser } from "./types.js";
 
 type DevAuthBypassOptions = {
@@ -75,6 +76,10 @@ export default function devAuthBypass(
 
   return (req, _res, next) => {
     if (req.user) {
+      return next();
+    }
+
+    if (wantsSignedOutPreview(req.headers.cookie)) {
       return next();
     }
 
