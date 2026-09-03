@@ -1,6 +1,9 @@
 import type { MiddlewareHandler } from "astro";
 
-import { wantsSignedOutPreview } from "../authentication/demoRole.js";
+import {
+  demoIdentityFor,
+  wantsSignedOutPreview,
+} from "../authentication/demoRole.js";
 import getEnvironment from "./getEnvironment.js";
 
 /**
@@ -29,8 +32,13 @@ const exposeEnvironmentMiddleware: MiddlewareHandler = async (
   );
 
   if (devBypassEnabled && !signedOutPreview && !context.locals.user) {
-    const devEmail = process.env.DEV_AUTH_BYPASS_EMAIL ?? "dev@localhost";
-    const devName = process.env.DEV_AUTH_BYPASS_NAME ?? "Dev User";
+    const { email: devEmail, name: devName } = demoIdentityFor(
+      context.request.headers.get("cookie"),
+      {
+        email: process.env.DEV_AUTH_BYPASS_EMAIL ?? "dev@localhost",
+        name: process.env.DEV_AUTH_BYPASS_NAME ?? "Dev User",
+      },
+    );
 
     try {
       const {

@@ -10,6 +10,7 @@
  */
 
 const DEMO_ANON_COOKIE = "vsat_demo_anon";
+const DEMO_AUTHOR_COOKIE = "vsat_demo_author";
 
 export const demoRoleBarEnabled = (): boolean =>
   process.env.DEMO_ROLE_BAR === "1" || process.env.DEMO_ROLE_BAR === "true";
@@ -39,3 +40,29 @@ export const wantsSignedOutPreview = (
   const value = readCookie(cookieHeader, DEMO_ANON_COOKIE);
   return value === "1" || value === "true";
 };
+
+export type DemoIdentity = { email: string; name: string };
+
+/**
+ * The second demo author. Author 1 is whoever DEV_AUTH_BYPASS_EMAIL names, so
+ * that the existing bypass identity keeps its stories; author 2 is a separate
+ * account with a story list of its own, which is the point — switching between
+ * them shows that authors see different work.
+ */
+export const secondDemoAuthor = (): DemoIdentity => ({
+  email: process.env.DEMO_AUTHOR_2_EMAIL ?? "author2@vsat-dev.local",
+  name: process.env.DEMO_AUTHOR_2_NAME ?? "Author Two",
+});
+
+/** True when this request asked to be the second demo author. */
+export const wantsSecondAuthor = (
+  cookieHeader: string | null | undefined,
+): boolean =>
+  demoRoleBarEnabled() && readCookie(cookieHeader, DEMO_AUTHOR_COOKIE) === "2";
+
+/** The identity the dev bypass should attach for this request. */
+export const demoIdentityFor = (
+  cookieHeader: string | null | undefined,
+  fallback: DemoIdentity,
+): DemoIdentity =>
+  wantsSecondAuthor(cookieHeader) ? secondDemoAuthor() : fallback;

@@ -1,6 +1,6 @@
 import type { MiddlewareHandler } from "astro";
 
-import { wantsSignedOutPreview } from "./demoRole.js";
+import { demoIdentityFor, wantsSignedOutPreview } from "./demoRole.js";
 import type { PersistentUser } from "./types.js";
 
 const isLocalDevHost = (host: string) =>
@@ -9,8 +9,7 @@ const isLocalDevHost = (host: string) =>
   host === "::1" ||
   host.endsWith(".localhost");
 
-let cachedUser: PersistentUser | null = null;
-let inflight: Promise<PersistentUser> | null = null;
+const cache = new Map<string, PersistentUser>();
 
 const devAuthBypassAstroMiddleware: MiddlewareHandler = async (
   context,
@@ -39,49 +38,32 @@ const devAuthBypassAstroMiddleware: MiddlewareHandler = async (
     return next();
   }
 
-  const email = process.env.DEV_AUTH_BYPASS_EMAIL ?? "dev@localhost";
-  const name = process.env.DEV_AUTH_BYPASS_NAME ?? "Dev User";
+  const { email, name } = demoIdentityFor(
+    context.request.headers.get("cookie"),
+    {
+      email: process.env.DEV_AUTH_BYPASS_EMAIL ?? "dev@localhost",
+      name: process.env.DEV_AUTH_BYPASS_NAME ?? "Dev User",
+    },
+  );
 
-  const getOrCreateUser = async () => {
-    if (cachedUser) {
-      return cachedUser;
+  const getOrCreateUser = async (): Promise<PersistentUser> => {
+    const cached = cache.get(email);
+    if (cached) {
+      return cached;
     }
 
-    if (inflight) {
-      return inflight;
-    }
+    const existing = await repositoryAuthor.getAuthorByEmail(email);
+    const author =
+      existing ?? (await repositoryAuthor.createAuthor({ name, email }));
 
-    inflight = (async () => {
-      const existing = await repositoryAuthor.getAuthorByEmail(email);
+    const user: PersistentUser = {
+      id: author.id,
+      name: author.name,
+      email: author.email,
+    };
 
-      if (existing) {
-        cachedUser = {
-          id: existing.id,
-          name: existing.name,
-          email: existing.email,
-        };
-        return cachedUser;
-      }
-
-      const created = await repositoryAuthor.createAuthor({
-        name,
-        email,
-      });
-
-      cachedUser = {
-        id: created.id,
-        name: created.name,
-        email: created.email,
-      };
-
-      return cachedUser;
-    })();
-
-    try {
-      return await inflight;
-    } finally {
-      inflight = null;
-    }
+    cache.set(email, user);
+    return user;
   };
 
   context.locals.user = await getOrCreateUser();
