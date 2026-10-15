@@ -9,6 +9,7 @@ import type {
   SaveAuthorDefaultStoryModeInDatabase,
   SaveAuthorNameInDatabase,
   SaveSceneContentInDatabase,
+  SaveSceneModeInDatabase,
   SaveSceneTitleInDatabase,
   SaveStoryModeInDatabase,
   SaveStoryTitleInDatabase,
@@ -62,6 +63,8 @@ export type Scene = WithId & {
   isOpeningScene: boolean;
   image?: Image | null;
   audio?: Audio | null;
+  // null (or absent) follows the story's mode
+  mode?: StoryMode | null;
 };
 
 export type Story = WithId & {
@@ -449,4 +452,5 @@ export type RepositoryScene = Readonly<{
   saveSceneAudio: SaveSceneAudio;
   deleteSceneAudio: DeleteSceneAudio;
   saveSceneTitle: SaveSceneTitleInDatabase;
+  saveSceneMode: SaveSceneModeInDatabase;
 }>;

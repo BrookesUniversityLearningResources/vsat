@@ -1,10 +1,12 @@
 import type { Audio, Image, PersistentScene } from "../../index.js";
+import type { StoryMode } from "../publish/types.js";
 
 export type SceneWithAudioAndImageRow = {
   sceneId: number;
   sceneTitle: string;
   sceneContent: string;
   isOpeningScene: boolean;
+  sceneMode: StoryMode | null;
   audioId: number | null;
   audioUrl: string | null;
   imageId: number | null;
@@ -18,6 +20,7 @@ export function mapScene(row: SceneWithAudioAndImageRow): PersistentScene {
     title: row.sceneTitle,
     content: row.sceneContent,
     isOpeningScene: row.isOpeningScene,
+    mode: row.sceneMode,
     image: toImage(row),
     audio: toAudio(row),
   };

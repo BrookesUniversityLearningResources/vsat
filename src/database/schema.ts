@@ -132,6 +132,16 @@ export type SaveStoryModeInDatabase = (
   request: SaveStoryModeInDatabaseRequest,
 ) => Promise<PersistentStory>;
 
+type SaveSceneModeInDatabaseRequest = {
+  storyId: StoryDto["id"];
+  sceneId: SceneDto["id"];
+  mode: StoryMode | null;
+};
+
+export type SaveSceneModeInDatabase = (
+  request: SaveSceneModeInDatabaseRequest,
+) => Promise<PersistentScene>;
+
 type SaveSceneTitleInDatabaseRequest = {
   storyId: StoryDto["id"];
   sceneId: SceneDto["id"];
@@ -262,6 +272,8 @@ export interface TableScene {
   storyId: number;
   imageId: number | null;
   audioId: number | null;
+  // null follows the story's mode; set when the author pins this scene
+  mode: Generated<StoryMode | null>;
 }
 
 export type SceneDto = Selectable<TableScene>;

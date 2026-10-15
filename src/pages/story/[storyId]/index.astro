@@ -4,6 +4,8 @@ import ImportAFrameScripts from "@components/story/published/aframe/ImportAFrame
 import FlatStory from "@components/story/published/flat/FlatStory.astro";
 import PublishedStory from "@components/story/published/PublishedStory.astro";
 import { ErrorCodes } from "@domain/error/errorCode";
+import { modeForScene } from "@components/story/published/sceneView";
+import openingSceneFor from "@domain/story/publish/support/openingScene";
 import toStoryId from "@domain/story/toStoryId";
 
 const storyId = toStoryId(Astro.params.storyId);
@@ -22,18 +24,25 @@ if (!story) {
   return Astro.redirect(`/author/story?err=${ErrorCodes.StoryNotFound}`);
 }
 
-// How to present the scenes: ?view= overrides, otherwise the story's
-// persisted mode picks the default. "flat" and "poster" render without the
-// photosphere; "poster" hangs the flat photo in A-Frame space.
+// How to present the scenes is the author's call, not the reader's: the
+// scene being opened (?scene=, else the opening scene) uses its own pinned
+// mode, else the story's. Mixed stories hop between viewers as the reader
+// moves (sceneView.ts). ?view= remains as an author/demo URL override.
+// "flat" and "poster" render without the photosphere; "poster" hangs the
+// flat photo in A-Frame space.
 const requestedView = Astro.url.searchParams.get("view");
+const requestedSceneId = Number(Astro.url.searchParams.get("scene"));
+const firstScene =
+  story.scenes.find((scene) => scene.id === requestedSceneId) ??
+  openingSceneFor(story);
 const view =
-  requestedView === "flat" || requestedView === "poster"
+  requestedView === "flat" ||
+  requestedView === "poster" ||
+  requestedView === "360"
     ? requestedView
-    : requestedView === "360"
-      ? "360"
-      : story.mode === "2d"
-        ? "flat"
-        : "360";
+    : modeForScene(story, firstScene) === "2d"
+      ? "flat"
+      : "360";
 const layout =
   Astro.url.searchParams.get("layout") === "doc" ? "doc" : "overlay";
 
@@ -85,13 +94,6 @@ const linkedStoryCards = Array.from(linkedStories.values()).slice(0, 5);
     view === "360" && (
       <aside class="story-key-hint">
         <button
-          class="story-key-hint__flat"
-          type="button"
-          title="Show this page as a flat photo (key: 2)"
-        >
-          3D → 2D
-        </button>
-        <button
           class="story-key-hint__toggle"
           type="button"
           aria-label="360° keyboard controls"
@@ -108,7 +110,6 @@ const linkedStoryCards = Array.from(linkedStories.values()).slice(0, 5);
             <div><dt><kbd>a</kbd></dt><dd>place audio hotspot</dd></div>
             <div><dt><kbd>⇧</kbd></dt><dd>hold to move audio marker</dd></div>
             <div><dt><kbd>m</kbd></dt><dd>move story panel</dd></div>
-            <div><dt><kbd>2</kbd></dt><dd>switch to flat view</dd></div>
           </dl>
         </div>
       </aside>
@@ -259,36 +260,6 @@ const linkedStoryCards = Array.from(linkedStories.values()).slice(0, 5);
     startHostController();
     setupGazePlacement();
     setupKeyHint();
-
-    // Sneaky hop out of the photosphere: press 2 for the flat view, keeping
-    // the current scene/page (and any ?room=). Bare digit because the browser
-    // reserves Ctrl+digit for tab switching, but Ctrl is tolerated for
-    // single-tab (kiosk/VR) contexts where it does get through.
-    const toFlat = () => {
-      const params = new URLSearchParams(location.search);
-      params.set("view", "flat");
-      const current = (window as any).current;
-      if (current?.scene?.id) params.set("scene", String(current.scene.id));
-      if (current?.page?.number != null)
-        params.set("page", String(current.page.number));
-      location.href = `${location.pathname}?${params.toString()}`;
-    };
-    document
-      .querySelector(".story-key-hint__flat")
-      ?.addEventListener("click", toFlat);
-    window.addEventListener("keydown", (e) => {
-      if (e.key !== "2" || e.metaKey || e.altKey) return;
-      const target = e.target as HTMLElement;
-      if (
-        target?.tagName === "INPUT" ||
-        target?.tagName === "TEXTAREA" ||
-        target?.isContentEditable
-      ) {
-        return;
-      }
-      e.preventDefault();
-      toFlat();
-    });
   }
 
   function setupKeyHint() {
@@ -805,26 +776,6 @@ const linkedStoryCards = Array.from(linkedStories.values()).slice(0, 5);
     font-family: "Source Sans Pro", system-ui, sans-serif;
     color: #d4dbe2;
     pointer-events: auto;
-  }
-
-  /* sits left of A-Frame's fullscreen/VR button in the corner */
-  .story-key-hint__flat {
-    position: fixed;
-    right: 6rem;
-    bottom: 1.4rem;
-    border: 1px solid #3c5976;
-    border-radius: 999px;
-    padding: 0.3rem 0.7rem;
-    background: rgba(27, 33, 41, 0.9);
-    color: #ecf0f1;
-    font: inherit;
-    font-size: 0.8rem;
-    font-weight: 700;
-    cursor: pointer;
-  }
-
-  .story-key-hint__flat:hover {
-    background: #34495e;
   }
 
   .story-key-hint__toggle {

@@ -78,6 +78,8 @@ const StoryHeader: FC<StoryHeaderProps> = ({
     onError: feedback.notify.error,
     onSuccess: (saved) => {
       setMode(saved.mode ?? "360");
+      // scenes that follow the story show the new mode as theirs
+      onStoryChanged({ kind: "storyModeChanged", story: saved });
     },
   });
 

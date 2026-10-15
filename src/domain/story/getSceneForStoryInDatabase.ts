@@ -18,6 +18,7 @@ function getSceneForStoryInDatabase(log: Logger, db: GetDatabase): GetScene {
         "scene.title as sceneTitle",
         "scene.content as sceneContent",
         "scene.isOpeningScene as isOpeningScene",
+        "scene.mode as sceneMode",
         // audio
         "audio.id as audioId",
         "audio.url as audioUrl",

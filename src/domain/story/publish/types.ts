@@ -14,9 +14,11 @@ import type {
  * * `"360"` — equirectangular photospheres on an `<a-sky>` (the classic VSAT)
  * * `"2d"` — flat photos rendered without WebGL
  *
- * The mode lives on the `story` row and is read live at render time (not
- * snapshotted into `story_published`), so toggling it affects the published
- * view immediately.
+ * The mode lives on the `story` row, and a scene can pin its own on the
+ * `scene` row (null = follow the story). Both are read live at render time
+ * (not snapshotted into `story_published`), so toggling either affects the
+ * published view immediately. Authors without a 360° camera get "2d" as
+ * the default for new stories (`author.default_story_mode`).
  */
 export type StoryMode = "360" | "2d";
 
@@ -33,7 +35,11 @@ export type PublishedStory = Readonly<
 
 export type PublishedScene = Readonly<
   Prettify<
-    Omit<PersistentScene, "content" | "image" | "audio"> & {
+    Omit<PersistentScene, "content" | "image" | "audio" | "mode"> & {
+      // resolved when the published story is read (scene pin, else story
+      // mode); absent on stories built elsewhere, e.g. previews
+      mode?: StoryMode;
+
       pages: RequireAtLeastOne<Record<Page["link"], Page>>;
 
       image: PersistentImage | null;

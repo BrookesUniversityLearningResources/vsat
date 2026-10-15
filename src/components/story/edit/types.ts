@@ -19,7 +19,13 @@ export type StoryTitleChanged = Readonly<{
   title: PersistentStory["title"];
 }>;
 
+export type StoryModeChanged = Readonly<{
+  kind: "storyModeChanged";
+  story: PersistentStory;
+}>;
+
 export type StoryChanged =
+  | StoryModeChanged
   | StoryPublished
   | StoryUnpublished
   | StoryDeleted

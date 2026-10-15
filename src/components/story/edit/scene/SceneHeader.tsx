@@ -8,6 +8,7 @@ import InlineTextInput, {
 } from "@components/input/InlineTextInput/InlineTextInput.js";
 
 import type { PersistentScene } from "../../../../domain/index.js";
+import type { StoryMode } from "../../../../domain/story/publish/types.js";
 
 export type SceneHeaderProps = {
   title: PersistentScene["title"];
@@ -17,13 +18,24 @@ export type SceneHeaderProps = {
     pages: number[];
   };
   onProposeLink?: () => void;
+  // null = this scene follows the story's mode
+  mode?: StoryMode | null;
+  storyMode?: StoryMode;
+  onModeChanged?: (mode: StoryMode | null) => void;
+  modeSaving?: boolean;
 };
+
+const MODE_LABEL: Record<StoryMode, string> = { "360": "360°", "2d": "2D" };
 
 const SceneHeader: FC<SceneHeaderProps> = ({
   title,
   onTitleChanged,
   linkInfo,
   onProposeLink,
+  mode = null,
+  storyMode = "360",
+  onModeChanged,
+  modeSaving = false,
 }) => {
   const { t } = useTranslation();
 
@@ -65,6 +77,32 @@ const SceneHeader: FC<SceneHeaderProps> = ({
             Pages {linkInfo.pages.sort((a, b) => a - b).join(", ")}
           </span>
         ) : null}
+        {onModeChanged && (
+          <fieldset
+            className={styles.modeGroup}
+            aria-label="How readers see this scene"
+            title="How readers see this scene. Readers can't switch; a story can mix 360° and 2D scenes."
+          >
+            {(
+              [
+                [null, `Story (${MODE_LABEL[storyMode]})`],
+                ["360", MODE_LABEL["360"]],
+                ["2d", MODE_LABEL["2d"]],
+              ] as const
+            ).map(([value, label]) => (
+              <button
+                key={value ?? "story"}
+                type="button"
+                className={styles.modeOption}
+                aria-pressed={mode === value}
+                disabled={modeSaving || mode === value}
+                onClick={() => onModeChanged(value)}
+              >
+                {label}
+              </button>
+            ))}
+          </fieldset>
+        )}
         {onProposeLink && (
           <button
             type="button"

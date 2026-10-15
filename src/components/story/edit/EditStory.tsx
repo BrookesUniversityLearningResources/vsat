@@ -18,6 +18,7 @@ import type {
   StoryLinkSummary,
 } from "../../../domain/index.js";
 import unsupported from "../../../domain/story/client/unsupportedResult.js";
+import type { StoryMode } from "../../../domain/story/publish/types.js";
 import useScrollIntoView from "../../../hooks/useScrollIntoView.js";
 import useI18N from "../../../i18n/client/useI18N.js";
 import {
@@ -158,6 +159,11 @@ const StoryEditor: FC<StoryEditorProps> = ({ story: initialStory }) => {
         break;
       }
 
+      case "storyModeChanged": {
+        queryClient.setQueryData([queryKeyStory], e.story);
+        break;
+      }
+
       case "storyUnpublished": {
         queryClient.setQueryData([queryKeyStory], e.story);
         feedback.notify.info("story.unpublished");
@@ -221,6 +227,7 @@ const StoryEditor: FC<StoryEditorProps> = ({ story: initialStory }) => {
         {isNonEmptyArray(story.scenes) ? (
           <Scenes
             storyId={story.id}
+            storyMode={story.mode ?? "360"}
             scenes={story.scenes}
             onSceneChanged={onSceneChanged}
             sceneLinkMap={sceneLinkMap}
@@ -299,6 +306,7 @@ const StoryEditor: FC<StoryEditorProps> = ({ story: initialStory }) => {
 
 type ScenesProps = {
   storyId: PersistentStory["id"];
+  storyMode: StoryMode;
   scenes: NonEmptyArray<PersistentScene>;
   onSceneChanged: OnSceneChanged;
   sceneLinkMap: Map<number, { count: number; pages: number[] }>;
@@ -306,6 +314,7 @@ type ScenesProps = {
 
 const Scenes: FC<ScenesProps> = ({
   storyId,
+  storyMode,
   scenes,
   onSceneChanged,
   sceneLinkMap,
@@ -317,6 +326,7 @@ const Scenes: FC<ScenesProps> = ({
           scene={scene}
           key={scene.id}
           storyId={storyId}
+          storyMode={storyMode}
           onSceneChanged={onSceneChanged}
           linkInfo={sceneLinkMap.get(scene.id)}
         />

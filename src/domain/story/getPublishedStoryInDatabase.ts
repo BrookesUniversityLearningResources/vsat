@@ -42,7 +42,17 @@ function getPublishedStoryInDatabase(
       return null;
     }
 
-    return mapPublishedStory(row);
+    // like story.mode, a scene's pinned mode is read live, not snapshotted
+    const sceneModes = await db()
+      .selectFrom("scene")
+      .select(["scene.id", "scene.mode"])
+      .where("scene.storyId", "=", storyId)
+      .execute();
+
+    return mapPublishedStory(
+      row,
+      new Map(sceneModes.map((scene) => [scene.id, scene.mode])),
+    );
   };
 }
 
@@ -59,7 +69,12 @@ type PublishedStoryAndAuthorRow = {
   authorName: string;
 };
 
-function mapPublishedStory(row: PublishedStoryAndAuthorRow): PublishedStory {
+function mapPublishedStory(
+  row: PublishedStoryAndAuthorRow,
+  sceneModes: Map<number, StoryMode | null>,
+): PublishedStory {
+  const scenes = row.storyContent as NonEmptyArray<PublishedScene>;
+
   return {
     id: row.storyId,
     title: row.storyTitle,
@@ -68,7 +83,11 @@ function mapPublishedStory(row: PublishedStoryAndAuthorRow): PublishedStory {
       name: row.authorName,
     },
     createdAt: row.createdAt,
-    scenes: row.storyContent as NonEmptyArray<PublishedScene>,
+    // each scene carries its resolved mode: its own pin, else the story's
+    scenes: scenes.map((scene) => ({
+      ...scene,
+      mode: sceneModes.get(scene.id) ?? row.storyMode,
+    })) as NonEmptyArray<PublishedScene>,
     imageUrl: row.storyImageUrl,
     mode: row.storyMode,
   };

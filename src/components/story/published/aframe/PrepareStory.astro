@@ -33,7 +33,9 @@ const serializedStory = DOMPurify.sanitize(
   } from "@domain/story/publish/support/isBlock";
   import openingPageFor from "@domain/story/publish/support/openingPage";
   import openingSceneFor from "@domain/story/publish/support/openingScene";
-  import type { LinkTarget } from "@domain/story/publish/types";
+  import type { LinkTarget, Page } from "@domain/story/publish/types";
+
+  import { hopToSceneView } from "@components/story/published/sceneView";
 
   import { imagePercentToGaze } from "@components/story/published/placeHotspot";
 
@@ -113,8 +115,16 @@ const serializedStory = DOMPurify.sanitize(
           : undefined;
 
       if (requestedScene) {
+        // ?page= comes with ?scene= when the flat viewer hops back in here
+        const requestedPage = Number(params.get("page"));
         window.current.scene = requestedScene;
-        window.current.page = openingPageFor(requestedScene);
+        window.current.page =
+          (params.get("page") !== null &&
+            Number.isFinite(requestedPage) &&
+            (Object.values(requestedScene.pages) as Page[]).find(
+              (page) => page.number === requestedPage,
+            )) ||
+          openingPageFor(requestedScene);
       } else if (!!openingScene.audio) {
         const [titleCardScene, titleCardPage] = titleCardSceneFor(
           window.current.story.title,
@@ -140,6 +150,19 @@ const serializedStory = DOMPurify.sanitize(
         );
 
         if (change) {
+          // a scene the author set to 2D reloads into the flat viewer
+          if (
+            change.toScene &&
+            hopToSceneView(
+              "360",
+              window.current.story,
+              change.toScene,
+              change.toPage.number,
+            )
+          ) {
+            return;
+          }
+
           window.current.page = change.toPage;
 
           if (change.toScene) {

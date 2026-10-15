@@ -8,9 +8,11 @@ import type {
   PersistentStory,
 } from "../../../../domain/index.js";
 import unsupported from "../../../../domain/story/client/unsupportedResult.js";
+import type { StoryMode } from "../../../../domain/story/publish/types.js";
 import {
   type WithFeedback,
   type WithGetScene,
+  type WithSaveSceneMode,
   type WithSaveSceneTitle,
   useEnvironment,
 } from "../context/ClientContext.js";
@@ -29,6 +31,7 @@ export type SceneTitleChangeEvent = {
 export type SceneProps = {
   scene: PersistentScene;
   storyId: PersistentStory["id"];
+  storyMode: StoryMode;
   onSceneChanged: OnSceneChanged;
   linkInfo?: {
     count: number;
@@ -38,13 +41,15 @@ export type SceneProps = {
 
 const Scene: FC<SceneProps> = ({
   storyId,
+  storyMode,
   scene: initialScene,
   onSceneChanged,
   linkInfo,
 }) => {
-  const { getScene, saveSceneTitle, feedback } = useEnvironment<
-    WithGetScene & WithSaveSceneTitle & WithFeedback
-  >();
+  const { getScene, saveSceneTitle, saveSceneMode, feedback } =
+    useEnvironment<
+      WithGetScene & WithSaveSceneTitle & WithSaveSceneMode & WithFeedback
+    >();
 
   const { data: scene, refetch } = useQuery<PersistentScene, Error>({
     enabled: false,
@@ -87,6 +92,29 @@ const Scene: FC<SceneProps> = ({
         sceneId: variables.sceneId,
         title: variables.title,
       });
+    },
+  });
+
+  // null = follow the story's mode
+  const saveTheSceneMode = useMutation<
+    PersistentScene,
+    Error,
+    StoryMode | null
+  >({
+    mutationFn: (mode) =>
+      saveSceneMode(storyId, scene.id, mode).then((result) => {
+        switch (result.kind) {
+          case "sceneModeSaved":
+            return result.scene;
+          case "error":
+            return Promise.reject(result.error);
+          default:
+            return unsupported(result);
+        }
+      }),
+    onError: feedback.notify.error,
+    onSuccess: () => {
+      refetch();
     },
   });
 
@@ -147,6 +175,10 @@ const Scene: FC<SceneProps> = ({
         }}
         linkInfo={linkInfo}
         onProposeLink={proposeLinkFromHere}
+        mode={scene.mode ?? null}
+        storyMode={storyMode}
+        onModeChanged={(mode) => saveTheSceneMode.mutate(mode)}
+        modeSaving={saveTheSceneMode.isPending}
       />
 
       <div className={styles.sceneContent}>

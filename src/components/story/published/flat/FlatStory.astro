@@ -13,9 +13,8 @@ import type { PublishedStory } from "@domain/story/publish/types.js";
 // Two views:
 //   flat   — the photo as a plain <img>, no WebGL at all.
 //   poster — the same flat photo hung on a 2D-in-3D poster in A-Frame space
-//            (the bridge artifact toward authoring-in-3D). The "2D"/"3D"
-//            badge on the panel toggles between them, preserving scene/page
-//            (and any remote ?room=) across the swap.
+//            (the bridge artifact toward authoring-in-3D), reached only by
+//            the ?view=poster URL override; readers get no switch.
 import DOMPurify from "isomorphic-dompurify";
 
 type Props = {
@@ -119,7 +118,6 @@ const serializedStory = DOMPurify.sanitize(
             </button>
           )
         }
-        <button class="flat-badge" data-badge type="button"></button>
       </span>
     </div>
     <h1 class="flat-heading" data-heading></h1>
@@ -154,6 +152,7 @@ const serializedStory = DOMPurify.sanitize(
     upsertPanelLine,
   } from "@components/story/published/placeHotspot";
   import { startRemoteHost } from "@components/story/remote/remoteHost";
+  import { hopToSceneView } from "@components/story/published/sceneView";
 
   const story = (window as any).current.story;
   let host = null;
@@ -179,7 +178,6 @@ const serializedStory = DOMPurify.sanitize(
     links: document.querySelector("[data-links]"),
     end: document.querySelector("[data-end]") as HTMLElement,
     panel: document.querySelector("[data-panel]") as HTMLElement,
-    badge: document.querySelector("[data-badge]") as HTMLButtonElement,
     poster: document.querySelector("[data-poster]"),
     posterFrame: document.querySelector("[data-poster-frame]"),
     hero: document.querySelector(".flat-hero") as HTMLElement,
@@ -194,53 +192,12 @@ const serializedStory = DOMPurify.sanitize(
 
   el.title.textContent = story.title || "";
 
-  // The badge is the view toggle out of flat. Where "3D" goes depends on what
-  // the photos actually are: a photosphere story (mode 360) pops back into the
-  // standard viewer; only a genuinely-flat story (mode 2d) hangs its photo on
-  // the 2D-in-3D poster. Scene and page are written into the URL before the
-  // swap, and any ?room= is already there, so both reading position and
-  // remote session survive the reload.
-  const to3dView = story.mode === "2d" ? "poster" : "360";
-  function swapView(toView) {
-    const params = new URLSearchParams(location.search);
-    params.set("view", toView);
-    params.set("scene", String(scene.id));
-    params.set("page", String(page.number));
-    location.href = `${location.pathname}?${params.toString()}`;
-  }
-  el.badge.textContent = view === "poster" ? "3D → 2D" : "2D → 3D";
-  el.badge.title =
-    view === "poster"
-      ? "Back to the flat photo"
-      : to3dView === "poster"
-        ? "Hang the photo in 3D space"
-        : "Pop into the photosphere";
-  el.badge.addEventListener("click", () => {
-    swapView(view === "poster" ? "flat" : to3dView);
-  });
-
-  // Sneaky keys, mirroring the photosphere's "2": press 2 for flat, 3 for
-  // the story's 3D form (poster or photosphere). Bare digits because the
-  // browser reserves Ctrl+digit for tab switching; Ctrl is tolerated for
-  // single-tab (kiosk/VR) contexts where it does get through.
-  window.addEventListener("keydown", (e) => {
-    if (e.metaKey || e.altKey) return;
-    const target = e.target as HTMLElement;
-    if (
-      target?.tagName === "INPUT" ||
-      target?.tagName === "TEXTAREA" ||
-      target?.isContentEditable
-    ) {
-      return;
-    }
-    if (e.key === "2" && view !== "flat") {
-      e.preventDefault();
-      swapView("flat");
-    } else if (e.key === "3" && view === "flat") {
-      e.preventDefault();
-      swapView(to3dView);
-    }
-  });
+  // No reader-side 2D/3D switch: the author's mode decides (see
+  // sceneView.ts). Landing on a scene pinned to 360° reloads into the
+  // photosphere viewer. The poster view is a URL override (?view=poster)
+  // and never hops.
+  const hop = (s, p) =>
+    view === "flat" && hopToSceneView("flat", story, s, p.number);
 
   // Deep linking: honour ?scene=&page= on load (the 360° viewer reads
   // ?scene= on load too) and keep it in sync on navigation so links are
@@ -278,6 +235,7 @@ const serializedStory = DOMPurify.sanitize(
   function go(link) {
     const change = navigate(link, scene);
     if (!change) return;
+    if (change.toScene && hop(change.toScene, change.toPage)) return;
     page = change.toPage;
     if (change.toScene) scene = change.toScene;
     render();
@@ -548,6 +506,7 @@ const serializedStory = DOMPurify.sanitize(
       scene = openingSceneFor(story);
       page = openingPageFor(scene);
     }
+    if (hop(scene, page)) return;
     render();
     host?.notifyChange();
   });

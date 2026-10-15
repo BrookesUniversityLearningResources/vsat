@@ -69,6 +69,7 @@ import publishStory from "../domain/story/publish/publishStory.js";
 import publishStoryInDatabase from "../domain/story/publish/publishStoryInDatabase.js";
 import unpublishStoryInDatabase from "../domain/story/publish/unpublishStoryInDatabase.js";
 import saveSceneContentInDatabase from "../domain/story/saveSceneContentInDatabase.js";
+import saveSceneModeInDatabase from "../domain/story/saveSceneModeInDatabase.js";
 import saveSceneTitleInDatabase from "../domain/story/saveSceneTitleInDatabase.js";
 import saveStoryInDatabase from "../domain/story/saveStoryInDatabase.js";
 import saveStoryModeInDatabase from "../domain/story/saveStoryModeInDatabase.js";
@@ -164,6 +165,7 @@ const getEnvironment: App.GetEnvironment = (() => {
       ),
     ),
     saveSceneTitle: tx(saveSceneTitleInDatabase(log, getDB, getScene)),
+    saveSceneMode: tx(saveSceneModeInDatabase(log, getDB, getScene)),
   };
 
   const getStory = tx(
