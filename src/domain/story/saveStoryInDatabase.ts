@@ -12,6 +12,7 @@ function saveStoryInDatabase(log: Logger, db: GetDatabase): SaveStory {
       .values({
         id: story.id,
         title: story.title,
+        ...(story.mode ? { mode: story.mode } : {}),
       })
       .onConflict((oc) =>
         oc.column("id").doUpdateSet({

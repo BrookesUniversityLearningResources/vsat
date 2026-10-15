@@ -36,6 +36,8 @@ export interface TableAuthor {
   id: Generated<number>;
   name: string;
   email: string;
+  // the mode a new story starts in; authors without a 360° camera pick "2d"
+  defaultStoryMode: Generated<StoryMode>;
 }
 
 export type AuthorDto = Selectable<TableAuthor>;
@@ -48,6 +50,15 @@ type SaveAuthorNameInDatabaseRequest = {
 
 export type SaveAuthorNameInDatabase = (
   request: SaveAuthorNameInDatabaseRequest,
+) => Promise<unknown>;
+
+type SaveAuthorDefaultStoryModeInDatabaseRequest = {
+  id: AuthorDto["id"];
+  defaultStoryMode: StoryMode;
+};
+
+export type SaveAuthorDefaultStoryModeInDatabase = (
+  request: SaveAuthorDefaultStoryModeInDatabaseRequest,
 ) => Promise<unknown>;
 
 // #endregion Author

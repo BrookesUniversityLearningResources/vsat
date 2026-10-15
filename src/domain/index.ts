@@ -5,6 +5,7 @@ import type {
   GetStoryEditLogInDatabase,
   ImageDto,
   RecordStoryEditInDatabase,
+  SaveAuthorDefaultStoryModeInDatabase,
   SaveAuthorNameInDatabase,
   SaveSceneContentInDatabase,
   SaveSceneTitleInDatabase,
@@ -25,6 +26,7 @@ export type Author = {
   id: number;
   name: string;
   email: string;
+  defaultStoryMode?: StoryMode;
 };
 
 export type GetAuthorByEmail = (
@@ -37,6 +39,7 @@ export type RepositoryAuthor = Readonly<{
   getAuthorByEmail: GetAuthorByEmail;
   createAuthor: CreateAuthor;
   saveAuthorName: SaveAuthorNameInDatabase;
+  saveAuthorDefaultStoryMode: SaveAuthorDefaultStoryModeInDatabase;
 }>;
 
 export type Audio = WithId & {
@@ -64,6 +67,8 @@ export type Story = WithId & {
   title: string;
   scenes: Scene[];
   author: Omit<Author, "email">;
+  // only read when the story row is first inserted
+  mode?: StoryMode;
 };
 
 export type PersistentScene = Persistent<Scene>;
@@ -177,7 +182,7 @@ export type StorySummary = Omit<PersistentStory, "scenes" | "author"> & {
 };
 
 export type StorySummariesByAuthor = {
-  author: Omit<AuthorDto, "email">;
+  author: Pick<AuthorDto, "id" | "name">;
   stories: StorySummary[];
 };
 
@@ -261,7 +266,7 @@ export type GetAllStoryLinks = () => Promise<ReadonlyArray<StoryLinkSummary>>;
  */
 export type PublishedStorySummary = Pick<PublishedStory, "id" | "title"> & {
   publishedOn: Date;
-  author: Omit<AuthorDto, "email">;
+  author: Pick<AuthorDto, "id" | "name">;
   imageUrl: Image["thumbnailUrl"] | null;
 };
 

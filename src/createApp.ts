@@ -21,6 +21,7 @@ import routeGetPublishedStories from "./domain/story/route/routeGetPublishedStor
 import routeGetScene from "./domain/story/route/routeGetScene.js";
 import routeGetStory from "./domain/story/route/routeGetStory.js";
 import routePublishStory from "./domain/story/route/routePublishStory.js";
+import routeSaveAuthorDefaultStoryMode from "./domain/story/route/routeSaveAuthorDefaultStoryMode.js";
 import routeSaveAuthorName from "./domain/story/route/routeSaveAuthorName.js";
 import routeSaveSceneContent from "./domain/story/route/routeSaveSceneContent.js";
 import routeSaveSceneTitle from "./domain/story/route/routeSaveSceneTitle.js";
@@ -176,6 +177,11 @@ export async function createAppParts(): Promise<{
       assertIsAuthorOrStewardOfTheStory,
     ),
     routeSaveAuthorName(log, repositoryAuthor.saveAuthorName, assertIsAuthor),
+    routeSaveAuthorDefaultStoryMode(
+      log,
+      repositoryAuthor.saveAuthorDefaultStoryMode,
+      assertIsAuthor,
+    ),
     routeSaveSceneContent(
       log,
       repositoryScene.saveSceneContent,

@@ -12,6 +12,9 @@ export default function createStory(
     const story = await saveStory({
       title: request.source?.title ?? "My story",
       author: request.author,
+      ...(request.author.defaultStoryMode
+        ? { mode: request.author.defaultStoryMode }
+        : {}),
       scenes: [
         {
           title: "Introduction",

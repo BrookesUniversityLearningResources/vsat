@@ -39,6 +39,14 @@
           "label": "New story"
         }
       },
+      "default-story-mode": {
+        "label": "New stories use",
+        "option": {
+          "360": "360° photos",
+          "2d": "Flat photos (2D)"
+        },
+        "hint": "Choose 2D if you don't have a 360° camera. Each story can still be switched with its Mode button."
+      },
       "author-name": {
         "field": {
           "label": "Enter your name"

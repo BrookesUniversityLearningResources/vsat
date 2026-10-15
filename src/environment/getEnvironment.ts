@@ -22,6 +22,7 @@ import getAudioByIdInDatabase from "../domain/audio/getAudioByIdInDatabase.js";
 import saveSceneAudio from "../domain/audio/saveSceneAudio.js";
 import createAuthorInDatabase from "../domain/author/createAuthorInDatabase.js";
 import getAuthorByEmailInDatabase from "../domain/author/getAuthorByEmailInDatabase.js";
+import saveAuthorDefaultStoryModeInDatabase from "../domain/author/saveAuthorDefaultStoryModeInDatabase.js";
 import saveAuthorNameInDatabase from "../domain/author/saveAuthorNameInDatabase.js";
 import deleteImageFromCloudinary from "../domain/image/cloudinary/deleteImageFromCloudinary.js";
 import uploadImageToCloudinary from "../domain/image/cloudinary/uploadImageToCloudinary.js";
@@ -230,6 +231,9 @@ const getEnvironment: App.GetEnvironment = (() => {
     getAuthorByEmail: tx(getAuthorByEmailInDatabase(logDb, getDB)),
     createAuthor: tx(createAuthorInDatabase(logDb, getDB)),
     saveAuthorName: tx(saveAuthorNameInDatabase(logDb, getDB)),
+    saveAuthorDefaultStoryMode: tx(
+      saveAuthorDefaultStoryModeInDatabase(logDb, getDB),
+    ),
   };
 
   const environment: App.Environment = Object.freeze({

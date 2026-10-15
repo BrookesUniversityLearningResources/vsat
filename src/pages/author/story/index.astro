@@ -69,6 +69,7 @@ const storyUnavailable = errParam === ErrorCodes.StoryNotFound;
     )}
     <StoriesHeader
       author={stories.author}
+      defaultStoryMode={user.defaultStoryMode ?? "360"}
       translations={translations}
       showCreateStory={isNonEmptyArray(stories.stories)}
       client:only="react"
