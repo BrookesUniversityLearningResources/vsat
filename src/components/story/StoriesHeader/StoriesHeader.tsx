@@ -109,30 +109,30 @@ const StoriesHeader: FC<StoriesHeaderProps> = ({
       </InlineTextInput>
 
       <div className={styles.actionBar}>
-        <fieldset
-          className={styles.defaultStoryMode}
-          title={t("default-story-mode.hint")}
-          disabled={saveTheDefaultStoryMode.isPending}
-        >
-          <legend>{t("default-story-mode.label")}</legend>
-          {STORY_MODES.map((mode) => (
-            <label key={mode} data-checked={mode === defaultStoryMode}>
-              <input
-                type="radio"
-                name="default-story-mode"
-                value={mode}
-                checked={mode === defaultStoryMode}
-                onChange={() => saveTheDefaultStoryMode.mutate(mode)}
-              />
-              {t(`default-story-mode.option.${mode}`)}
-            </label>
-          ))}
-        </fieldset>
-
         {showCreateStory && <CreateStory />}
 
         <a href="/logout">{t("common.logout.label")}</a>
       </div>
+
+      <fieldset
+        className={styles.defaultStoryMode}
+        disabled={saveTheDefaultStoryMode.isPending}
+      >
+        <legend>{t("default-story-mode.label")}</legend>
+        {STORY_MODES.map((mode) => (
+          <label key={mode} data-checked={mode === defaultStoryMode}>
+            <input
+              type="radio"
+              name="default-story-mode"
+              value={mode}
+              checked={mode === defaultStoryMode}
+              onChange={() => saveTheDefaultStoryMode.mutate(mode)}
+            />
+            {t(`default-story-mode.option.${mode}`)}
+          </label>
+        ))}
+        <small>{t("default-story-mode.hint")}</small>
+      </fieldset>
     </div>
   );
 };

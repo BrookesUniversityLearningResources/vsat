@@ -16,17 +16,18 @@
 }
 
 .defaultStoryMode {
+  grid-column: 1 / -1;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 0.25rem;
-  margin: 0;
+  gap: 0.4rem;
+  margin: 0 0 0.5rem;
   padding: 0;
   border: none;
 
   legend {
     float: left;
-    margin-right: 0.5rem;
-    font-size: 0.85rem;
+    margin-right: 0.25rem;
   }
 
   label {
@@ -40,6 +41,11 @@
   label[data-checked="true"] {
     background: var(--color-action-primary);
     font-weight: bold;
+  }
+
+  small {
+    flex-basis: 100%;
+    opacity: 0.8;
   }
 
   input {
