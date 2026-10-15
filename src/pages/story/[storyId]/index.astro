@@ -85,6 +85,13 @@ const linkedStoryCards = Array.from(linkedStories.values()).slice(0, 5);
     view === "360" && (
       <aside class="story-key-hint">
         <button
+          class="story-key-hint__flat"
+          type="button"
+          title="Show this page as a flat photo (key: 2)"
+        >
+          3D → 2D
+        </button>
+        <button
           class="story-key-hint__toggle"
           type="button"
           aria-label="360° keyboard controls"
@@ -257,6 +264,18 @@ const linkedStoryCards = Array.from(linkedStories.values()).slice(0, 5);
     // the current scene/page (and any ?room=). Bare digit because the browser
     // reserves Ctrl+digit for tab switching, but Ctrl is tolerated for
     // single-tab (kiosk/VR) contexts where it does get through.
+    const toFlat = () => {
+      const params = new URLSearchParams(location.search);
+      params.set("view", "flat");
+      const current = (window as any).current;
+      if (current?.scene?.id) params.set("scene", String(current.scene.id));
+      if (current?.page?.number != null)
+        params.set("page", String(current.page.number));
+      location.href = `${location.pathname}?${params.toString()}`;
+    };
+    document
+      .querySelector(".story-key-hint__flat")
+      ?.addEventListener("click", toFlat);
     window.addEventListener("keydown", (e) => {
       if (e.key !== "2" || e.metaKey || e.altKey) return;
       const target = e.target as HTMLElement;
@@ -268,13 +287,7 @@ const linkedStoryCards = Array.from(linkedStories.values()).slice(0, 5);
         return;
       }
       e.preventDefault();
-      const params = new URLSearchParams(location.search);
-      params.set("view", "flat");
-      const current = (window as any).current;
-      if (current?.scene?.id) params.set("scene", String(current.scene.id));
-      if (current?.page?.number != null)
-        params.set("page", String(current.page.number));
-      location.href = `${location.pathname}?${params.toString()}`;
+      toFlat();
     });
   }
 
@@ -794,6 +807,24 @@ const linkedStoryCards = Array.from(linkedStories.values()).slice(0, 5);
     pointer-events: auto;
   }
 
+  .story-key-hint__flat {
+    display: block;
+    margin: 0 0 0.4rem auto;
+    border: 1px solid #3c5976;
+    border-radius: 999px;
+    padding: 0.3rem 0.7rem;
+    background: rgba(27, 33, 41, 0.9);
+    color: #ecf0f1;
+    font: inherit;
+    font-size: 0.8rem;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .story-key-hint__flat:hover {
+    background: #34495e;
+  }
+
   .story-key-hint__toggle {
     display: block;
     margin-left: auto;
@@ -863,6 +894,7 @@ const linkedStoryCards = Array.from(linkedStories.values()).slice(0, 5);
     border-radius: 999px;
     padding: 0.4rem 0.75rem;
     background: rgba(255, 255, 255, 0.9);
+    color: #1f2933;
     cursor: pointer;
     font-family: "Source Sans Pro", system-ui, sans-serif;
     pointer-events: auto;

@@ -66,8 +66,14 @@ function generateCode(length = 4): string {
 }
 
 function showBadge(code: string): void {
-  const badge = document.createElement("div");
-  badge.textContent = `Remote: ${code}`;
+  // A link, not a label: it opens this session's control surface, and the
+  // title tells a phone user where to type the code instead.
+  const badge = document.createElement("a");
+  badge.href = `/remote?room=${encodeURIComponent(code)}`;
+  badge.target = "_blank";
+  badge.rel = "noopener";
+  badge.textContent = `Remote: ${code} ↗`;
+  badge.title = `Control this story from another screen: open /remote on a phone and enter ${code}, or click to open the remote here`;
   badge.style.cssText = [
     "position:fixed",
     "top:0.6rem",
@@ -79,7 +85,8 @@ function showBadge(code: string): void {
     "color:#ecf0f1",
     "font:600 0.8rem/1 'Source Sans Pro',system-ui,sans-serif",
     "letter-spacing:0.08em",
-    "pointer-events:none",
+    "text-decoration:none",
+    "cursor:pointer",
   ].join(";");
   document.body.appendChild(badge);
 }

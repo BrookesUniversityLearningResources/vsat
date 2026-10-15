@@ -69,7 +69,7 @@ test("mode=2d story renders flat by default with no A-Frame", async ({
     Boolean((window as unknown as { AFRAME?: unknown }).AFRAME),
   );
   expect(aframe).toBe(false);
-  await expect(page.locator("[data-badge]")).toHaveText("2D");
+  await expect(page.locator("[data-badge]")).toHaveText("2D → 3D");
   await page.screenshot({ path: "test-results/flat-default.png" });
 });
 
@@ -81,7 +81,7 @@ test("2d story badge toggles flat → poster (2D-in-3D) and back", async ({
 
   await page.locator("[data-badge]").click();
   await expect(page.locator("a-scene")).toBeAttached();
-  await expect(page.locator("[data-badge]")).toHaveText("3D");
+  await expect(page.locator("[data-badge]")).toHaveText("3D → 2D");
   expect(new URL(page.url()).searchParams.get("view")).toBe("poster");
   // let the poster texture load before the screenshot
   await page.waitForFunction(() =>
@@ -92,7 +92,7 @@ test("2d story badge toggles flat → poster (2D-in-3D) and back", async ({
 
   await page.locator("[data-badge]").click();
   await expect(page.locator(".flat-img")).toBeAttached();
-  await expect(page.locator("[data-badge]")).toHaveText("2D");
+  await expect(page.locator("[data-badge]")).toHaveText("2D → 3D");
 });
 
 test("360 story badge pops from flat into the photosphere, not a poster", async ({
@@ -189,11 +189,11 @@ test("editor mode toggle flips story.mode and back", async ({ page }) => {
     expect(set2d.ok()).toBe(true);
     await page.goto(`/author/story/${storyId}`);
     const toggle = page.locator("button", { hasText: "Mode:" });
-    await expect(toggle).toHaveText(/2D/);
+    await expect(toggle).toHaveText(/Mode: 2D/);
     await toggle.click();
-    await expect(toggle).toHaveText(/360/);
+    await expect(toggle).toHaveText(/Mode: 360/);
     await toggle.click();
-    await expect(toggle).toHaveText(/2D/);
+    await expect(toggle).toHaveText(/Mode: 2D/);
   } finally {
     expect((await page.request.delete(`/api/story/${storyId}`)).ok()).toBe(
       true,

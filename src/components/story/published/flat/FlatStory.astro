@@ -208,7 +208,7 @@ const serializedStory = DOMPurify.sanitize(
     params.set("page", String(page.number));
     location.href = `${location.pathname}?${params.toString()}`;
   }
-  el.badge.textContent = view === "poster" ? "3D" : "2D";
+  el.badge.textContent = view === "poster" ? "3D → 2D" : "2D → 3D";
   el.badge.title =
     view === "poster"
       ? "Back to the flat photo"

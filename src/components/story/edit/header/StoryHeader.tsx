@@ -287,6 +287,8 @@ const StoryHeader: FC<StoryHeaderProps> = ({
               title="How readers see this story's photos: 360° photospheres or flat 2D"
             >
               Mode: {mode === "2d" ? "2D" : "360°"}
+              <br />
+              <small>switch to {mode === "2d" ? "360°" : "2D"}</small>
             </button>
             <div className={styles.toolbar}>
               <button
