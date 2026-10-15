@@ -9,9 +9,14 @@ import {
   isPlaintextBlock,
 } from "@domain/story/publish/support/isBlock";
 import { cached } from "@util/layoutCache";
+import loadConfig from "../../environment/config";
 import Layout from "../../layouts/PublicSiteLayout.astro";
 
 export const prerender = false;
+
+// The right-click focus boards (both views) and voice verbs are
+// M-authoring-3d, off unless the deployment sets VSAT_AUTHORING_3D.
+const authoring3d = loadConfig().features.authoring3d;
 
 const { log, repositoryStory, repositoryStoryLink, repositoryAnthology } =
   Astro.locals.environment<
@@ -561,6 +566,7 @@ const clientData = {
   clusters,
   interArcs,
   isPlanetarium,
+  authoring3d,
   clusterRadius,
   domeShellRadius,
   geomViewStoryEnvelopeRadius,
@@ -804,7 +810,7 @@ const clientData = {
               title="Hear story audio from each cluster direction"
             >🔊 Surround</button>
           )}
-          {!isPlanetarium && (
+          {!isPlanetarium && authoring3d && (
             <button
               type="button"
               id="vsat-toggle-voice"
@@ -821,7 +827,7 @@ const clientData = {
             class={`vsatlatarium__btn ${isPlanetarium ? "vsatlatarium__btn--active" : ""}`}
             href={`/story/vsatlatarium${selectedAnthology ? "?anthology=" + selectedAnthology.id : ""}`}
           >Planetarium</a>
-          <button type="button" id="vsat-help" class="vsatlatarium__btn" title="Controls & authoring verbs">?</button>
+          <button type="button" id="vsat-help" class="vsatlatarium__btn" title={authoring3d ? "Controls & authoring verbs" : "Controls"}>?</button>
         </div>
         <div id="vsat-help-panel" class="vsatlatarium__usage" hidden>
           <h3>Looking around</h3>
@@ -841,12 +847,16 @@ const clientData = {
               <ul>
                 <li><strong>🔊 Surround</strong> — hear available story audio from its direction on the dome; off by default</li>
               </ul>
-              <h3>Editing a story</h3>
-              <ul>
-                <li><strong>Right-click a story</strong> — its scenes become cards; <strong>click a card</strong> to edit its heading and text in place · <kbd>Esc</kbd> closes</li>
-              </ul>
+              {authoring3d && (
+                <>
+                  <h3>Editing a story</h3>
+                  <ul>
+                    <li><strong>Right-click a story</strong> — its scenes become cards; <strong>click a card</strong> to edit its heading and text in place · <kbd>Esc</kbd> closes</li>
+                  </ul>
+                </>
+              )}
             </>
-          ) : (
+          ) : authoring3d ? (
             <>
               <h3>Editing a story (focus board)</h3>
               <ul>
@@ -861,11 +871,13 @@ const clientData = {
                 <li><kbd>Esc</kbd> — cancel a connect or scene form in progress</li>
               </ul>
             </>
+          ) : null}
+          {authoring3d && (
+            <p class="vsatlatarium__usage-note">
+              Editing and connecting write to the story's draft and republish it —
+              you need to be signed in as the story's author (or a steward).
+            </p>
           )}
-          <p class="vsatlatarium__usage-note">
-            Editing and connecting write to the story's draft and republish it —
-            you need to be signed in as the story's author (or a steward).
-          </p>
         </div>
         <a-scene
           embedded
@@ -3812,7 +3824,7 @@ const clientData = {
           armVoice();
         }
       });
-      if (sessionStorage.getItem("vsat-voice-armed") === "1") armVoice();
+      if (clientData.authoring3d && sessionStorage.getItem("vsat-voice-armed") === "1") armVoice();
 
       const encodeWav = (frames, rate) => {
         let len = 0;
@@ -4089,6 +4101,7 @@ const clientData = {
       // right-click enters focus on the story under the cursor; right-click
       // on empty space (or Esc) leaves it
       canvas.addEventListener("contextmenu", (e) => {
+        if (!clientData.authoring3d) return;
         // same wrapper-div caveat as the click pick above
         if (e.target instanceof Element &&
             e.target.closest("button, a, input, textarea, [contenteditable], .vsatlatarium__usage")) return;

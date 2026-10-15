@@ -105,6 +105,17 @@ export const DatabaseConfigModel = z.object({
 
 export type DatabaseConfig = z.infer<typeof DatabaseConfigModel>;
 
+// Feature switches for work that is built but not ready for every
+// deployment. Each defaults off; turn one on per app with its env var.
+const FeaturesConfigModel = z.object({
+  // M-authoring-3d: in-photosphere placement keys (h/a/⇧/m) in the 360°
+  // viewer, and the right-click focus boards + voice in the VSATLATARIUM.
+  // VSAT_AUTHORING_3D=true
+  authoring3d: z.boolean().default(false),
+});
+
+export type FeaturesConfig = z.infer<typeof FeaturesConfigModel>;
+
 export const AppConfigModel = z
   .object({
     app: z.object({
@@ -116,6 +127,7 @@ export const AppConfigModel = z
     authentication: AuthenticationConfigModel,
     uploads: UploadsConfigModel,
     log: LogConfigModel.optional(),
+    features: FeaturesConfigModel.optional().default({ authoring3d: false }),
   })
   .strict();
 

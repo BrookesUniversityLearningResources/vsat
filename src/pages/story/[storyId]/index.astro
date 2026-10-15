@@ -8,6 +8,8 @@ import { modeForScene } from "@components/story/published/sceneView";
 import openingSceneFor from "@domain/story/publish/support/openingScene";
 import toStoryId from "@domain/story/toStoryId";
 
+import loadConfig from "../../../environment/config";
+
 const storyId = toStoryId(Astro.params.storyId);
 
 if (!storyId) {
@@ -46,6 +48,10 @@ const view =
 const layout =
   Astro.url.searchParams.get("layout") === "doc" ? "doc" : "overlay";
 
+// In-photosphere placement (h/a/⇧/m) is M-authoring-3d, off unless the
+// deployment sets VSAT_AUTHORING_3D.
+const authoring3d = loadConfig().features.authoring3d;
+
 const links = await repositoryStoryLink.getStoryLinksForStory(storyId);
 const acceptedLinks = links.filter((link) => link.status === "accepted");
 const retiredLinks = links.filter((link) => link.status === "retired");
@@ -65,7 +71,7 @@ const linkedStoryCards = Array.from(linkedStories.values()).slice(0, 5);
 ---
 
 <!doctype html>
-<html lang="en">
+<html lang="en" data-authoring-3d={authoring3d ? "" : undefined}>
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width" />
@@ -91,7 +97,7 @@ const linkedStoryCards = Array.from(linkedStories.values()).slice(0, 5);
     )
   }
   {
-    view === "360" && (
+    view === "360" && authoring3d && (
       <aside class="story-key-hint">
         <button
           class="story-key-hint__toggle"
@@ -258,7 +264,7 @@ const linkedStoryCards = Array.from(linkedStories.values()).slice(0, 5);
   // starting the A-Frame host controller too would register a second session
   if (!document.querySelector("main.flat")) {
     startHostController();
-    setupGazePlacement();
+    if (document.documentElement.hasAttribute("data-authoring-3d")) setupGazePlacement();
     setupKeyHint();
   }
 
