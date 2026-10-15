@@ -1,10 +1,12 @@
 import type { Logger } from "pino";
 
+import type { GetAuthorDefaultStoryModeInDatabase } from "../../database/schema.js";
 import type { CreateStory, SaveStory } from "../index.js";
 
 export default function createStory(
   log: Logger,
   saveStory: SaveStory,
+  getAuthorDefaultStoryMode: GetAuthorDefaultStoryModeInDatabase,
 ): CreateStory {
   return async (request) => {
     log.debug({ request }, "Creating story");
@@ -12,9 +14,7 @@ export default function createStory(
     const story = await saveStory({
       title: request.source?.title ?? "My story",
       author: request.author,
-      ...(request.author.defaultStoryMode
-        ? { mode: request.author.defaultStoryMode }
-        : {}),
+      mode: await getAuthorDefaultStoryMode(request.author.id),
       scenes: [
         {
           title: "Introduction",

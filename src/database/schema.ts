@@ -61,6 +61,10 @@ export type SaveAuthorDefaultStoryModeInDatabase = (
   request: SaveAuthorDefaultStoryModeInDatabaseRequest,
 ) => Promise<unknown>;
 
+export type GetAuthorDefaultStoryModeInDatabase = (
+  id: AuthorDto["id"],
+) => Promise<StoryMode>;
+
 // #endregion Author
 
 // #region Image

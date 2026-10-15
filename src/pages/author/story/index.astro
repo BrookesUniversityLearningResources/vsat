@@ -21,9 +21,13 @@ const stewardToggleEnabled =
   process.env.DEV_STEWARD_TOGGLE === "1" ||
   process.env.DEV_STEWARD_TOGGLE === "true";
 
-const { repositoryStory, i18n } = Astro.locals.environment<
-  App.WithStoryRepository & App.WithI18N
+const { repositoryStory, repositoryAuthor, i18n } = Astro.locals.environment<
+  App.WithStoryRepository & App.WithAuthorRepository & App.WithI18N
 >();
+
+const defaultStoryMode = await repositoryAuthor.getAuthorDefaultStoryMode(
+  user.id,
+);
 
 let stories = await repositoryStory.getStorySummariesByAuthor(user.id);
 
@@ -69,7 +73,7 @@ const storyUnavailable = errParam === ErrorCodes.StoryNotFound;
     )}
     <StoriesHeader
       author={stories.author}
-      defaultStoryMode={user.defaultStoryMode ?? "360"}
+      defaultStoryMode={defaultStoryMode}
       translations={translations}
       showCreateStory={isNonEmptyArray(stories.stories)}
       client:only="react"

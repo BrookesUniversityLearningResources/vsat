@@ -2,6 +2,7 @@ import type {
   AudioDto,
   AuthorDto,
   AuthorInsert,
+  GetAuthorDefaultStoryModeInDatabase,
   GetStoryEditLogInDatabase,
   ImageDto,
   RecordStoryEditInDatabase,
@@ -26,7 +27,6 @@ export type Author = {
   id: number;
   name: string;
   email: string;
-  defaultStoryMode?: StoryMode;
 };
 
 export type GetAuthorByEmail = (
@@ -40,6 +40,7 @@ export type RepositoryAuthor = Readonly<{
   createAuthor: CreateAuthor;
   saveAuthorName: SaveAuthorNameInDatabase;
   saveAuthorDefaultStoryMode: SaveAuthorDefaultStoryModeInDatabase;
+  getAuthorDefaultStoryMode: GetAuthorDefaultStoryModeInDatabase;
 }>;
 
 export type Audio = WithId & {

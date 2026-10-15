@@ -1,10 +1,7 @@
-import type { StoryMode } from "../domain/story/publish/types.js";
-
 export type User = {
   id?: number;
   name: string;
   email: string;
-  defaultStoryMode?: StoryMode;
 };
 
 export type PersistentUser = Omit<User, "id"> & { id: number };

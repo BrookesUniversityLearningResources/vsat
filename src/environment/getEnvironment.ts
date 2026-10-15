@@ -22,6 +22,7 @@ import getAudioByIdInDatabase from "../domain/audio/getAudioByIdInDatabase.js";
 import saveSceneAudio from "../domain/audio/saveSceneAudio.js";
 import createAuthorInDatabase from "../domain/author/createAuthorInDatabase.js";
 import getAuthorByEmailInDatabase from "../domain/author/getAuthorByEmailInDatabase.js";
+import getAuthorDefaultStoryModeInDatabase from "../domain/author/getAuthorDefaultStoryModeInDatabase.js";
 import saveAuthorDefaultStoryModeInDatabase from "../domain/author/saveAuthorDefaultStoryModeInDatabase.js";
 import saveAuthorNameInDatabase from "../domain/author/saveAuthorNameInDatabase.js";
 import deleteImageFromCloudinary from "../domain/image/cloudinary/deleteImageFromCloudinary.js";
@@ -172,7 +173,13 @@ const getEnvironment: App.GetEnvironment = (() => {
   const saveStory = tx(saveStoryInDatabase(logDb, getDB));
 
   const repositoryStory: RepositoryStory = {
-    createStory: tx(createStory(log, saveStory)),
+    createStory: tx(
+      createStory(
+        log,
+        saveStory,
+        getAuthorDefaultStoryModeInDatabase(logDb, getDB),
+      ),
+    ),
     saveStory,
     deleteStory: tx(
       deleteStory(
@@ -233,6 +240,9 @@ const getEnvironment: App.GetEnvironment = (() => {
     saveAuthorName: tx(saveAuthorNameInDatabase(logDb, getDB)),
     saveAuthorDefaultStoryMode: tx(
       saveAuthorDefaultStoryModeInDatabase(logDb, getDB),
+    ),
+    getAuthorDefaultStoryMode: tx(
+      getAuthorDefaultStoryModeInDatabase(logDb, getDB),
     ),
   };
 
