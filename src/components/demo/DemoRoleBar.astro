@@ -6,6 +6,11 @@
 // worth trying on the page you are looking at.
 // Enabled only by DEMO_ROLE_BAR, which is unset on the production app, so this
 // never renders for real users.
+//
+// Even where enabled it starts hidden: it sits over the top of the page and
+// covered the story viewer's Remote button. Type "demo" anywhere outside a
+// text field to show or hide it, or add ?demo=1 / ?demo=0 to the URL on a
+// device with no keyboard. The choice is remembered in localStorage.
 import { secondDemoAuthor } from "@authentication/demoRole";
 import isStewardUser from "@authentication/isStewardUser";
 
@@ -47,7 +52,7 @@ const whoami = user?.name ?? "not signed in";
         <button
           class="demo-bar__grip"
           id="vsat-demo-bar-collapse"
-          title="Hide the demo bar"
+          title="Hide the demo bar (type demo to bring it back)"
           aria-label="Hide the demo bar"
         >
           ▲
@@ -96,14 +101,9 @@ const whoami = user?.name ?? "not signed in";
         </span>
       </div>
 
-      <button class="demo-bar__restore" id="vsat-demo-bar-restore" hidden>
-        Demo controls
-      </button>
-
       <script is:inline define:vars={{ role, audioStoryId }}>
         (() => {
           const bar = document.getElementById("vsat-demo-bar");
-          const restore = document.getElementById("vsat-demo-bar-restore");
           const collapse = document.getElementById("vsat-demo-bar-collapse");
           if (!bar) return;
 
@@ -307,17 +307,51 @@ const whoami = user?.name ?? "not signed in";
           render();
           renderNext();
 
-          // --- collapse -------------------------------------------------------
-          const COLLAPSE_KEY = "vsat-demo-bar-hidden";
-          const setHidden = (hidden) => {
-            bar.hidden = hidden;
-            if (restore) restore.hidden = !hidden;
-            sessionStorage.setItem(COLLAPSE_KEY, hidden ? "1" : "0");
+          // --- show / hide ---------------------------------------------------
+          // Hidden unless switched on, so the bar never covers controls by
+          // default. No visible restore tab: that covered the page too.
+          const SHOWN_KEY = "vsat-demo-bar-shown";
+          const setShown = (shown) => {
+            bar.hidden = !shown;
+            localStorage.setItem(SHOWN_KEY, shown ? "1" : "0");
           };
 
-          collapse?.addEventListener("click", () => setHidden(true));
-          restore?.addEventListener("click", () => setHidden(false));
-          setHidden(sessionStorage.getItem(COLLAPSE_KEY) === "1");
+          const fromUrl = new URLSearchParams(search).get("demo");
+          if (fromUrl === "1" || fromUrl === "0") {
+            localStorage.setItem(SHOWN_KEY, fromUrl);
+          }
+          setShown(localStorage.getItem(SHOWN_KEY) === "1");
+
+          collapse?.addEventListener("click", () => setShown(false));
+
+          // Typed "demo" toggles the bar. A plain letter sequence rather than a
+          // modifier chord: chords collide with browser shortcuts and Mac
+          // Option-letters, and accesskeys differ between browsers.
+          const SECRET = "demo";
+          let typed = "";
+          let lastKeyAt = 0;
+          const editable = (el) =>
+            el instanceof HTMLElement &&
+            (el.isContentEditable ||
+              ["INPUT", "TEXTAREA", "SELECT"].includes(el.tagName));
+
+          window.addEventListener(
+            "keydown",
+            (event) => {
+              if (event.ctrlKey || event.metaKey || event.altKey) return;
+              if (editable(event.target) || event.key.length !== 1) return;
+              const now = Date.now();
+              if (now - lastKeyAt > 1500) typed = "";
+              lastKeyAt = now;
+              typed = (typed + event.key.toLowerCase()).slice(-SECRET.length);
+              if (typed === SECRET) {
+                typed = "";
+                setShown(bar.hidden);
+              }
+            },
+            // Capture, so A-Frame's handlers on the scene cannot swallow it.
+            true,
+          );
         })();
       </script>
     </>
@@ -348,6 +382,11 @@ const whoami = user?.name ?? "not signed in";
     border-radius: 0 0 0.6rem 0.6rem;
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.45);
     backdrop-filter: blur(6px);
+  }
+
+  /* `display: flex` above would otherwise beat the hidden attribute. */
+  .demo-bar[hidden] {
+    display: none;
   }
 
   .demo-bar__group {
@@ -508,24 +547,6 @@ const whoami = user?.name ?? "not signed in";
 
   .demo-bar__grip:hover {
     opacity: 1;
-  }
-
-  .demo-bar__restore {
-    position: fixed;
-    top: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 100000;
-
-    padding: 0.15rem 0.7rem;
-    font-family: system-ui, sans-serif;
-    font-size: 0.7rem;
-    color: #eaf2ff;
-    background: rgba(10, 16, 28, 0.85);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-top: none;
-    border-radius: 0 0 0.5rem 0.5rem;
-    cursor: pointer;
   }
 
   @media (max-width: 720px) {
