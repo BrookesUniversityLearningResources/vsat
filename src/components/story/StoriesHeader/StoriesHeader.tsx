@@ -24,6 +24,8 @@ type StoriesHeaderProps = {
   author: PersistentStory["author"];
   defaultStoryMode: StoryMode;
   showCreateStory?: boolean;
+  // false on a 2D-only deployment, which has no 360°/2D choice to offer
+  photospheres?: boolean;
 };
 
 const STORY_MODES: StoryMode[] = ["360", "2d"];
@@ -32,6 +34,7 @@ const StoriesHeader: FC<StoriesHeaderProps> = ({
   author,
   defaultStoryMode: initialDefaultStoryMode,
   showCreateStory = false,
+  photospheres = true,
 }) => {
   const { t } = useTranslation();
 
@@ -114,25 +117,27 @@ const StoriesHeader: FC<StoriesHeaderProps> = ({
         <a href="/logout">{t("common.logout.label")}</a>
       </div>
 
-      <fieldset
-        className={styles.defaultStoryMode}
-        disabled={saveTheDefaultStoryMode.isPending}
-      >
-        <legend>{t("default-story-mode.label")}</legend>
-        {STORY_MODES.map((mode) => (
-          <label key={mode} data-checked={mode === defaultStoryMode}>
-            <input
-              type="radio"
-              name="default-story-mode"
-              value={mode}
-              checked={mode === defaultStoryMode}
-              onChange={() => saveTheDefaultStoryMode.mutate(mode)}
-            />
-            {t(`default-story-mode.option.${mode}`)}
-          </label>
-        ))}
-        <small>{t("default-story-mode.hint")}</small>
-      </fieldset>
+      {photospheres && (
+        <fieldset
+          className={styles.defaultStoryMode}
+          disabled={saveTheDefaultStoryMode.isPending}
+        >
+          <legend>{t("default-story-mode.label")}</legend>
+          {STORY_MODES.map((mode) => (
+            <label key={mode} data-checked={mode === defaultStoryMode}>
+              <input
+                type="radio"
+                name="default-story-mode"
+                value={mode}
+                checked={mode === defaultStoryMode}
+                onChange={() => saveTheDefaultStoryMode.mutate(mode)}
+              />
+              {t(`default-story-mode.option.${mode}`)}
+            </label>
+          ))}
+          <small>{t("default-story-mode.hint")}</small>
+        </fieldset>
+      )}
     </div>
   );
 };

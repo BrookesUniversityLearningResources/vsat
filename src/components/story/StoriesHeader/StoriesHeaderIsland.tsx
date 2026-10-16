@@ -16,6 +16,7 @@ type StoriesHeaderIslandProps = {
   author: PersistentStory["author"];
   defaultStoryMode: StoryMode;
   showCreateStory?: boolean;
+  photospheres?: boolean;
 };
 
 const queryClient = new QueryClient();
@@ -25,6 +26,7 @@ const StoriesHeaderIsland: FC<StoriesHeaderIslandProps> = ({
   author,
   defaultStoryMode,
   showCreateStory = false,
+  photospheres = true,
 }) => {
   const i18n = useI18N(translations, navigator.language);
 
@@ -36,6 +38,7 @@ const StoriesHeaderIsland: FC<StoriesHeaderIslandProps> = ({
             author={author}
             defaultStoryMode={defaultStoryMode}
             showCreateStory={showCreateStory}
+            photospheres={photospheres}
           />
         </ClientContext.Provider>
       </QueryClientProvider>

@@ -105,6 +105,18 @@ export const DatabaseConfigModel = z.object({
 
 export type DatabaseConfig = z.infer<typeof DatabaseConfigModel>;
 
+// Per-deployment feature switches, each set with its env var.
+const FeaturesConfigModel = z.object({
+  // 360° photospheres. Off makes the deployment 2D-only: every story and
+  // scene is read as 2D whatever mode is stored, ?view=360/poster is
+  // ignored, the editor's preview is flat, and the 360°/2D mode controls
+  // are hidden. The VSATLATARIUM is unaffected.
+  // VSAT_PHOTOSPHERES=false
+  photospheres: z.boolean().default(true),
+});
+
+export type FeaturesConfig = z.infer<typeof FeaturesConfigModel>;
+
 export const AppConfigModel = z
   .object({
     app: z.object({
@@ -116,6 +128,7 @@ export const AppConfigModel = z
     authentication: AuthenticationConfigModel,
     uploads: UploadsConfigModel,
     log: LogConfigModel.optional(),
+    features: FeaturesConfigModel.optional().default({ photospheres: true }),
   })
   .strict();
 

@@ -8,6 +8,8 @@ import { modeForScene } from "@components/story/published/sceneView";
 import openingSceneFor from "@domain/story/publish/support/openingScene";
 import toStoryId from "@domain/story/toStoryId";
 
+import loadConfig from "../../../environment/config";
+
 const storyId = toStoryId(Astro.params.storyId);
 
 if (!storyId) {
@@ -35,10 +37,12 @@ const requestedSceneId = Number(Astro.url.searchParams.get("scene"));
 const firstScene =
   story.scenes.find((scene) => scene.id === requestedSceneId) ??
   openingSceneFor(story);
+// A 2D-only deployment (photospheres off) has already resolved every scene
+// to 2D, and ignores ?view= asking for a photosphere or A-Frame poster.
+const photospheres = loadConfig().features.photospheres;
 const view =
   requestedView === "flat" ||
-  requestedView === "poster" ||
-  requestedView === "360"
+  (photospheres && (requestedView === "poster" || requestedView === "360"))
     ? requestedView
     : modeForScene(story, firstScene) === "2d"
       ? "flat"

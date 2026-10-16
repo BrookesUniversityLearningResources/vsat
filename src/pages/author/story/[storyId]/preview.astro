@@ -1,10 +1,14 @@
 ---
 import ImportAFrameScripts from "@components/story/published/aframe/ImportAFrameScripts.astro";
+import FlatStory from "@components/story/published/flat/FlatStory.astro";
 import PublishedStory from "@components/story/published/PublishedStory.astro";
 import { ErrorCodes } from "@domain/error/errorCode";
 import imageUrlFor from "@domain/story/publish/imageUrlFor";
 import parseStory from "@domain/story/publish/parseStory";
 import toStoryId from "@domain/story/toStoryId";
+import { flattenPublishedStory } from "@domain/story/getPublishedStoryInDatabase";
+
+import loadConfig from "../../../../environment/config";
 
 const storyId = toStoryId(Astro.params.storyId);
 
@@ -30,11 +34,17 @@ if (parseResult.kind !== "storyParsed") {
   return Astro.redirect(`/author/story?err=${ErrorCodes.UnableToPublishStory}`);
 }
 
-const publishedStory = {
+const parsedStory = {
   ...parseResult.story,
   createdAt: new Date(),
   imageUrl: imageUrlFor(story),
 };
+
+// a 2D-only deployment previews flat, as its readers will see the story
+const photospheres = loadConfig().features.photospheres;
+const publishedStory = photospheres
+  ? parsedStory
+  : flattenPublishedStory(parsedStory);
 ---
 
 <!doctype html>
@@ -51,9 +61,15 @@ const publishedStory = {
         author: story.author.name,
       })}
     />
-    <ImportAFrameScripts />
+    {photospheres && <ImportAFrameScripts />}
   </head>
 </html>
 <body>
-  <PublishedStory story={publishedStory} />
+  {
+    photospheres ? (
+      <PublishedStory story={publishedStory} />
+    ) : (
+      <FlatStory story={publishedStory} view="flat" layout="overlay" />
+    )
+  }
 </body>

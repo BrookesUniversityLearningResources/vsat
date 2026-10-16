@@ -41,6 +41,17 @@ be enabled for specific non-local hosts by setting the comma-separated
 `DEV_AUTH_BYPASS_ALLOWED_HOSTS` list; use this only for temporary QA
 environments.
 
+Optional (any deployment):
+
+```
+VSAT_PHOTOSPHERES=false
+```
+
+`VSAT_PHOTOSPHERES=false` makes the deployment 2D-only. Every story and scene
+is read as 2D whatever mode is stored, `?view=360`/`?view=poster` are ignored,
+the editor's Preview is flat, and the 360°/2D mode controls are hidden. The
+VSATLATARIUM is unaffected. It defaults to `true`.
+
 > You'll need to ask
 > [someone on the team](https://github.com/BrookesUniversityLearningResources/vsat/graphs/contributors)
 > for the values.

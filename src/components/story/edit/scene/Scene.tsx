@@ -37,6 +37,8 @@ export type SceneProps = {
     count: number;
     pages: number[];
   };
+  // false on a 2D-only deployment: no per-scene 360°/2D pin
+  photospheres?: boolean;
 };
 
 const Scene: FC<SceneProps> = ({
@@ -45,6 +47,7 @@ const Scene: FC<SceneProps> = ({
   scene: initialScene,
   onSceneChanged,
   linkInfo,
+  photospheres = true,
 }) => {
   const { getScene, saveSceneTitle, saveSceneMode, feedback } =
     useEnvironment<
@@ -177,7 +180,9 @@ const Scene: FC<SceneProps> = ({
         onProposeLink={proposeLinkFromHere}
         mode={scene.mode ?? null}
         storyMode={storyMode}
-        onModeChanged={(mode) => saveTheSceneMode.mutate(mode)}
+        onModeChanged={
+          photospheres ? (mode) => saveTheSceneMode.mutate(mode) : undefined
+        }
         modeSaving={saveTheSceneMode.isPending}
       />
 

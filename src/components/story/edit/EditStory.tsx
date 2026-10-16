@@ -45,9 +45,14 @@ import type { OnStoryChanged } from "./types.js";
 
 type StoryEditorProps = {
   story: PersistentStory;
+  // false on a 2D-only deployment, which hides the 360°/2D mode controls
+  photospheres: boolean;
 };
 
-const StoryEditor: FC<StoryEditorProps> = ({ story: initialStory }) => {
+const StoryEditor: FC<StoryEditorProps> = ({
+  story: initialStory,
+  photospheres,
+}) => {
   const scrollTo = useScrollIntoView();
 
   const { saveStoryTitle, getStory, feedback } = useEnvironment<
@@ -217,6 +222,7 @@ const StoryEditor: FC<StoryEditorProps> = ({ story: initialStory }) => {
           story={story}
           onSceneChanged={onSceneChanged}
           onStoryChanged={onStoryChanged}
+          photospheres={photospheres}
         >
           <StoryOverview
             story={story}
@@ -231,6 +237,7 @@ const StoryEditor: FC<StoryEditorProps> = ({ story: initialStory }) => {
             scenes={story.scenes}
             onSceneChanged={onSceneChanged}
             sceneLinkMap={sceneLinkMap}
+            photospheres={photospheres}
           />
         ) : (
           <NoScenes storyId={story.id} onSceneChanged={onSceneChanged} />
@@ -310,6 +317,7 @@ type ScenesProps = {
   scenes: NonEmptyArray<PersistentScene>;
   onSceneChanged: OnSceneChanged;
   sceneLinkMap: Map<number, { count: number; pages: number[] }>;
+  photospheres: boolean;
 };
 
 const Scenes: FC<ScenesProps> = ({
@@ -318,6 +326,7 @@ const Scenes: FC<ScenesProps> = ({
   scenes,
   onSceneChanged,
   sceneLinkMap,
+  photospheres,
 }) => {
   return (
     <div className="scenes">
@@ -329,6 +338,7 @@ const Scenes: FC<ScenesProps> = ({
           storyMode={storyMode}
           onSceneChanged={onSceneChanged}
           linkInfo={sceneLinkMap.get(scene.id)}
+          photospheres={photospheres}
         />
       ))}
     </div>
@@ -398,6 +408,7 @@ const NoScenes: FC<NoScenesProps> = ({ storyId, onSceneChanged }) => {
 type EditStoryAppProps = PropsWithChildren<{
   translations: Record<string, ResourceKey>;
   story: PersistentStory;
+  photospheres?: boolean;
 }>;
 
 const queryClient = new QueryClient();
@@ -405,6 +416,7 @@ const queryClient = new QueryClient();
 const EditStoryApp: FC<EditStoryAppProps> = ({
   story,
   translations,
+  photospheres = true,
   children,
 }) => {
   const i18n = useI18N(translations, navigator.language);
@@ -414,7 +426,7 @@ const EditStoryApp: FC<EditStoryAppProps> = ({
       <ErrorBoundary fallback={children}>
         <QueryClientProvider client={queryClient}>
           <ClientContext.Provider value={createClientEnvironment(i18n)}>
-            <StoryEditor story={story} />
+            <StoryEditor story={story} photospheres={photospheres} />
           </ClientContext.Provider>
         </QueryClientProvider>
       </ErrorBoundary>

@@ -5,6 +5,7 @@ import StorySummaryGrid from "@components/story/summary/grid/StorySummaryGrid.as
 import { isNonEmptyArray } from "@util/nonEmptyArray";
 import isStewardUser from "@authentication/isStewardUser";
 
+import loadConfig from "../../../environment/config";
 import Layout from "../../../layouts/AuthoringLayout.astro";
 
 import groupByPublicationStatus from "./_groupByPublicationStatus.js";
@@ -76,6 +77,7 @@ const storyUnavailable = errParam === ErrorCodes.StoryNotFound;
       defaultStoryMode={defaultStoryMode}
       translations={translations}
       showCreateStory={isNonEmptyArray(stories.stories)}
+      photospheres={loadConfig().features.photospheres}
       client:only="react"
     />
     {(isSteward || stewardToggleEnabled) && (

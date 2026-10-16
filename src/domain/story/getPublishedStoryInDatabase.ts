@@ -10,9 +10,16 @@ import type {
   StoryMode,
 } from "./publish/types.js";
 
+/**
+ * With photospheres off (features.photospheres=false) every scene and the
+ * story itself resolve to "2d", whatever is stored. Forcing it here, not in
+ * the page, keeps the viewer's scene-to-scene hop (sceneView.ts) in step:
+ * a scene still marked 360 would otherwise bounce the reader forever.
+ */
 function getPublishedStoryInDatabase(
   log: Logger,
   db: GetDatabase,
+  photospheres = true,
 ): GetPublishedStory {
   return async (storyId) => {
     log.debug({ storyId }, "Getting published story");
@@ -49,10 +56,11 @@ function getPublishedStoryInDatabase(
       .where("scene.storyId", "=", storyId)
       .execute();
 
-    return mapPublishedStory(
+    const story = mapPublishedStory(
       row,
       new Map(sceneModes.map((scene) => [scene.id, scene.mode])),
     );
+    return photospheres ? story : flattenPublishedStory(story);
   };
 }
 
@@ -90,5 +98,16 @@ function mapPublishedStory(
     })) as NonEmptyArray<PublishedScene>,
     imageUrl: row.storyImageUrl,
     mode: row.storyMode,
+  };
+}
+
+export function flattenPublishedStory(story: PublishedStory): PublishedStory {
+  return {
+    ...story,
+    scenes: story.scenes.map((scene) => ({
+      ...scene,
+      mode: "2d",
+    })) as NonEmptyArray<PublishedScene>,
+    mode: "2d",
   };
 }

@@ -32,12 +32,15 @@ export type StoryHeaderProps = PropsWithChildren<{
   story: PersistentStory;
   onSceneChanged: OnSceneChanged;
   onStoryChanged: OnStoryChanged;
+  // false on a 2D-only deployment: no 360°/2D mode to switch
+  photospheres?: boolean;
 }>;
 
 const StoryHeader: FC<StoryHeaderProps> = ({
   story,
   onSceneChanged,
   onStoryChanged,
+  photospheres = true,
   children,
 }) => {
   const { t } = useTranslation();
@@ -282,16 +285,18 @@ const StoryHeader: FC<StoryHeaderProps> = ({
           <div className={styles.actions}>
             <a href="/author/story/">{t("action.back-to-my-stories.label")}</a>
             <a href={`/author/story/${story.id}/links`}>Interpretive links</a>
-            <button
-              type="button"
-              onClick={onToggleMode}
-              disabled={saveTheMode.isPending}
-              title="How readers see this story's photos: 360° photospheres or flat 2D"
-            >
-              Mode: {mode === "2d" ? "2D" : "360°"}
-              <br />
-              <small>switch to {mode === "2d" ? "360°" : "2D"}</small>
-            </button>
+            {photospheres && (
+              <button
+                type="button"
+                onClick={onToggleMode}
+                disabled={saveTheMode.isPending}
+                title="How readers see this story's photos: 360° photospheres or flat 2D"
+              >
+                Mode: {mode === "2d" ? "2D" : "360°"}
+                <br />
+                <small>switch to {mode === "2d" ? "360°" : "2D"}</small>
+              </button>
+            )}
             <div className={styles.toolbar}>
               <button
                 type="button"

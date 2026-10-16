@@ -200,7 +200,9 @@ const getEnvironment: App.GetEnvironment = (() => {
       publishStory(log, getStory, publishStoryInDatabase(logDb, getDB)),
     ),
     unpublishStory: tx(unpublishStoryInDatabase(logDb, getDB, getStory)),
-    getPublishedStory: tx(getPublishedStoryInDatabase(log, getDB)),
+    getPublishedStory: tx(
+      getPublishedStoryInDatabase(log, getDB, config.features.photospheres),
+    ),
     getPublishedStorySummaries: tx(
       getPublishedStorySummariesInDatabase(log, getDB),
     ),
