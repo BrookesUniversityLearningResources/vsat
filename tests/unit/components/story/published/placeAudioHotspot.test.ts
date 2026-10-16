@@ -3,8 +3,6 @@ import { describe, test } from "node:test";
 
 import {
   canLoadExternalAudio,
-  findAudioHotspotLine,
-  moveAudioHotspotLine,
   placeAudioHotspot,
   replaceSectionText,
 } from "@components/story/published/placeHotspot";
@@ -117,50 +115,6 @@ describe("canLoadExternalAudio", () => {
           await canLoadExternalAudio("https://blocked.example/audio.mp3"),
           false,
         ),
-    );
-  });
-});
-
-describe("moveAudioHotspotLine", () => {
-  test("rewrites only coordinates and preserves source-line formatting", () => {
-    const line =
-      "  ![ Rain room ]  ( https://media.example/rain.mp3   @   81.30 ,  50.0 )  ";
-    const content = `# First\n${line}\n`;
-
-    assert.equal(
-      moveAudioHotspotLine(content, 0, line, 72.9, 44.4),
-      "# First\n  ![ Rain room ]  ( https://media.example/rain.mp3   @   72.9 ,  44.4 )  \n",
-    );
-  });
-
-  test("moves only the first exact match", () => {
-    const line = "![ambience](audio @ 81.3,50)";
-    const content = `# First\n${line}\n${line}\n`;
-
-    assert.equal(
-      moveAudioHotspotLine(content, 0, line, 70, 40),
-      `# First\n![ambience](audio @ 70,40)\n${line}\n`,
-    );
-  });
-
-  test("is scoped to the requested page", () => {
-    const line = "![ambience](audio @ 81.3,50)";
-    const content = `# First\n${line}\n# Second\n${line}\n`;
-
-    assert.equal(
-      moveAudioHotspotLine(content, 1, line, 60, 30),
-      `# First\n${line}\n# Second\n![ambience](audio @ 60,30)\n`,
-    );
-  });
-
-  test("finds the raw line by published label and coordinates", () => {
-    const line = " ![ ambience ](audio   @ 81.30, 50.0)";
-    const content = `# First\n${line}\n# Second\n![ambience](audio @ 81.3,50)\n`;
-
-    assert.equal(findAudioHotspotLine(content, 0, "ambience", 81.3, 50), line);
-    assert.equal(
-      findAudioHotspotLine(content, 1, "ambience", 81.3, 50),
-      "![ambience](audio @ 81.3,50)",
     );
   });
 });

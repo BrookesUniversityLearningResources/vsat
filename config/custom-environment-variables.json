@@ -16,11 +16,5 @@
       "secretKey": "MAGIC_SECRET_KEY",
       "publicKey": "MAGIC_PUBLISHABLE_KEY"
     }
-  },
-  "features": {
-    "authoring3d": {
-      "__name": "VSAT_AUTHORING_3D",
-      "__format": "boolean"
-    }
   }
 }
