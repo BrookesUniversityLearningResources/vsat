@@ -10,6 +10,7 @@ import { readFile } from "node:fs/promises";
 
 const HOST = "https://vsat-dev-a59e8b7d8397.herokuapp.com";
 const APPLY = process.argv.includes("--apply");
+const CLEANUP_ONLY = process.argv.includes("--cleanup-only");
 const AUTHOR1 = "vsat_demo_author=1; vsat_steward=0";
 const AUTHOR2 = "vsat_demo_author=2; vsat_steward=0";
 
@@ -99,9 +100,19 @@ const author1TestIds = Array.from({ length: 92 }, (_, n) => 1165 + n).filter(
 );
 const author2UnusedIds = [1245, 1246, 1247];
 
+async function visibleStoryIds(cookie) {
+  if (!APPLY) return null;
+  const html = await (await request("/author/story/", { cookie })).text();
+  return new Set(
+    [...html.matchAll(/\/author\/story\/(\d+)/g)].map((match) =>
+      Number(match[1]),
+    ),
+  );
+}
+
 async function request(
   path,
-  { cookie, method = "GET", body, headers = {} } = {},
+  { cookie, method = "GET", body, headers = {}, allowNotFound = false } = {},
 ) {
   if (!APPLY && method !== "GET") {
     console.log(`[dry run] ${method} ${path}`);
@@ -112,7 +123,7 @@ async function request(
     headers: { Cookie: cookie, ...headers },
     body,
   });
-  if (!response.ok) {
+  if (!response.ok && !(allowNotFound && response.status === 404)) {
     throw new Error(
       `${method} ${path}: ${response.status} ${await response.text()}`,
     );
@@ -150,7 +161,7 @@ async function uploadImage(storyId, sceneId, cookie, filename) {
   });
 }
 
-for (const story of stories) {
+for (const story of CLEANUP_ONLY ? [] : stories) {
   await putText(`/api/story/${story.id}/title`, story.cookie, story.title);
   await putText(`/api/story/${story.id}/mode`, story.cookie, "2d");
 
@@ -213,27 +224,44 @@ for (const story of stories) {
 
 // Story 1264 predates 2D mode. Restore its narrative text without the spatial
 // audio markup, retain its two photographs, and republish it as a flat story.
-await putText("/api/story/1264/mode", AUTHOR1, "2d");
-await putText(
-  "/api/story/1264/scene/1530/content",
-  AUTHOR1,
-  "# This weekend I was at a Tai Chi retreat | weekend\n\nWe were in the New Forest.\n\n[Meanwhile…](meanwhile)",
-);
-await putText(
-  "/api/story/1264/scene/1531/content",
-  AUTHOR1,
-  "# Meanwhile | meanwhile\n\nMy main teacher was in China.\n\n[← Back to the New Forest](weekend)",
-);
-await request("/api/story/1264/publish", { cookie: AUTHOR1, method: "POST" });
+if (!CLEANUP_ONLY) {
+  await putText("/api/story/1264/mode", AUTHOR1, "2d");
+  await putText(
+    "/api/story/1264/scene/1530/content",
+    AUTHOR1,
+    "# This weekend I was at a Tai Chi retreat | weekend\n\nWe were in the New Forest.\n\n[Meanwhile…](meanwhile)",
+  );
+  await putText(
+    "/api/story/1264/scene/1531/content",
+    AUTHOR1,
+    "# Meanwhile | meanwhile\n\nMy main teacher was in China.\n\n[← Back to the New Forest](weekend)",
+  );
+  await request("/api/story/1264/publish", { cookie: AUTHOR1, method: "POST" });
 
-await putText("/api/author/1066/default-story-mode", AUTHOR1, "2d");
-await putText("/api/author/1099/default-story-mode", AUTHOR2, "2d");
-
-for (const id of author1TestIds) {
-  await request(`/api/story/${id}`, { cookie: AUTHOR1, method: "DELETE" });
+  await putText("/api/author/1066/default-story-mode", AUTHOR1, "2d");
+  await putText("/api/author/1099/default-story-mode", AUTHOR2, "2d");
 }
-for (const id of author2UnusedIds) {
-  await request(`/api/story/${id}`, { cookie: AUTHOR2, method: "DELETE" });
+
+const visibleToAuthor1 = await visibleStoryIds(AUTHOR1);
+const visibleToAuthor2 = await visibleStoryIds(AUTHOR2);
+
+for (const id of author1TestIds.filter(
+  (id) => visibleToAuthor1?.has(id) ?? true,
+)) {
+  await request(`/api/story/${id}`, {
+    cookie: AUTHOR1,
+    method: "DELETE",
+    allowNotFound: true,
+  });
+}
+for (const id of author2UnusedIds.filter(
+  (id) => visibleToAuthor2?.has(id) ?? true,
+)) {
+  await request(`/api/story/${id}`, {
+    cookie: AUTHOR2,
+    method: "DELETE",
+    allowNotFound: true,
+  });
 }
 
 console.log(
