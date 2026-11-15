@@ -1,3 +1,4 @@
+import routeSiteSettings from "./domain/routeSiteSettings.js";
 import { Magic } from "@magic-sdk/admin";
 import { type RequestHandler, Router } from "express";
 import type { Logger } from "pino";
@@ -58,6 +59,7 @@ export async function createAppParts(): Promise<{
     repositoryStoryEditLog,
     repositoryStoryLink,
     repositoryAnthology,
+    siteSettings,
     repositoryScene,
     database: { connectionPool, db },
   } = getEnvironment<
@@ -68,6 +70,7 @@ export async function createAppParts(): Promise<{
       App.WithStoryEditLogRepository &
       App.WithStoryLinkRepository &
       App.WithAnthologyRepository &
+      App.WithSiteSettings &
       App.WithSceneRepository
   >();
 
@@ -215,6 +218,7 @@ export async function createAppParts(): Promise<{
       canVoteOnStoryLinkInDatabase(() => db),
       repositoryStoryLink.retireStoryLink,
     ),
+    routeSiteSettings(siteSettings, assertIsSteward),
     routeAnthology(
       repositoryAnthology.createAnthology,
       repositoryAnthology.getAnthology,

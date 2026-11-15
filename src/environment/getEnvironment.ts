@@ -271,6 +271,7 @@ const getEnvironment: App.GetEnvironment = (() => {
       publicKey: config.authentication.magic.publicKey,
     },
     ...presentationMode,
+    siteSettings: presentationMode,
     repositoryAuthor,
     repositoryAudio,
     repositoryImage,

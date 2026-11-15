@@ -1,4 +1,5 @@
 ---
+import { showInterpretiveLinkAuthoring } from "@domain/interpretiveLinkVisibility";
 import isStewardUser from "@authentication/isStewardUser";
 import { ErrorCodes } from "@domain/error/errorCode";
 import toStoryId from "@domain/story/toStoryId";
@@ -6,14 +7,18 @@ import Layout from "@layouts/AuthoringLayout.astro";
 
 export const prerender = false;
 
-const { repositoryStory, repositoryStoryLink, i18n } = Astro.locals.environment<
-  App.WithStoryRepository & App.WithStoryLinkRepository & App.WithI18N
+const { repositoryStory, repositoryStoryLink, i18n, siteSettings } = Astro.locals.environment<
+  App.WithSiteSettings & App.WithStoryRepository & App.WithStoryLinkRepository & App.WithI18N
 >();
 
 const storyId = toStoryId(Astro.params.storyId);
 
 if (!storyId) {
   return Astro.redirect(`/author/story?err=${ErrorCodes.StoryNotFound}`);
+}
+
+if (!showInterpretiveLinkAuthoring(await siteSettings.getInterpretiveLinks())) {
+  return Astro.redirect(`/author/story/${storyId}`);
 }
 
 const story = await repositoryStory.getStory({ id: storyId });

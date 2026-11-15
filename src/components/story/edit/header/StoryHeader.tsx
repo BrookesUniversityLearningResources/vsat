@@ -32,6 +32,7 @@ export type StoryHeaderProps = PropsWithChildren<{
   onStoryChanged: OnStoryChanged;
   // false on a 2D-only deployment: no 360°/2D mode to switch
   presentationMode?: PresentationMode;
+  showInterpretiveLinks?: boolean;
 }>;
 
 const StoryHeader: FC<StoryHeaderProps> = ({
@@ -39,6 +40,7 @@ const StoryHeader: FC<StoryHeaderProps> = ({
   onSceneChanged,
   onStoryChanged,
   presentationMode = "both",
+  showInterpretiveLinks = true,
   children,
 }) => {
   const { t } = useTranslation();
@@ -282,7 +284,7 @@ const StoryHeader: FC<StoryHeaderProps> = ({
           </div>
           <div className={styles.actions}>
             <a href="/author/story/">{t("action.back-to-my-stories.label")}</a>
-            <a href={`/author/story/${story.id}/links`}>Interpretive links</a>
+            {showInterpretiveLinks && <a href={`/author/story/${story.id}/links`}>Interpretive links</a>}
             {presentationMode === "both" && (
               <button
                 type="button"

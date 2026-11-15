@@ -460,3 +460,5 @@ export type {
   PresentationMode,
   SavePresentationMode,
 } from "./presentationMode.js";
+
+export type { SiteSettings, InterpretiveLinks } from "./siteSettings.js";

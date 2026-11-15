@@ -38,6 +38,7 @@ export type SceneProps = {
   };
   // false on a 2D-only deployment: no per-scene 360°/2D pin
   presentationMode?: PresentationMode;
+  showInterpretiveLinks?: boolean;
 };
 
 const Scene: FC<SceneProps> = ({
@@ -47,6 +48,7 @@ const Scene: FC<SceneProps> = ({
   onSceneChanged,
   linkInfo,
   presentationMode = "both",
+  showInterpretiveLinks = true,
 }) => {
   const { getScene, saveSceneTitle, saveSceneMode, feedback } = useEnvironment<
     WithGetScene & WithSaveSceneTitle & WithSaveSceneMode & WithFeedback
@@ -177,8 +179,9 @@ const Scene: FC<SceneProps> = ({
             title,
           });
         }}
-        linkInfo={linkInfo}
-        onProposeLink={proposeLinkFromHere}
+        showInterpretiveLinks={showInterpretiveLinks}
+        linkInfo={showInterpretiveLinks ? linkInfo : undefined}
+        onProposeLink={showInterpretiveLinks ? proposeLinkFromHere : undefined}
         mode={scene.mode ?? null}
         storyMode={storyMode}
         onModeChanged={

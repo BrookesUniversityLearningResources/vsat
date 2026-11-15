@@ -46,11 +46,13 @@ type StoryEditorProps = {
   story: PersistentStory;
   // false on a 2D-only deployment, which hides the 360°/2D mode controls
   presentationMode: PresentationMode;
+  showInterpretiveLinks?: boolean;
 };
 
 const StoryEditor: FC<StoryEditorProps> = ({
   story: initialStory,
   presentationMode,
+  showInterpretiveLinks = true,
 }) => {
   const scrollTo = useScrollIntoView();
 
@@ -89,6 +91,7 @@ const StoryEditor: FC<StoryEditorProps> = ({
     Error
   >({
     queryKey: [`story-links-${initialStory.id}`],
+    enabled: showInterpretiveLinks,
     initialData: [],
     queryFn: () =>
       getStoryLinks(initialStory.id).then((result) => {
@@ -218,7 +221,7 @@ const StoryEditor: FC<StoryEditorProps> = ({
           story={story}
           onSceneChanged={onSceneChanged}
           onStoryChanged={onStoryChanged}
-          presentationMode={presentationMode}
+          presentationMode={presentationMode} showInterpretiveLinks={showInterpretiveLinks}
         >
           <StoryOverview
             story={story}
@@ -233,14 +236,14 @@ const StoryEditor: FC<StoryEditorProps> = ({
             scenes={story.scenes}
             onSceneChanged={onSceneChanged}
             sceneLinkMap={sceneLinkMap}
-            presentationMode={presentationMode}
+            presentationMode={presentationMode} showInterpretiveLinks={showInterpretiveLinks}
           />
         ) : (
           <NoScenes storyId={story.id} onSceneChanged={onSceneChanged} />
         )}
       </div>
 
-      <aside className={styles.linkPanel}>
+      {showInterpretiveLinks && <aside className={styles.linkPanel}>
         <div className={styles.linkPanelHeader}>
           <h2>Interpretive links</h2>
           <button
@@ -309,7 +312,7 @@ const StoryEditor: FC<StoryEditorProps> = ({
             <p className={styles.empty}>No inbound links yet.</p>
           )}
         </div>
-      </aside>
+      </aside>}
     </main>
   );
 };
@@ -321,6 +324,7 @@ type ScenesProps = {
   onSceneChanged: OnSceneChanged;
   sceneLinkMap: Map<number, { count: number; pages: number[] }>;
   presentationMode: PresentationMode;
+  showInterpretiveLinks?: boolean;
 };
 
 const Scenes: FC<ScenesProps> = ({
@@ -330,6 +334,7 @@ const Scenes: FC<ScenesProps> = ({
   onSceneChanged,
   sceneLinkMap,
   presentationMode,
+  showInterpretiveLinks = true,
 }) => {
   return (
     <div className="scenes">
@@ -341,7 +346,7 @@ const Scenes: FC<ScenesProps> = ({
           storyMode={storyMode}
           onSceneChanged={onSceneChanged}
           linkInfo={sceneLinkMap.get(scene.id)}
-          presentationMode={presentationMode}
+          presentationMode={presentationMode} showInterpretiveLinks={showInterpretiveLinks}
         />
       ))}
     </div>
@@ -412,6 +417,7 @@ type EditStoryAppProps = PropsWithChildren<{
   translations: Record<string, ResourceKey>;
   story: PersistentStory;
   presentationMode?: PresentationMode;
+  showInterpretiveLinks?: boolean;
 }>;
 
 const queryClient = new QueryClient();
@@ -420,6 +426,7 @@ const EditStoryApp: FC<EditStoryAppProps> = ({
   story,
   translations,
   presentationMode = "both",
+  showInterpretiveLinks = true,
   children,
 }) => {
   const i18n = useI18N(translations, navigator.language);
@@ -429,7 +436,7 @@ const EditStoryApp: FC<EditStoryAppProps> = ({
       <ErrorBoundary fallback={children}>
         <QueryClientProvider client={queryClient}>
           <ClientContext.Provider value={createClientEnvironment(i18n)}>
-            <StoryEditor story={story} presentationMode={presentationMode} />
+            <StoryEditor story={story} presentationMode={presentationMode} showInterpretiveLinks={showInterpretiveLinks} />
           </ClientContext.Provider>
         </QueryClientProvider>
       </ErrorBoundary>

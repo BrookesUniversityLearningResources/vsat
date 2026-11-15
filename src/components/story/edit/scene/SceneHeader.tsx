@@ -18,6 +18,7 @@ export type SceneHeaderProps = {
     pages: number[];
   };
   onProposeLink?: () => void;
+  showInterpretiveLinks?: boolean;
   // null = this scene follows the story's mode
   mode?: StoryMode | null;
   storyMode?: StoryMode;
@@ -32,6 +33,7 @@ const SceneHeader: FC<SceneHeaderProps> = ({
   onTitleChanged,
   linkInfo,
   onProposeLink,
+  showInterpretiveLinks = true,
   mode = null,
   storyMode = "360",
   onModeChanged,
@@ -65,14 +67,14 @@ const SceneHeader: FC<SceneHeaderProps> = ({
         <h2>{t("scene.title.label", { title })}</h2>
       </InlineTextInput>
       <div className={styles.linkMeta}>
-        {linkInfo?.count ? (
+        {showInterpretiveLinks && (linkInfo?.count ? (
           <span className={styles.linkBadge}>
             {linkInfo.count} link{linkInfo.count === 1 ? "" : "s"}
           </span>
         ) : (
           <span className={styles.linkBadgeMuted}>No links</span>
-        )}
-        {linkInfo?.pages?.length ? (
+        ))}
+        {showInterpretiveLinks && linkInfo?.pages?.length ? (
           <span className={styles.pageBadge}>
             Pages {linkInfo.pages.sort((a, b) => a - b).join(", ")}
           </span>

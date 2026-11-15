@@ -115,6 +115,7 @@ const FeaturesConfigModel = z.object({
   // VSAT_PHOTOSPHERES=false
   photospheres: z.boolean().default(true),
   presentation: z.enum(["both", "360", "2d"]).optional(),
+  interpretiveLinks: z.enum(["on", "off"]).optional(),
 });
 
 export type FeaturesConfig = z.infer<typeof FeaturesConfigModel>;

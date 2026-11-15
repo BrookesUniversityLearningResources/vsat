@@ -84,6 +84,7 @@ const storyUnavailable = errParam === ErrorCodes.StoryNotFound;
     {(isSteward || stewardToggleEnabled) && (
       <div class="steward-banner">
         <a href="/author/steward">Open steward console</a>
+        {isSteward && <a href="/author/settings">Site settings</a>}
         {stewardToggleEnabled && (
           <button
             type="button"

@@ -1,12 +1,13 @@
 ---
+import { showInterpretiveLinkAuthoring } from "@domain/interpretiveLinkVisibility";
 import ErrorBoundaryFallback from "@components/error/ErrorBoundaryFallback.astro";
 import EditStory from "@components/story/edit/EditStory";
 import { ErrorCodes } from "@domain/error/errorCode";
 import toStoryId from "@domain/story/toStoryId";
 import Layout from "@layouts/AuthoringLayout.astro";
 
-const { repositoryStory, i18n, getPresentationMode } = Astro.locals.environment<
-  App.WithPresentationMode & App.WithStoryRepository & App.WithI18N
+const { repositoryStory, i18n, getPresentationMode, siteSettings } = Astro.locals.environment<
+  App.WithSiteSettings & App.WithPresentationMode & App.WithStoryRepository & App.WithI18N
 >();
 
 const storyId = toStoryId(Astro.params.storyId);
@@ -35,6 +36,7 @@ const translations = i18n.getTranslationsForPage({
     story={story}
     translations={translations}
     presentationMode={await getPresentationMode()}
+    showInterpretiveLinks={showInterpretiveLinkAuthoring(await siteSettings.getInterpretiveLinks())}
     client:only="react"
   >
     <ErrorBoundaryFallback />

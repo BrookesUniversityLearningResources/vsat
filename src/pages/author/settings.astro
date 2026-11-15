@@ -1,0 +1,63 @@
+---
+import isStewardUser from "@authentication/isStewardUser";
+import { ErrorCodes } from "@domain/error/errorCode";
+import Layout from "@layouts/AuthoringLayout.astro";
+
+export const prerender = false;
+if (!isStewardUser(Astro.locals.user, Astro.request.headers.get("cookie"))) {
+  return Astro.redirect(`/author/story?err=${ErrorCodes.Unauthorized}`);
+}
+const { siteSettings } = Astro.locals.environment<App.WithSiteSettings>();
+const presentation = await siteSettings.getSetting("presentation_mode");
+const links = await siteSettings.getSetting("interpretive_links");
+const settings = [
+  {
+    key: "presentation_mode",
+    label: "Presentation",
+    current: presentation,
+    options: [
+      ["both", "360° and 2D (authors choose)"],
+      ["360", "360° only (no 2D choices shown to authors)"],
+      ["2d", "2D only (everything shown flat)"],
+    ],
+  },
+  {
+    key: "interpretive_links",
+    label: "Interpretive links",
+    current: links,
+    options: [
+      ["on", "On (show link-authoring controls)"],
+      [
+        "off",
+        "Off (hide link-authoring controls; existing reader links remain)",
+      ],
+    ],
+  },
+];
+---
+<Layout title="Site settings" description="Steward controls for authoring and presentation">
+  <main>
+    <h1>Site settings</h1>
+    <a href="/author/story">Back to stories</a>
+    {settings.map(({ key, label, current, options }) => (
+      <form method="post" action="/site-settings">
+        <fieldset>
+          <legend>{label}</legend>
+          <p>{current.source === "stored"
+            ? `Set by ${current.updatedBy ?? "unknown steward"} on ${current.updatedAt?.toISOString() ?? "unknown date"}`
+            : "Deployment default"}</p>
+          <input type="hidden" name="key" value={key} />
+          {options.map(([value, description]) => (
+            <label><input type="radio" name="value" value={value} checked={current.value === value} required /> {description}</label>
+          ))}
+          <button type="submit">Save {label.toLowerCase()}</button>
+        </fieldset>
+      </form>
+    ))}
+  </main>
+</Layout>
+<style>
+  main { max-width: 48rem; margin: 2rem auto; padding: 1rem; }
+  fieldset { margin: 1.5rem 0; padding: 1rem; }
+  label { display: block; margin: 0.75rem 0; }
+</style>
