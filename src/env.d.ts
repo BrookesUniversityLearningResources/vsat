@@ -30,6 +30,11 @@ declare namespace App {
     repositoryImage: import("./domain/index.js").RepositoryImage;
   };
 
+  type WithPresentationMode = {
+    getPresentationMode: import("./domain/presentationMode.js").GetPresentationMode;
+    savePresentationMode: import("./domain/presentationMode.js").SavePresentationMode;
+  };
+
   type WithStoryRepository = {
     repositoryStory: import("./domain/index.js").RepositoryStory;
   };
@@ -66,6 +71,7 @@ declare namespace App {
       WithDatabase &
       WithAuthorRepository &
       WithStoryRepository &
+      WithPresentationMode &
       WithStoryLinkRepository &
       WithStoryEditLogRepository &
       WithAnthologyRepository &

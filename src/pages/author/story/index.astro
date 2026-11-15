@@ -1,11 +1,10 @@
 ---
+import isStewardUser from "@authentication/isStewardUser";
 import NoStories from "@components/story/NoStories.astro";
 import StoriesHeader from "@components/story/StoriesHeader/StoriesHeaderIsland";
 import StorySummaryGrid from "@components/story/summary/grid/StorySummaryGrid.astro";
 import { isNonEmptyArray } from "@util/nonEmptyArray";
-import isStewardUser from "@authentication/isStewardUser";
 
-import loadConfig from "../../../environment/config";
 import Layout from "../../../layouts/AuthoringLayout.astro";
 
 import groupByPublicationStatus from "./_groupByPublicationStatus.js";
@@ -14,17 +13,18 @@ const user = Astro.locals.user;
 if (!user?.id) {
   return Astro.redirect("/login");
 }
-const isSteward = isStewardUser(
-  user,
-  Astro.request.headers.get("cookie"),
-);
+const isSteward = isStewardUser(user, Astro.request.headers.get("cookie"));
 const stewardToggleEnabled =
   process.env.DEV_STEWARD_TOGGLE === "1" ||
   process.env.DEV_STEWARD_TOGGLE === "true";
 
-const { repositoryStory, repositoryAuthor, i18n } = Astro.locals.environment<
-  App.WithStoryRepository & App.WithAuthorRepository & App.WithI18N
->();
+const { repositoryStory, repositoryAuthor, i18n, getPresentationMode } =
+  Astro.locals.environment<
+    App.WithPresentationMode &
+      App.WithStoryRepository &
+      App.WithAuthorRepository &
+      App.WithI18N
+  >();
 
 const defaultStoryMode = await repositoryAuthor.getAuthorDefaultStoryMode(
   user.id,
@@ -56,6 +56,7 @@ const thereIsAtLeastOneStory = isNonEmptyArray(stories.stories);
 // Redirects from an unavailable story land here with ?err= (e.g. a link to a
 // story that is not published yet) — explain instead of dumping silently.
 import { ErrorCodes } from "@domain/error/errorCode";
+
 const errParam = Number(Astro.url.searchParams.get("err"));
 const storyUnavailable = errParam === ErrorCodes.StoryNotFound;
 ---
@@ -77,7 +78,7 @@ const storyUnavailable = errParam === ErrorCodes.StoryNotFound;
       defaultStoryMode={defaultStoryMode}
       translations={translations}
       showCreateStory={isNonEmptyArray(stories.stories)}
-      photospheres={loadConfig().features.photospheres}
+      presentationMode={await getPresentationMode()}
       client:only="react"
     />
     {(isSteward || stewardToggleEnabled) && (

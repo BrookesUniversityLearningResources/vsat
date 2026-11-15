@@ -105,14 +105,16 @@ export const DatabaseConfigModel = z.object({
 
 export type DatabaseConfig = z.infer<typeof DatabaseConfigModel>;
 
-// Per-deployment feature switches, each set with its env var.
+// Environment defaults; the site setting overrides the presentation mode.
 const FeaturesConfigModel = z.object({
-  // 360° photospheres. Off makes the deployment 2D-only: every story and
+  // Legacy VSAT_PHOTOSPHERES fallback when VSAT_PRESENTATION is unset.
+  // Off makes the deployment 2D-only: every story and
   // scene is read as 2D whatever mode is stored, ?view=360/poster is
   // ignored, the editor's preview is flat, and the 360°/2D mode controls
   // are hidden. The VSATLATARIUM is unaffected.
   // VSAT_PHOTOSPHERES=false
   photospheres: z.boolean().default(true),
+  presentation: z.enum(["both", "360", "2d"]).optional(),
 });
 
 export type FeaturesConfig = z.infer<typeof FeaturesConfigModel>;

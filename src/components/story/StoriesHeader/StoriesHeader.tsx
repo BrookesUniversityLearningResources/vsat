@@ -2,6 +2,7 @@ import InlineTextInput, {
   type OnChanged,
 } from "@components/input/InlineTextInput/InlineTextInput";
 import type { PersistentStory } from "@domain/index.js";
+import type { PresentationMode } from "@domain/presentationMode.js";
 import unsupported from "@domain/story/client/unsupportedResult.js";
 import type { StoryMode } from "@domain/story/publish/types.js";
 import { useMutation } from "@tanstack/react-query";
@@ -25,7 +26,7 @@ type StoriesHeaderProps = {
   defaultStoryMode: StoryMode;
   showCreateStory?: boolean;
   // false on a 2D-only deployment, which has no 360°/2D choice to offer
-  photospheres?: boolean;
+  presentationMode?: PresentationMode;
 };
 
 const STORY_MODES: StoryMode[] = ["360", "2d"];
@@ -34,7 +35,7 @@ const StoriesHeader: FC<StoriesHeaderProps> = ({
   author,
   defaultStoryMode: initialDefaultStoryMode,
   showCreateStory = false,
-  photospheres = true,
+  presentationMode = "both",
 }) => {
   const { t } = useTranslation();
 
@@ -117,7 +118,7 @@ const StoriesHeader: FC<StoriesHeaderProps> = ({
         <a href="/logout">{t("common.logout.label")}</a>
       </div>
 
-      {photospheres && (
+      {presentationMode === "both" && (
         <fieldset
           className={styles.defaultStoryMode}
           disabled={saveTheDefaultStoryMode.isPending}

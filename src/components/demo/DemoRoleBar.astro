@@ -17,6 +17,12 @@ import isStewardUser from "@authentication/isStewardUser";
 const enabled =
   process.env.DEMO_ROLE_BAR === "1" || process.env.DEMO_ROLE_BAR === "true";
 
+const presentationMode = enabled
+  ? await Astro.locals
+      .environment<App.WithPresentationMode>()
+      .getPresentationMode()
+  : "both";
+
 // The story seeded with positional audio. Dev data, so it is configurable
 // rather than baked in — reseeding the database changes the id.
 const audioStoryId = process.env.DEMO_AUDIO_STORY_ID ?? "1264";
@@ -101,7 +107,7 @@ const whoami = user?.name ?? "not signed in";
         </span>
       </div>
 
-      <script is:inline define:vars={{ role, audioStoryId }}>
+      <script is:inline define:vars={{ role, audioStoryId, presentationMode }}>
         (() => {
           const bar = document.getElementById("vsat-demo-bar");
           const collapse = document.getElementById("vsat-demo-bar-collapse");
@@ -227,7 +233,7 @@ const whoami = user?.name ?? "not signed in";
               "Author 2 owns a different six — Riverside Walk, The Old Library, Market Day and the rest.",
               "Steward sees and curates everyone's work; an author sees only their own.",
               "Try it: open one of Author 2's stories, then switch to Author 1 — the same page is refused. Switch to Steward and it opens again.",
-              "In a story's editor, the Mode button switches readers between 360° photospheres and flat 2D photos.",
+              ...(presentationMode === "both" ? ["In a story's editor, the Mode button switches readers between 360° photospheres and flat 2D photos."] : []),
               "The steward console lists proposed links awaiting a decision.",
             ],
             steward: [

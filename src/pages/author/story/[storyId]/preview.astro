@@ -2,13 +2,13 @@
 import ImportAFrameScripts from "@components/story/published/aframe/ImportAFrameScripts.astro";
 import FlatStory from "@components/story/published/flat/FlatStory.astro";
 import PublishedStory from "@components/story/published/PublishedStory.astro";
+import { modeForScene } from "@components/story/published/sceneView";
 import { ErrorCodes } from "@domain/error/errorCode";
+import { flattenPublishedStory } from "@domain/story/getPublishedStoryInDatabase";
 import imageUrlFor from "@domain/story/publish/imageUrlFor";
 import parseStory from "@domain/story/publish/parseStory";
+import openingSceneFor from "@domain/story/publish/support/openingScene";
 import toStoryId from "@domain/story/toStoryId";
-import { flattenPublishedStory } from "@domain/story/getPublishedStoryInDatabase";
-
-import loadConfig from "../../../../environment/config";
 
 const storyId = toStoryId(Astro.params.storyId);
 
@@ -16,8 +16,8 @@ if (!storyId) {
   return Astro.redirect(`/author/story?err=${ErrorCodes.StoryNotFound}`);
 }
 
-const { i18n, repositoryStory } = Astro.locals.environment<
-  App.WithI18N & App.WithStoryRepository
+const { i18n, repositoryStory, getPresentationMode } = Astro.locals.environment<
+  App.WithI18N & App.WithStoryRepository & App.WithPresentationMode
 >();
 
 const story = await repositoryStory.getStory({
@@ -34,17 +34,33 @@ if (parseResult.kind !== "storyParsed") {
   return Astro.redirect(`/author/story?err=${ErrorCodes.UnableToPublishStory}`);
 }
 
+const presentationMode = await getPresentationMode();
 const parsedStory = {
   ...parseResult.story,
+  // Parsing omits presentation metadata. In 360-only mode keep existing
+  // flat scenes flat in preview too, rather than putting their photos on sky.
+  ...(presentationMode === "360"
+    ? {
+        mode: story.mode,
+        scenes: parseResult.story.scenes.map((scene) => ({
+          ...scene,
+          mode:
+            story.scenes.find((stored) => stored.id === scene.id)?.mode ??
+            story.mode,
+        })) as typeof parseResult.story.scenes,
+      }
+    : {}),
   createdAt: new Date(),
   imageUrl: imageUrlFor(story),
 };
 
 // a 2D-only deployment previews flat, as its readers will see the story
-const photospheres = loadConfig().features.photospheres;
-const publishedStory = photospheres
-  ? parsedStory
-  : flattenPublishedStory(parsedStory);
+const publishedStory =
+  presentationMode !== "2d" ? parsedStory : flattenPublishedStory(parsedStory);
+const flatPreview =
+  presentationMode === "2d" ||
+  (presentationMode === "360" &&
+    modeForScene(publishedStory, openingSceneFor(publishedStory)) === "2d");
 ---
 
 <!doctype html>
@@ -61,12 +77,12 @@ const publishedStory = photospheres
         author: story.author.name,
       })}
     />
-    {photospheres && <ImportAFrameScripts />}
+    {!flatPreview && <ImportAFrameScripts />}
   </head>
 </html>
 <body>
   {
-    photospheres ? (
+    !flatPreview ? (
       <PublishedStory story={publishedStory} />
     ) : (
       <FlatStory story={publishedStory} view="flat" layout="overlay" />

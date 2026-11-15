@@ -1,4 +1,5 @@
 import type { PersistentStory } from "@domain/index.js";
+import type { PresentationMode } from "@domain/presentationMode.js";
 import type { StoryMode } from "@domain/story/publish/types.js";
 import useI18N from "@i18n/client/useI18N.js";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -16,7 +17,7 @@ type StoriesHeaderIslandProps = {
   author: PersistentStory["author"];
   defaultStoryMode: StoryMode;
   showCreateStory?: boolean;
-  photospheres?: boolean;
+  presentationMode?: PresentationMode;
 };
 
 const queryClient = new QueryClient();
@@ -26,7 +27,7 @@ const StoriesHeaderIsland: FC<StoriesHeaderIslandProps> = ({
   author,
   defaultStoryMode,
   showCreateStory = false,
-  photospheres = true,
+  presentationMode = "both",
 }) => {
   const i18n = useI18N(translations, navigator.language);
 
@@ -38,7 +39,7 @@ const StoriesHeaderIsland: FC<StoriesHeaderIslandProps> = ({
             author={author}
             defaultStoryMode={defaultStoryMode}
             showCreateStory={showCreateStory}
-            photospheres={photospheres}
+            presentationMode={presentationMode}
           />
         </ClientContext.Provider>
       </QueryClientProvider>

@@ -1,9 +1,9 @@
 import type { Logger } from "pino";
-
 import type { GetDatabase } from "../../database/schema.js";
 import type { Json } from "../../util/json/types.js";
 import type { NonEmptyArray } from "../../util/nonEmptyArray.js";
 import type { GetPublishedStory } from "../index.js";
+import type { GetPresentationMode } from "../presentationMode.js";
 import type {
   PublishedScene,
   PublishedStory,
@@ -11,7 +11,7 @@ import type {
 } from "./publish/types.js";
 
 /**
- * With photospheres off (features.photospheres=false) every scene and the
+ * In presentation mode 2d every scene and the
  * story itself resolve to "2d", whatever is stored. Forcing it here, not in
  * the page, keeps the viewer's scene-to-scene hop (sceneView.ts) in step:
  * a scene still marked 360 would otherwise bounce the reader forever.
@@ -19,7 +19,7 @@ import type {
 function getPublishedStoryInDatabase(
   log: Logger,
   db: GetDatabase,
-  photospheres = true,
+  getPresentationMode: GetPresentationMode = async () => "both",
 ): GetPublishedStory {
   return async (storyId) => {
     log.debug({ storyId }, "Getting published story");
@@ -60,7 +60,11 @@ function getPublishedStoryInDatabase(
       row,
       new Map(sceneModes.map((scene) => [scene.id, scene.mode])),
     );
-    return photospheres ? story : flattenPublishedStory(story);
+    // 360-only hides choices, but preserves stored 2D content: flat photos
+    // must not be forced onto a sky. Only 2d mode flattens at read time.
+    return (await getPresentationMode()) === "2d"
+      ? flattenPublishedStory(story)
+      : story;
   };
 }
 

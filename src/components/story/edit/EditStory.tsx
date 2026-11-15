@@ -1,3 +1,4 @@
+import type { PresentationMode } from "@domain/presentationMode.js";
 import {
   QueryClient,
   QueryClientProvider,
@@ -9,9 +10,6 @@ import type { ResourceKey } from "i18next";
 import type { FC, PropsWithChildren } from "react";
 import { ErrorBoundary } from "react-error-boundary";
 import { I18nextProvider, useTranslation } from "react-i18next";
-
-import styles from "./EditStory.module.css";
-
 import type {
   PersistentScene,
   PersistentStory,
@@ -22,36 +20,37 @@ import type { StoryMode } from "../../../domain/story/publish/types.js";
 import useScrollIntoView from "../../../hooks/useScrollIntoView.js";
 import useI18N from "../../../i18n/client/useI18N.js";
 import {
-  type NonEmptyArray,
   isNonEmptyArray,
+  type NonEmptyArray,
 } from "../../../util/nonEmptyArray.js";
 import htmlIdForStory from "../htmlIdForStory.js";
 import StoryOverview from "../overview/StoryOverview.js";
 import {
   ClientContext,
+  createClientEnvironment,
+  useEnvironment,
   type WithCreateScene,
   type WithFeedback,
   type WithGetStory,
   type WithGetStoryLinks,
   type WithSaveStoryTitle,
-  createClientEnvironment,
-  useEnvironment,
 } from "./context/ClientContext.js";
+import styles from "./EditStory.module.css";
 import StoryHeader from "./header/StoryHeader.js";
-import Scene from "./scene/Scene.js";
 import htmlIdForScene from "./scene/htmlIdForScene.js";
+import Scene from "./scene/Scene.js";
 import type { OnSceneChanged } from "./scene/types.js";
 import type { OnStoryChanged } from "./types.js";
 
 type StoryEditorProps = {
   story: PersistentStory;
   // false on a 2D-only deployment, which hides the 360°/2D mode controls
-  photospheres: boolean;
+  presentationMode: PresentationMode;
 };
 
 const StoryEditor: FC<StoryEditorProps> = ({
   story: initialStory,
-  photospheres,
+  presentationMode,
 }) => {
   const scrollTo = useScrollIntoView();
 
@@ -194,10 +193,7 @@ const StoryEditor: FC<StoryEditorProps> = ({
   const outboundLinks = links.filter((link) => link.fromStory.id === story.id);
   const inboundLinks = links.filter((link) => link.toStory.id === story.id);
 
-  const sceneLinkMap = new Map<
-    number,
-    { count: number; pages: number[] }
-  >();
+  const sceneLinkMap = new Map<number, { count: number; pages: number[] }>();
 
   inboundLinks.forEach((link) => {
     if (!link.toScene?.id) return;
@@ -222,7 +218,7 @@ const StoryEditor: FC<StoryEditorProps> = ({
           story={story}
           onSceneChanged={onSceneChanged}
           onStoryChanged={onStoryChanged}
-          photospheres={photospheres}
+          presentationMode={presentationMode}
         >
           <StoryOverview
             story={story}
@@ -237,7 +233,7 @@ const StoryEditor: FC<StoryEditorProps> = ({
             scenes={story.scenes}
             onSceneChanged={onSceneChanged}
             sceneLinkMap={sceneLinkMap}
-            photospheres={photospheres}
+            presentationMode={presentationMode}
           />
         ) : (
           <NoScenes storyId={story.id} onSceneChanged={onSceneChanged} />
@@ -255,7 +251,10 @@ const StoryEditor: FC<StoryEditorProps> = ({
             Refresh
           </button>
         </div>
-        <a className={styles.linkPanelManage} href={`/author/story/${story.id}/links`}>
+        <a
+          className={styles.linkPanelManage}
+          href={`/author/story/${story.id}/links`}
+        >
           Manage links
         </a>
         <div className={styles.linkPanelSection}>
@@ -273,7 +272,9 @@ const StoryEditor: FC<StoryEditorProps> = ({
                         · Scene {link.toScene.title ?? `#${link.toScene.id}`}
                       </span>
                     )}
-                    {link.toPageNumber && <span>· Page {link.toPageNumber}</span>}
+                    {link.toPageNumber && (
+                      <span>· Page {link.toPageNumber}</span>
+                    )}
                   </div>
                 </li>
               ))}
@@ -297,7 +298,9 @@ const StoryEditor: FC<StoryEditorProps> = ({
                         · Scene {link.toScene.title ?? `#${link.toScene.id}`}
                       </span>
                     )}
-                    {link.toPageNumber && <span>· Page {link.toPageNumber}</span>}
+                    {link.toPageNumber && (
+                      <span>· Page {link.toPageNumber}</span>
+                    )}
                   </div>
                 </li>
               ))}
@@ -317,7 +320,7 @@ type ScenesProps = {
   scenes: NonEmptyArray<PersistentScene>;
   onSceneChanged: OnSceneChanged;
   sceneLinkMap: Map<number, { count: number; pages: number[] }>;
-  photospheres: boolean;
+  presentationMode: PresentationMode;
 };
 
 const Scenes: FC<ScenesProps> = ({
@@ -326,7 +329,7 @@ const Scenes: FC<ScenesProps> = ({
   scenes,
   onSceneChanged,
   sceneLinkMap,
-  photospheres,
+  presentationMode,
 }) => {
   return (
     <div className="scenes">
@@ -338,7 +341,7 @@ const Scenes: FC<ScenesProps> = ({
           storyMode={storyMode}
           onSceneChanged={onSceneChanged}
           linkInfo={sceneLinkMap.get(scene.id)}
-          photospheres={photospheres}
+          presentationMode={presentationMode}
         />
       ))}
     </div>
@@ -408,7 +411,7 @@ const NoScenes: FC<NoScenesProps> = ({ storyId, onSceneChanged }) => {
 type EditStoryAppProps = PropsWithChildren<{
   translations: Record<string, ResourceKey>;
   story: PersistentStory;
-  photospheres?: boolean;
+  presentationMode?: PresentationMode;
 }>;
 
 const queryClient = new QueryClient();
@@ -416,7 +419,7 @@ const queryClient = new QueryClient();
 const EditStoryApp: FC<EditStoryAppProps> = ({
   story,
   translations,
-  photospheres = true,
+  presentationMode = "both",
   children,
 }) => {
   const i18n = useI18N(translations, navigator.language);
@@ -426,7 +429,7 @@ const EditStoryApp: FC<EditStoryAppProps> = ({
       <ErrorBoundary fallback={children}>
         <QueryClientProvider client={queryClient}>
           <ClientContext.Provider value={createClientEnvironment(i18n)}>
-            <StoryEditor story={story} photospheres={photospheres} />
+            <StoryEditor story={story} presentationMode={presentationMode} />
           </ClientContext.Provider>
         </QueryClientProvider>
       </ErrorBoundary>

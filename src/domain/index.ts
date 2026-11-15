@@ -454,3 +454,9 @@ export type RepositoryScene = Readonly<{
   saveSceneTitle: SaveSceneTitleInDatabase;
   saveSceneMode: SaveSceneModeInDatabase;
 }>;
+
+export type {
+  GetPresentationMode,
+  PresentationMode,
+  SavePresentationMode,
+} from "./presentationMode.js";

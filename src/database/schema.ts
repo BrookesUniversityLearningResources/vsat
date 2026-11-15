@@ -15,6 +15,7 @@ import type {
 
 // https://kysely.dev/docs/getting-started#types
 export interface Database {
+  siteSetting: TableSiteSetting;
   story: TableStory;
   storyPublished: TableStoryPublished;
   scene: TableScene;
@@ -357,3 +358,10 @@ export type GetStoryEditLogInDatabase = (
 // #endregion StoryEditLog
 
 export type GetDatabase = () => Kysely<Database>;
+
+export interface TableSiteSetting {
+  key: string;
+  value: string;
+  updatedAt: Generated<Date>;
+  updatedBy: string | null;
+}

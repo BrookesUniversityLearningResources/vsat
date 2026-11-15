@@ -5,10 +5,8 @@ import { ErrorCodes } from "@domain/error/errorCode";
 import toStoryId from "@domain/story/toStoryId";
 import Layout from "@layouts/AuthoringLayout.astro";
 
-import loadConfig from "../../../../environment/config";
-
-const { repositoryStory, i18n } = Astro.locals.environment<
-  App.WithStoryRepository & App.WithI18N
+const { repositoryStory, i18n, getPresentationMode } = Astro.locals.environment<
+  App.WithPresentationMode & App.WithStoryRepository & App.WithI18N
 >();
 
 const storyId = toStoryId(Astro.params.storyId);
@@ -36,7 +34,7 @@ const translations = i18n.getTranslationsForPage({
   <EditStory
     story={story}
     translations={translations}
-    photospheres={loadConfig().features.photospheres}
+    presentationMode={await getPresentationMode()}
     client:only="react"
   >
     <ErrorBoundaryFallback />

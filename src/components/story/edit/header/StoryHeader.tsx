@@ -1,21 +1,19 @@
-import { useMutation } from "@tanstack/react-query";
-import { useCallback, useState, type FC, type PropsWithChildren } from "react";
-import { useTranslation } from "react-i18next";
-
-import styles from "./StoryHeader.module.css";
-
 import InlineTextInput, {
   type OnChanged,
 } from "@components/input/InlineTextInput/InlineTextInput.js";
-
+import type { PresentationMode } from "@domain/presentationMode.js";
+import { useMutation } from "@tanstack/react-query";
+import { type FC, type PropsWithChildren, useCallback, useState } from "react";
+import { useTranslation } from "react-i18next";
 import type {
   PersistentScene,
   PersistentStory,
 } from "../../../../domain/index.js";
-import type { StoryMode } from "../../../../domain/story/publish/types.js";
 import unsupported from "../../../../domain/story/client/unsupportedResult.js";
+import type { StoryMode } from "../../../../domain/story/publish/types.js";
 import { isNonEmptyArray } from "../../../../util/nonEmptyArray.js";
 import {
+  useEnvironment,
   type WithCreateScene,
   type WithDeleteStory,
   type WithFeedback,
@@ -23,24 +21,24 @@ import {
   type WithPublishStory,
   type WithSaveStoryMode,
   type WithUnpublishStory,
-  useEnvironment,
 } from "../context/ClientContext.js";
 import type { OnSceneChanged } from "../scene/types.js";
 import type { OnStoryChanged } from "../types.js";
+import styles from "./StoryHeader.module.css";
 
 export type StoryHeaderProps = PropsWithChildren<{
   story: PersistentStory;
   onSceneChanged: OnSceneChanged;
   onStoryChanged: OnStoryChanged;
   // false on a 2D-only deployment: no 360°/2D mode to switch
-  photospheres?: boolean;
+  presentationMode?: PresentationMode;
 }>;
 
 const StoryHeader: FC<StoryHeaderProps> = ({
   story,
   onSceneChanged,
   onStoryChanged,
-  photospheres = true,
+  presentationMode = "both",
   children,
 }) => {
   const { t } = useTranslation();
@@ -285,7 +283,7 @@ const StoryHeader: FC<StoryHeaderProps> = ({
           <div className={styles.actions}>
             <a href="/author/story/">{t("action.back-to-my-stories.label")}</a>
             <a href={`/author/story/${story.id}/links`}>Interpretive links</a>
-            {photospheres && (
+            {presentationMode === "both" && (
               <button
                 type="button"
                 onClick={onToggleMode}

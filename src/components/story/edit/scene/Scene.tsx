@@ -1,8 +1,6 @@
+import type { PresentationMode } from "@domain/presentationMode.js";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import type { FC } from "react";
-
-import styles from "./Scene.module.css";
-
 import type {
   PersistentScene,
   PersistentStory,
@@ -10,17 +8,18 @@ import type {
 import unsupported from "../../../../domain/story/client/unsupportedResult.js";
 import type { StoryMode } from "../../../../domain/story/publish/types.js";
 import {
+  useEnvironment,
   type WithFeedback,
   type WithGetScene,
   type WithSaveSceneMode,
   type WithSaveSceneTitle,
-  useEnvironment,
 } from "../context/ClientContext.js";
-import SceneHeader from "./SceneHeader.js";
 import SceneAudio from "./audio/SceneAudio.js";
 import SceneFiction from "./fiction/SceneFiction.js";
 import htmlIdForScene from "./htmlIdForScene.js";
 import SceneImage from "./image/SceneImage.js";
+import styles from "./Scene.module.css";
+import SceneHeader from "./SceneHeader.js";
 import type { OnSceneChanged, SceneTitleChanged } from "./types.js";
 
 export type SceneTitleChangeEvent = {
@@ -38,7 +37,7 @@ export type SceneProps = {
     pages: number[];
   };
   // false on a 2D-only deployment: no per-scene 360°/2D pin
-  photospheres?: boolean;
+  presentationMode?: PresentationMode;
 };
 
 const Scene: FC<SceneProps> = ({
@@ -47,12 +46,11 @@ const Scene: FC<SceneProps> = ({
   scene: initialScene,
   onSceneChanged,
   linkInfo,
-  photospheres = true,
+  presentationMode = "both",
 }) => {
-  const { getScene, saveSceneTitle, saveSceneMode, feedback } =
-    useEnvironment<
-      WithGetScene & WithSaveSceneTitle & WithSaveSceneMode & WithFeedback
-    >();
+  const { getScene, saveSceneTitle, saveSceneMode, feedback } = useEnvironment<
+    WithGetScene & WithSaveSceneTitle & WithSaveSceneMode & WithFeedback
+  >();
 
   const { data: scene, refetch } = useQuery<PersistentScene, Error>({
     enabled: false,
@@ -160,7 +158,10 @@ const Scene: FC<SceneProps> = ({
     const storyIndex = parts.indexOf("story");
     const resolvedStoryId =
       storyIndex >= 0 ? Number(parts[storyIndex + 1]) : storyId;
-    const url = new URL(`/author/story/${resolvedStoryId}/links`, location.origin);
+    const url = new URL(
+      `/author/story/${resolvedStoryId}/links`,
+      location.origin,
+    );
     url.searchParams.set("contextSceneId", String(scene.id));
     location.href = url.toString();
   };
@@ -181,7 +182,9 @@ const Scene: FC<SceneProps> = ({
         mode={scene.mode ?? null}
         storyMode={storyMode}
         onModeChanged={
-          photospheres ? (mode) => saveTheSceneMode.mutate(mode) : undefined
+          presentationMode === "both"
+            ? (mode) => saveTheSceneMode.mutate(mode)
+            : undefined
         }
         modeSaving={saveTheSceneMode.isPending}
       />

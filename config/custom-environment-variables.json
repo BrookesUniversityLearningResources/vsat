@@ -18,6 +18,7 @@
     }
   },
   "features": {
+    "presentation": "VSAT_PRESENTATION",
     "photospheres": {
       "__name": "VSAT_PHOTOSPHERES",
       "__format": "boolean"

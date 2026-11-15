@@ -1,7 +1,6 @@
 import i18n from "i18next";
 import pg from "pg";
 import pino from "pino";
-
 import createKysely from "../database/createKysely.js";
 import type { Database } from "../database/schema.js";
 import withTransaction from "../database/transaction/withTransaction.js";
@@ -40,6 +39,7 @@ import type {
   RepositoryStoryEditLog,
   RepositoryStoryLink,
 } from "../domain/index.js";
+import presentationModeInDatabase from "../domain/presentationMode.js";
 import createScene from "../domain/story/createScene.js";
 import createSceneInDatabase from "../domain/story/createSceneInDatabase.js";
 import createStory from "../domain/story/createStory.js";
@@ -102,6 +102,11 @@ const getEnvironment: App.GetEnvironment = (() => {
   const db = createKysely<Database>(logDb, config.database.log, connectionPool);
 
   const [tx, getDB] = withTransaction(logDb, db);
+
+  const presentationMode = presentationModeInDatabase(
+    () => db,
+    config.features,
+  );
 
   const repositoryImage: RepositoryImage = {
     getImageById: tx(getImageByIdInDatabase(logDb, getDB)),
@@ -180,6 +185,7 @@ const getEnvironment: App.GetEnvironment = (() => {
         log,
         saveStory,
         getAuthorDefaultStoryModeInDatabase(logDb, getDB),
+        presentationMode.getPresentationMode,
       ),
     ),
     saveStory,
@@ -201,7 +207,11 @@ const getEnvironment: App.GetEnvironment = (() => {
     ),
     unpublishStory: tx(unpublishStoryInDatabase(logDb, getDB, getStory)),
     getPublishedStory: tx(
-      getPublishedStoryInDatabase(log, getDB, config.features.photospheres),
+      getPublishedStoryInDatabase(
+        log,
+        getDB,
+        presentationMode.getPresentationMode,
+      ),
     ),
     getPublishedStorySummaries: tx(
       getPublishedStorySummariesInDatabase(log, getDB),
@@ -260,6 +270,7 @@ const getEnvironment: App.GetEnvironment = (() => {
     magic: {
       publicKey: config.authentication.magic.publicKey,
     },
+    ...presentationMode,
     repositoryAuthor,
     repositoryAudio,
     repositoryImage,
