@@ -40,7 +40,7 @@ const settings = [
     <h1>Site settings</h1>
     <a href="/author/story">Back to stories</a>
     {settings.map(({ key, label, current, options }) => (
-      <form method="post" action="/site-settings">
+      <form method="post" action="/api/site-settings">
         <fieldset>
           <legend>{label}</legend>
           <p>{current.source === "stored"
