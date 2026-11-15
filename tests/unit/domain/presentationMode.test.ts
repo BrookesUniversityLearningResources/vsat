@@ -70,15 +70,10 @@ test("presentation precedence includes invalid DB fallback and legacy false", ()
   assert.equal(resolvePresentationMode(undefined, {}), "both");
 });
 
-test("DB-backed cache expires, save upserts audit fields and invalidates", async () => {
+test("a save through one instance is read at once by another (API and pages are separate bundles)", async () => {
   let value: string | undefined;
-  let reads = 0;
-  let clock = 0;
   const db = database((q) => {
-    if (q.sql.startsWith("select")) {
-      reads++;
-      return value ? [{ value }] : [];
-    }
+    if (q.sql.startsWith("select")) return value ? [{ value }] : [];
     assert.match(q.sql, /insert into "site_setting"/);
     assert.match(q.sql, /on conflict \("key"\) do update/);
     assert.match(q.sql, /"updated_at" = now\(\)/);
@@ -86,22 +81,17 @@ test("DB-backed cache expires, save upserts audit fields and invalidates", async
     value = q.parameters[1] as string;
     return [];
   });
-  const settings = presentationModeInDatabase(
-    () => db,
-    { photospheres: false },
-    () => clock,
-  );
-  assert.equal(await settings.getPresentationMode(), "2d");
-  value = "both";
-  assert.equal(await settings.getPresentationMode(), "2d");
-  assert.equal(reads, 1);
-  clock = 30_000;
-  assert.equal(await settings.getPresentationMode(), "both");
-  await settings.savePresentationMode("360", "steward-test");
-  assert.equal(await settings.getPresentationMode(), "360");
-  assert.equal(reads, 3);
+  // Two instances over one database, as in production: the Express API
+  // saves, the Astro pages read.
+  const api = presentationModeInDatabase(() => db, { photospheres: false });
+  const pages = presentationModeInDatabase(() => db, { photospheres: false });
+  assert.equal(await pages.getPresentationMode(), "2d");
+  await api.savePresentationMode("360", "steward-test");
+  assert.equal(await pages.getPresentationMode(), "360");
+  await api.savePresentationMode("both", "steward-test");
+  assert.equal(await pages.getPresentationMode(), "both");
   await assert.rejects(
-    settings.savePresentationMode("invalid" as PresentationMode, null),
+    api.savePresentationMode("invalid" as PresentationMode, null),
   );
   await db.destroy();
 });

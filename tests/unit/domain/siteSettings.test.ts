@@ -73,7 +73,7 @@ test("interpretive links precedence includes invalid DB fallback", () => {
   assert.equal(resolveInterpretiveLinks(undefined), "on");
 });
 
-test("settings provenance and cross-key cache invalidation", async () => {
+test("settings provenance; a stored change is read at once", async () => {
   const { db, rows, settings } = store();
   assert.deepEqual(await settings.getSetting("interpretive_links"), {
     value: "off",
@@ -86,8 +86,6 @@ test("settings provenance and cross-key cache invalidation", async () => {
     updated_at: new Date(0),
     updated_by: "curator@example.test",
   });
-  assert.equal(await settings.getInterpretiveLinks(), "off");
-  await settings.savePresentationMode("360", "curator@example.test");
   assert.deepEqual(await settings.getSetting("interpretive_links"), {
     value: "on",
     source: "stored",

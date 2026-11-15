@@ -57,17 +57,13 @@ export function resolveInterpretiveLinks(
 export default function siteSettingsInDatabase(
   db: GetDatabase,
   env: SettingDefaults,
-  now: () => number = Date.now,
 ) {
-  const cached = new Map<
-    SettingKey,
-    { setting: Setting<SettingKey>; until: number }
-  >();
-  let revision = 0;
+  // No in-process cache: the Express API and the Astro pages are separate
+  // bundles, so each would hold its own cache and a save through the API
+  // could not invalidate the pages' copy (seen on vsat-dev 2026-11-15: the
+  // settings page showed the old value for 30 s after Save). One indexed
+  // read per page is cheap.
   async function getSetting<K extends SettingKey>(key: K): Promise<Setting<K>> {
-    const hit = cached.get(key);
-    if (hit && now() < hit.until) return hit.setting as Setting<K>;
-    const observedRevision = revision;
     const row = await db()
       .selectFrom("siteSetting")
       .select(["value", "updatedBy", "updatedAt"])
@@ -84,8 +80,6 @@ export default function siteSettingsInDatabase(
       updatedBy: stored ? row.updatedBy : null,
       updatedAt: stored ? row.updatedAt : null,
     } as Setting<K>;
-    if (revision === observedRevision)
-      cached.set(key, { setting, until: now() + 30_000 });
     return setting;
   }
   async function saveSetting<K extends SettingKey>(
@@ -103,8 +97,6 @@ export default function siteSettingsInDatabase(
           .doUpdateSet({ value, updatedBy: by, updatedAt: sql<Date>`now()` }),
       )
       .execute();
-    revision++;
-    cached.clear();
   }
   return {
     getSetting,
