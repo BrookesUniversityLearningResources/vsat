@@ -24,15 +24,22 @@
   }
 }
 
+/* Narrow editor column (published story, or browser zoom/display scaling):
+   wrap whole items, never inside a link, and keep the toolbar in one piece.
+   `.actions` is display: contents so its links share a line with the
+   published-story link and the toolbar wraps below them as a unit. */
 .actionBar {
   display: flex;
-  justify-content: space-between;
-  gap: 1rem;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: 1rem;
+  row-gap: 0.5rem;
 
   a,
   a:visited {
     color: var(--color-text);
     font-size: 1.5rem;
+    white-space: nowrap;
   }
   a:hover {
     text-decoration: underline;
@@ -41,6 +48,7 @@
 
 .linkPublished {
   display: flex;
+  align-items: center;
   gap: 0.5rem;
   justify-content: unset;
 
@@ -67,14 +75,20 @@
   }
 }
 
+/* beats `.contentMain div:first-child`, which also matches this div */
+.actionBar .linkPublished:empty {
+  display: none;
+}
+
 .actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 1rem;
+  display: contents;
 }
 
 .toolbar {
-  display: inline-block;
+  display: inline-flex;
+  flex-wrap: nowrap;
+  flex-shrink: 0;
+  margin-left: auto;
 }
 
 .toolbar button {
