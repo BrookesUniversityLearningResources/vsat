@@ -172,21 +172,6 @@ const serializedStory = DOMPurify.sanitize(
           this.render(window.current, { isSceneChange: !!change.toScene });
         }
       },
-      pointermove: function () {
-        const audioContext = AFRAME.THREE.AudioContext.getContext();
-        if (audioContext.state === "suspended") {
-          void audioContext.resume().catch(() => undefined);
-        }
-
-        [this.el, ...document.querySelectorAll("[scene-audio-hotspot]")]
-          .map((entity) => entity.components?.sound)
-          .filter(Boolean)
-          .forEach((sound) => {
-            if (!sound.isPlaying) {
-              sound.playSound?.();
-            }
-          });
-      },
     },
     render: function (current: Current, options: RenderOptions) {
       const sky = document.querySelector("a-sky");
